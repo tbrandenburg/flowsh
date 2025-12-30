@@ -1,0 +1,1810 @@
+# flowsh Workflow YAML Schema Definition
+# Version: 1.0
+# This is a comprehensive JSON Schema definition for flowsh workflows in YAML format
+# Generated through reverse engineering of the flowsh codebase
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://flowsh.ai/schemas/workflow/v1"
+title: "flowsh Workflow Schema"
+description: "Complete schema definition for flowsh AI workflow configurations"
+version: "1.0"
+
+type: object
+required: ["version", "kind", "spec"]
+properties:
+  version:
+    type: string
+    enum: ["1.0"]
+    description: "Schema version for workflow definition"
+    
+  kind:
+    type: string
+    enum: ["Workflow"]
+    description: "Resource type identifier"
+    
+  metadata:
+    $ref: "#/definitions/WorkflowMetadata"
+    
+  spec:
+    $ref: "#/definitions/WorkflowSpec"
+
+definitions:
+  # Core Workflow Definition
+  WorkflowMetadata:
+    type: object
+    properties:
+      id:
+        type: string
+        description: "Unique workflow identifier"
+      name:
+        type: string
+        description: "Human-readable workflow name"
+      description:
+        type: string
+        description: "Workflow description"
+      version:
+        type: string
+        default: "1"
+        description: "Workflow version"
+      created_by:
+        type: string
+        description: "Creator user ID"
+      updated_by:
+        type: string
+        description: "Last modifier user ID"
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+      annotations:
+        type: object
+        additionalProperties:
+          type: string
+
+  WorkflowSpec:
+    type: object
+    required: ["graph"]
+    properties:
+      graph:
+        $ref: "#/definitions/WorkflowGraph"
+      features:
+        $ref: "#/definitions/WorkflowFeatures"
+      environment_variables:
+        type: array
+        items:
+          $ref: "#/definitions/EnvironmentVariable"
+      conversation_variables:
+        type: array
+        items:
+          $ref: "#/definitions/ConversationVariable"
+      system_parameters:
+        $ref: "#/definitions/SystemParameters"
+      execution_config:
+        $ref: "#/definitions/ExecutionConfig"
+
+  # Graph Structure
+  WorkflowGraph:
+    type: object
+    required: ["nodes", "edges"]
+    properties:
+      nodes:
+        type: array
+        items:
+          $ref: "#/definitions/Node"
+        description: "List of workflow nodes"
+      edges:
+        type: array
+        items:
+          $ref: "#/definitions/Edge"
+        description: "List of connections between nodes"
+      viewport:
+        $ref: "#/definitions/Viewport"
+        description: "Canvas viewport configuration"
+
+  # Node Definitions
+  Node:
+    type: object
+    required: ["id", "type", "data"]
+    properties:
+      id:
+        type: string
+        description: "Unique node identifier"
+      type:
+        $ref: "#/definitions/NodeType"
+      data:
+        oneOf:
+          - $ref: "#/definitions/StartNodeData"
+          - $ref: "#/definitions/EndNodeData"
+          - $ref: "#/definitions/LLMNodeData"
+          - $ref: "#/definitions/ToolNodeData"
+          - $ref: "#/definitions/AgentNodeData"
+          - $ref: "#/definitions/IfElseNodeData"
+          - $ref: "#/definitions/QuestionClassifierNodeData"
+          - $ref: "#/definitions/IterationNodeData"
+          - $ref: "#/definitions/LoopNodeData"
+          - $ref: "#/definitions/CodeNodeData"
+          - $ref: "#/definitions/HttpRequestNodeData"
+          - $ref: "#/definitions/KnowledgeRetrievalNodeData"
+          - $ref: "#/definitions/ParameterExtractorNodeData"
+          - $ref: "#/definitions/TemplateTransformNodeData"
+          - $ref: "#/definitions/AnswerNodeData"
+          - $ref: "#/definitions/VariableAssignerNodeData"
+          - $ref: "#/definitions/VariableAggregatorNodeData"
+          - $ref: "#/definitions/DocumentExtractorNodeData"
+          - $ref: "#/definitions/ListOperatorNodeData"
+      position:
+        $ref: "#/definitions/Position"
+      width:
+        type: number
+        default: 240
+      height:
+        type: number
+      selected:
+        type: boolean
+        default: false
+      dragging:
+        type: boolean
+        default: false
+      # Nested workflow context
+      isInIteration:
+        type: boolean
+        default: false
+        description: "Whether this node is inside an iteration container"
+      iteration_id:
+        type: string
+        description: "ID of the parent iteration node (if isInIteration is true)"
+      isInLoop:
+        type: boolean
+        default: false
+        description: "Whether this node is inside a loop container"
+      loop_id:
+        type: string
+        description: "ID of the parent loop node (if isInLoop is true)"
+
+  NodeType:
+    type: string
+    enum:
+      - "start"
+      - "end"
+      - "llm"
+      - "tool"
+      - "agent"
+      - "if-else"
+      - "question-classifier"
+      - "iteration"
+      - "loop"
+      - "code"
+      - "http-request"
+      - "knowledge-retrieval"
+      - "parameter-extractor"
+      - "template-transform"
+      - "answer"
+      - "variable-assigner"
+      - "variable-aggregator" 
+      - "document-extractor"
+      - "list-operator"
+      - "datasource"
+      - "knowledge-base"
+
+  # Base Node Data Structure
+  BaseNodeData:
+    type: object
+    required: ["title"]
+    properties:
+      title:
+        type: string
+        description: "Node display name"
+      desc:
+        type: string
+        description: "Node description"
+      version:
+        type: string
+        default: "1"
+        description: "Node schema version"
+      error_strategy:
+        $ref: "#/definitions/ErrorStrategy"
+      default_value:
+        type: array
+        items:
+          $ref: "#/definitions/DefaultValue"
+      retry_config:
+        $ref: "#/definitions/RetryConfig"
+
+  # Specific Node Data Types
+  StartNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          variables:
+            type: array
+            items:
+              $ref: "#/definitions/VariableEntity"
+            description: "Input variable definitions"
+
+  EndNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          outputs:
+            type: object
+            additionalProperties: true
+
+  LLMNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["model", "prompt_template"]
+        properties:
+          model:
+            $ref: "#/definitions/ModelConfig"
+          prompt_template:
+            oneOf:
+              - type: array
+                items:
+                  $ref: "#/definitions/LLMMessage"
+                description: "Inline chat messages"
+              - $ref: "#/definitions/LLMCompletionPrompt"
+                description: "Inline completion prompt"
+              - $ref: "#/definitions/TemplateReference"
+                description: "Reference to external prompt template"
+          template_parameters:
+            type: object
+            description: "Parameter overrides for referenced templates"
+            additionalProperties: true
+          advanced_prompt_config:
+            $ref: "#/definitions/AdvancedPromptConfig"
+          prompt_config:
+            $ref: "#/definitions/PromptConfig"
+          context:
+            $ref: "#/definitions/ContextConfig"
+          vision:
+            $ref: "#/definitions/VisionConfig"
+          memory:
+            $ref: "#/definitions/MemoryConfig"
+          structured_output:
+            type: object
+            description: "JSON schema for structured output"
+          structured_output_enabled:
+            type: boolean
+            default: false
+          reasoning_format:
+            type: string
+            enum: ["tagged", "separated"]
+
+  ToolNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["provider_id", "provider_type", "tool_name"]
+        properties:
+          provider_id:
+            type: string
+          provider_type:
+            type: string
+            enum: ["built-in", "app", "plugin"]
+          provider_name:
+            type: string
+          tool_name:
+            type: string
+          tool_configurations:
+            type: object
+            additionalProperties: true
+          tool_parameters:
+            type: object
+            additionalProperties:
+              $ref: "#/definitions/ToolInput"
+          credential_id:
+            type: string
+
+  AgentNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["agent_strategy_provider_name", "agent_strategy_name"]
+        properties:
+          agent_strategy_provider_name:
+            type: string
+          agent_strategy_name:
+            type: string
+          memory:
+            $ref: "#/definitions/MemoryConfig"
+          agent_parameters:
+            type: object
+            additionalProperties:
+              $ref: "#/definitions/AgentInput"
+
+  IfElseNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          logical_operator:
+            type: string
+            enum: ["and", "or"]
+            default: "and"
+          conditions:
+            type: array
+            items:
+              $ref: "#/definitions/Condition"
+          cases:
+            type: array
+            items:
+              $ref: "#/definitions/ConditionalCase"
+
+  QuestionClassifierNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["query_variable_selector", "model", "classes"]
+        properties:
+          query_variable_selector:
+            $ref: "#/definitions/VariableSelector"
+          model:
+            $ref: "#/definitions/ModelConfig"
+          classes:
+            type: array
+            items:
+              $ref: "#/definitions/ClassifierClass"
+          instruction:
+            type: string
+          memory:
+            $ref: "#/definitions/MemoryConfig"
+          vision:
+            $ref: "#/definitions/VisionConfig"
+
+  IterationNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["iterator_selector", "output_selector"]
+        properties:
+          iterator_selector:
+            $ref: "#/definitions/VariableSelector"
+            description: "Variable containing array to iterate over"
+          output_selector:
+            $ref: "#/definitions/VariableSelector"
+            description: "Variable to collect iteration outputs"
+          start_node_id:
+            type: string
+            description: "ID of the first node in the sub-workflow (entry point)"
+          is_parallel:
+            type: boolean
+            default: false
+            description: "Whether to execute iterations in parallel"
+          parallel_nums:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+            description: "Maximum number of parallel executions"
+          error_handle_mode:
+            type: string
+            enum: ["terminated", "continue-on-error", "remove-abnormal-output"]
+            default: "terminated"
+            description: "How to handle errors in child nodes"
+          flatten_output:
+            type: boolean
+            default: true
+            description: "Whether to flatten nested array outputs"
+        description: |
+          Iteration nodes create sub-workflows that process array items.
+          Child nodes reference this iteration via iteration_id field.
+          All nodes with iteration_id matching this node's ID are part of the sub-workflow.
+
+  LoopNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["loop_count"]
+        properties:
+          loop_count:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            description: "Maximum number of loop iterations"
+          break_conditions:
+            type: array
+            items:
+              $ref: "#/definitions/Condition"
+            description: "Conditions that will exit the loop early"
+          logical_operator:
+            type: string
+            enum: ["and", "or"]
+            default: "and"
+            description: "Logic operator for combining break conditions"
+          start_node_id:
+            type: string
+            description: "ID of the first node in the sub-workflow (entry point)"
+          loop_variables:
+            type: array
+            items:
+              $ref: "#/definitions/LoopVariable"
+            description: "Variables maintained across loop iterations"
+          outputs:
+            type: object
+            additionalProperties: true
+            description: "Output variable definitions"
+        description: |
+          Loop nodes create sub-workflows that execute repeatedly until conditions are met.
+          Child nodes reference this loop via loop_id field.
+          All nodes with loop_id matching this node's ID are part of the sub-workflow.
+
+  CodeNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["code_language", "code"]
+        properties:
+          variables:
+            type: array
+            items:
+              $ref: "#/definitions/VariableSelector"
+          code_language:
+            type: string
+            enum: ["python3", "javascript"]
+          code:
+            type: string
+          outputs:
+            type: object
+            additionalProperties:
+              $ref: "#/definitions/OutputVariable"
+          dependencies:
+            type: array
+            items:
+              $ref: "#/definitions/CodeDependency"
+
+  HttpRequestNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["method", "url"]
+        properties:
+          method:
+            type: string
+            enum: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          url:
+            type: string
+            format: uri
+          headers:
+            type: string
+            description: "JSON string of headers"
+          params:
+            type: string
+            description: "JSON string of query parameters"
+          authorization:
+            $ref: "#/definitions/HttpAuthorization"
+          body:
+            $ref: "#/definitions/HttpRequestBody"
+          timeout:
+            $ref: "#/definitions/HttpTimeout"
+          ssl_verify:
+            type: boolean
+            default: true
+
+  KnowledgeRetrievalNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["query_variable_selector", "dataset_ids", "retrieval_mode"]
+        properties:
+          query_variable_selector:
+            $ref: "#/definitions/VariableSelector"
+          dataset_ids:
+            type: array
+            items:
+              type: string
+          retrieval_mode:
+            type: string
+            enum: ["single", "multiple"]
+          multiple_retrieval_config:
+            $ref: "#/definitions/MultipleRetrievalConfig"
+          single_retrieval_config:
+            $ref: "#/definitions/SingleRetrievalConfig"
+
+  ParameterExtractorNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["model", "query", "parameters"]
+        properties:
+          model:
+            $ref: "#/definitions/ModelConfig"
+          query:
+            $ref: "#/definitions/VariableSelector"
+          instruction:
+            type: string
+          reasoning_mode:
+            type: string
+            enum: ["function_call", "prompt"]
+            default: "function_call"
+          parameters:
+            type: array
+            items:
+              $ref: "#/definitions/ParameterConfig"
+          memory:
+            $ref: "#/definitions/MemoryConfig"
+          vision:
+            $ref: "#/definitions/VisionConfig"
+
+  TemplateTransformNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["template"]
+        properties:
+          variables:
+            type: array
+            items:
+              $ref: "#/definitions/VariableSelector"
+          template:
+            oneOf:
+              - type: string
+                description: "Inline Jinja2 template string"
+              - $ref: "#/definitions/TemplateReference"
+                description: "Reference to external template"
+          template_validation:
+            $ref: "#/definitions/TemplateValidationConfig"
+
+  AnswerNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        required: ["answer"]
+        properties:
+          answer:
+            type: string
+            description: "Answer template with variable references"
+
+  VariableAssignerNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          variables:
+            type: array
+            items:
+              $ref: "#/definitions/VariableAssignment"
+
+  VariableAggregatorNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          variables:
+            type: array
+            items:
+              $ref: "#/definitions/VariableSelector"
+
+  DocumentExtractorNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          variable_selector:
+            $ref: "#/definitions/VariableSelector"
+
+  ListOperatorNodeData:
+    allOf:
+      - $ref: "#/definitions/BaseNodeData"
+      - type: object
+        properties:
+          variable_selector:
+            $ref: "#/definitions/VariableSelector"
+          operation:
+            type: string
+            enum: ["filter", "map", "reduce", "sort"]
+
+  # Edge Definition
+  Edge:
+    type: object
+    required: ["id", "source", "target"]
+    properties:
+      id:
+        type: string
+        description: "Unique edge identifier"
+      source:
+        type: string
+        description: "Source node ID"
+      target:
+        type: string
+        description: "Target node ID"
+      sourceHandle:
+        type: string
+        description: "Source connection point"
+      targetHandle:
+        type: string
+        description: "Target connection point"
+      type:
+        type: string
+        enum: ["custom", "condition", "fail-branch"]
+        default: "custom"
+      data:
+        type: object
+        properties:
+          sourceType:
+            $ref: "#/definitions/NodeType"
+          targetType:
+            $ref: "#/definitions/NodeType"
+          # Nested workflow context for edges
+          isInIteration:
+            type: boolean
+            default: false
+            description: "Whether this edge is inside an iteration container"
+          iteration_id:
+            type: string
+            description: "ID of the parent iteration node (if isInIteration is true)"
+          isInLoop:
+            type: boolean
+            default: false
+            description: "Whether this edge is inside a loop container"
+          loop_id:
+            type: string
+            description: "ID of the parent loop node (if isInLoop is true)"
+
+  # Supporting Data Structures
+  Position:
+    type: object
+    required: ["x", "y"]
+    properties:
+      x:
+        type: number
+      y:
+        type: number
+
+  Viewport:
+    type: object
+    properties:
+      x:
+        type: number
+        default: 0
+      y:
+        type: number
+        default: 0
+      zoom:
+        type: number
+        default: 1
+        minimum: 0.1
+        maximum: 4
+
+  VariableEntity:
+    type: object
+    required: ["variable", "label", "type", "required"]
+    properties:
+      variable:
+        type: string
+        pattern: "^[a-zA-Z_][a-zA-Z0-9_]*$"
+      label:
+        type: string
+      type:
+        $ref: "#/definitions/VariableEntityType"
+      required:
+        type: boolean
+        default: false
+      default:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: array
+          - type: object
+      max_length:
+        type: integer
+        minimum: 1
+      options:
+        type: array
+        items:
+          type: string
+      json_schema:
+        type: string
+
+  VariableEntityType:
+    type: string
+    enum:
+      - "text-input"
+      - "paragraph"
+      - "select"
+      - "number"
+      - "checkbox"
+      - "url"
+      - "files"
+      - "json"
+      - "json_object"
+      - "contexts"
+      - "iterator"
+      - "file"
+      - "file-list"
+      - "loop"
+
+  VariableSelector:
+    type: array
+    items:
+      type: string
+    minItems: 2
+    description: "Path to variable [node_id, variable_name, ...nested_keys]"
+
+  ModelConfig:
+    type: object
+    required: ["provider", "name", "mode"]
+    properties:
+      provider:
+        type: string
+        description: "Model provider (openai, anthropic, etc.)"
+      name:
+        type: string
+        description: "Model name (gpt-4, claude-3, etc.)"
+      mode:
+        type: string
+        enum: ["chat", "completion"]
+      completion_params:
+        type: object
+        properties:
+          temperature:
+            type: number
+            minimum: 0
+            maximum: 2
+          max_tokens:
+            type: integer
+            minimum: 1
+          top_p:
+            type: number
+            minimum: 0
+            maximum: 1
+          presence_penalty:
+            type: number
+            minimum: -2
+            maximum: 2
+          frequency_penalty:
+            type: number
+            minimum: -2
+            maximum: 2
+
+  LLMMessage:
+    type: object
+    required: ["role", "text"]
+    properties:
+      role:
+        type: string
+        enum: ["system", "user", "assistant"]
+      text:
+        type: string
+      edition_type:
+        type: string
+        enum: ["basic", "jinja2"]
+      jinja2_text:
+        type: string
+
+  LLMCompletionPrompt:
+    type: object
+    required: ["text"]
+    properties:
+      text:
+        type: string
+        description: "Completion prompt text"
+      edition_type:
+        type: string
+        enum: ["basic", "jinja2"]
+        default: "basic"
+      jinja2_text:
+        type: string
+        description: "Jinja2 template text for advanced templating"
+
+  ChatPromptConfig:
+    type: object
+    required: ["prompt"]
+    properties:
+      prompt:
+        type: array
+        items:
+          $ref: "#/definitions/LLMMessage"
+        description: "Array of chat messages forming the prompt"
+
+  CompletionPromptConfig:
+    type: object
+    required: ["prompt"]
+    properties:
+      prompt:
+        $ref: "#/definitions/LLMCompletionPrompt"
+        description: "Single completion prompt configuration"
+
+  PromptConfig:
+    type: object
+    properties:
+      jinja2_variables:
+        type: array
+        items:
+          $ref: "#/definitions/VariableSelector"
+
+  AdvancedPromptConfig:
+    type: object
+    properties:
+      app_mode:
+        type: string
+        enum: ["chat", "completion"]
+        description: "Application mode for template selection"
+      model_mode:
+        type: string
+        enum: ["chat", "completion"]
+        description: "Model interaction mode"
+      model_name:
+        type: string
+        description: "Model name for template optimization (e.g., baichuan)"
+      has_context:
+        type: boolean
+        default: false
+        description: "Whether to include context in prompt template"
+      template_type:
+        type: string
+        enum: ["chat_app_chat", "chat_app_completion", "completion_app_chat", "completion_app_completion", "baichuan_chat_app_chat", "baichuan_chat_app_completion", "baichuan_completion_app_chat", "baichuan_completion_app_completion"]
+        description: "Specific template configuration type"
+      override_stop_sequences:
+        type: array
+        items:
+          type: string
+        description: "Custom stop sequences override"
+      conversation_histories_role:
+        type: object
+        properties:
+          user_prefix:
+            type: string
+            default: "Human"
+          assistant_prefix:
+            type: string
+            default: "Assistant"
+        description: "Role prefixes for conversation history formatting"
+
+  ContextConfig:
+    type: object
+    required: ["enabled"]
+    properties:
+      enabled:
+        type: boolean
+      variable_selector:
+        $ref: "#/definitions/VariableSelector"
+
+  VisionConfig:
+    type: object
+    required: ["enabled"]
+    properties:
+      enabled:
+        type: boolean
+        default: false
+      configs:
+        type: object
+        properties:
+          variable_selector:
+            $ref: "#/definitions/VariableSelector"
+          detail:
+            type: string
+            enum: ["high", "low"]
+            default: "high"
+
+  MemoryConfig:
+    type: object
+    properties:
+      role_prefix:
+        type: object
+        properties:
+          user:
+            type: string
+          assistant:
+            type: string
+      window:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          size:
+            type: integer
+            minimum: 1
+
+  Condition:
+    type: object
+    required: ["variable_selector", "comparison_operator"]
+    properties:
+      variable_selector:
+        $ref: "#/definitions/VariableSelector"
+      comparison_operator:
+        type: string
+        enum:
+          - "contains"
+          - "not contains"
+          - "start with"
+          - "end with"
+          - "is"
+          - "is not"
+          - "empty"
+          - "not empty"
+          - "null"
+          - "not null"
+          - "="
+          - "!="
+          - ">"
+          - "<"
+          - ">="
+          - "<="
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: array
+            items:
+              type: string
+
+  ConditionalCase:
+    type: object
+    required: ["case_id", "conditions"]
+    properties:
+      case_id:
+        type: string
+      logical_operator:
+        type: string
+        enum: ["and", "or"]
+        default: "and"
+      conditions:
+        type: array
+        items:
+          $ref: "#/definitions/Condition"
+
+  ClassifierClass:
+    type: object
+    required: ["id", "name"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+
+  ErrorStrategy:
+    type: string
+    enum: ["fail-branch", "default-value", "continue-on-error"]
+    description: "Error handling strategy"
+
+  RetryConfig:
+    type: object
+    properties:
+      retry_enabled:
+        type: boolean
+        default: false
+      max_retries:
+        type: integer
+        minimum: 1
+        maximum: 5
+        default: 3
+      retry_interval:
+        type: integer
+        minimum: 1000
+        default: 1000
+        description: "Retry interval in milliseconds"
+
+  DefaultValue:
+    type: object
+    required: ["variable", "value"]
+    properties:
+      variable:
+        type: string
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: object
+          - type: array
+      type:
+        $ref: "#/definitions/OutputVariableType"
+
+  OutputVariableType:
+    type: string
+    enum:
+      - "string"
+      - "number"
+      - "boolean"
+      - "object"
+      - "array"
+      - "array[string]"
+      - "array[number]"
+      - "array[boolean]"
+      - "array[object]"
+      - "file"
+      - "array[file]"
+      - "any"
+      - "array[any]"
+
+  ToolInput:
+    type: object
+    properties:
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: array
+          - type: object
+      type:
+        type: string
+        enum: ["mixed", "variable", "constant"]
+
+  AgentInput:
+    type: object
+    properties:
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: array
+          - type: object
+      type:
+        type: string
+        enum: ["mixed", "variable", "constant"]
+
+  LoopVariable:
+    type: object
+    required: ["label", "var_type"]
+    properties:
+      label:
+        type: string
+      var_type:
+        $ref: "#/definitions/OutputVariableType"
+      value_type:
+        type: string
+        enum: ["variable", "constant"]
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: array
+          - type: object
+
+  OutputVariable:
+    type: object
+    required: ["type"]
+    properties:
+      type:
+        $ref: "#/definitions/OutputVariableType"
+      children:
+        type: object
+        additionalProperties:
+          $ref: "#/definitions/OutputVariable"
+
+  CodeDependency:
+    type: object
+    required: ["name", "version"]
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+
+  HttpAuthorization:
+    type: object
+    properties:
+      type:
+        type: string
+        enum: ["no-auth", "api-key", "bearer-token", "basic"]
+        default: "no-auth"
+      config:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: ["basic", "bearer", "custom"]
+          api_key:
+            type: string
+          header:
+            type: string
+
+  HttpRequestBody:
+    type: object
+    properties:
+      type:
+        type: string
+        enum: ["none", "form-data", "x-www-form-urlencoded", "raw-text", "json", "binary"]
+        default: "none"
+      data:
+        type: array
+        items:
+          type: object
+          properties:
+            key:
+              type: string
+            type:
+              type: string
+              enum: ["file", "text"]
+            value:
+              type: string
+            file:
+              type: array
+              items:
+                type: string
+
+  HttpTimeout:
+    type: object
+    properties:
+      connect:
+        type: integer
+        minimum: 1
+        maximum: 300
+        default: 30
+      read:
+        type: integer
+        minimum: 1
+        maximum: 300
+        default: 60
+      write:
+        type: integer
+        minimum: 1
+        maximum: 300
+        default: 60
+
+  MultipleRetrievalConfig:
+    type: object
+    properties:
+      top_k:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 3
+      score_threshold:
+        type: number
+        minimum: 0
+        maximum: 1
+      reranking_enable:
+        type: boolean
+        default: false
+
+  SingleRetrievalConfig:
+    type: object
+    properties:
+      model:
+        $ref: "#/definitions/ModelConfig"
+
+  ParameterConfig:
+    type: object
+    required: ["name", "type", "description", "required"]
+    properties:
+      name:
+        type: string
+      type:
+        $ref: "#/definitions/OutputVariableType"
+      description:
+        type: string
+      required:
+        type: boolean
+      options:
+        type: array
+        items:
+          type: string
+
+  VariableAssignment:
+    type: object
+    required: ["variable", "value"]
+    properties:
+      variable:
+        type: string
+      value:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - $ref: "#/definitions/VariableSelector"
+
+  # Environment and System Configuration
+  EnvironmentVariable:
+    type: object
+    required: ["id", "name", "value"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      value:
+        type: string
+      value_type:
+        type: string
+        enum: ["string", "number", "secret"]
+        default: "string"
+
+  ConversationVariable:
+    type: object
+    required: ["id", "name"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      value_type:
+        $ref: "#/definitions/OutputVariableType"
+      description:
+        type: string
+
+  WorkflowFeatures:
+    type: object
+    properties:
+      file_upload:
+        $ref: "#/definitions/FileUploadConfig"
+      opening_statement:
+        type: string
+      suggested_questions:
+        type: array
+        items:
+          type: string
+      suggested_questions_after_answer:
+        $ref: "#/definitions/SuggestedQuestionsConfig"
+      speech_to_text:
+        $ref: "#/definitions/SpeechToTextConfig"
+      text_to_speech:
+        $ref: "#/definitions/TextToSpeechConfig"
+      retriever_resource:
+        $ref: "#/definitions/RetrieverResourceConfig"
+
+  FileUploadConfig:
+    type: object
+    properties:
+      image:
+        $ref: "#/definitions/FileTypeConfig"
+      document:
+        $ref: "#/definitions/FileTypeConfig"
+      audio:
+        $ref: "#/definitions/FileTypeConfig"
+      video:
+        $ref: "#/definitions/FileTypeConfig"
+
+  FileTypeConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+      number_limits:
+        type: integer
+        minimum: 1
+        maximum: 10
+      transfer_methods:
+        type: array
+        items:
+          type: string
+          enum: ["remote_url", "local_file"]
+
+  SuggestedQuestionsConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+
+  SpeechToTextConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+
+  TextToSpeechConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+      language:
+        type: string
+      voice:
+        type: string
+
+  RetrieverResourceConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+
+  SystemParameters:
+    type: object
+    properties:
+      image_file_size_limit:
+        type: string
+        default: "10MB"
+      video_file_size_limit:
+        type: string
+        default: "100MB"
+      audio_file_size_limit:
+        type: string
+        default: "50MB"
+      file_size_limit:
+        type: string
+        default: "15MB"
+
+  ExecutionConfig:
+    type: object
+    properties:
+      max_execution_time:
+        type: integer
+        minimum: 30
+        maximum: 1800
+        default: 1200
+        description: "Maximum execution time in seconds"
+      max_iteration_count:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 50
+      max_loop_count:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 10
+      parallel_limit:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+      error_continue:
+        type: boolean
+        default: false
+        description: "Continue execution on non-critical errors"
+
+  # ==============================================================================
+  # TEMPLATE SYSTEM DEFINITIONS  
+  # ==============================================================================
+  # flowsh implements a comprehensive multi-layered template system:
+  # 1. Advanced Prompt Templates - Model-specific prompt configurations
+  # 2. Pipeline Templates - RAG pipeline templates with sharing capabilities  
+  # 3. Workflow Templates - Template-based workflow initialization
+  # 4. Template Transform Nodes - Runtime Jinja2 template processing
+  
+  TemplateReference:
+    type: object
+    required: ["type", "source"]
+    properties:
+      type:
+        type: string
+        enum: ["prompt", "pipeline", "workflow", "jinja2", "custom"]
+        description: "Type of template being referenced"
+      source:
+        type: string
+        enum: ["built-in", "database", "customized", "remote", "inline", "library"]
+        description: "Source of template storage"
+      template_id:
+        type: string
+        description: "Unique identifier for the template"
+      template_name:
+        type: string
+        description: "Human-readable template name"
+      version:
+        type: string
+        description: "Template version (semantic versioning supported)"
+        pattern: "^(\\d+\\.\\d+\\.\\d+|latest)$"
+      parameters:
+        type: object
+        description: "Parameter overrides for template instantiation"
+        additionalProperties: true
+      url:
+        type: string
+        format: uri
+        description: "URL for remote template sources"
+      cache_policy:
+        $ref: "#/definitions/TemplateCachePolicy"
+      validation:
+        $ref: "#/definitions/TemplateValidationConfig"
+
+  PromptTemplate:
+    type: object
+    required: ["template_type", "content"]
+    properties:
+      template_type:
+        type: string
+        enum: ["chat", "completion", "baichuan_chat", "baichuan_completion"]
+        description: "Model-specific prompt template type"
+      content:
+        oneOf:
+          - $ref: "#/definitions/ChatPromptConfig"
+          - $ref: "#/definitions/CompletionPromptConfig"
+      has_context:
+        type: boolean
+        default: false
+        description: "Whether template includes context injection"
+      context_template:
+        type: string
+        description: "Context injection template (CONTEXT or BAICHUAN_CONTEXT)"
+      stop_sequences:
+        type: array
+        items:
+          type: string
+        description: "Stop sequences for completion"
+      model_specific_config:
+        type: object
+        additionalProperties: true
+        description: "Model-specific configuration overrides"
+
+  PipelineTemplate:
+    type: object
+    required: ["name", "chunk_structure", "yaml_content"]
+    properties:
+      id:
+        type: string
+        description: "Unique pipeline template identifier"
+      tenant_id:
+        type: string
+        description: "Workspace/tenant scope (null for built-in templates)"
+      name:
+        type: string
+        maxLength: 255
+        description: "Pipeline template name"
+      description:
+        type: string
+        description: "Detailed template description"
+      chunk_structure:
+        type: string
+        maxLength: 255
+        description: "Text chunking strategy identifier"
+      icon:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: ["emoji", "lucide", "custom"]
+          value:
+            type: string
+          color:
+            type: string
+            pattern: "^#[0-9A-Fa-f]{6}$"
+        description: "Template icon configuration"
+      yaml_content:
+        type: string
+        description: "RAG pipeline DSL in YAML format"
+      export_data:
+        type: object
+        description: "Exportable template data with secrets included"
+      copyright:
+        type: string
+        maxLength: 255
+        description: "Copyright information (built-in templates)"
+      privacy_policy:
+        type: string
+        maxLength: 255
+        description: "Privacy policy URL (built-in templates)"
+      position:
+        type: integer
+        description: "Display position in template library"
+      install_count:
+        type: integer
+        minimum: 0
+        description: "Number of installations/uses"
+      language:
+        type: string
+        maxLength: 255
+        description: "Template language/locale"
+      created_by:
+        type: string
+        description: "Creator user ID"
+      updated_by:
+        type: string
+        description: "Last modifier user ID"
+      sharing_scope:
+        type: string
+        enum: ["private", "workspace", "public"]
+        default: "workspace"
+        description: "Template sharing visibility"
+      tags:
+        type: array
+        items:
+          type: string
+        description: "Template categorization tags"
+      version_history:
+        type: array
+        items:
+          $ref: "#/definitions/TemplateVersionInfo"
+        description: "Template version history"
+
+  WorkflowTemplate:
+    type: object
+    required: ["name", "workflow_dsl"]
+    properties:
+      id:
+        type: string
+        description: "Unique workflow template identifier"
+      name:
+        type: string
+        description: "Workflow template name"
+      description:
+        type: string
+        description: "Template description and usage guidance"
+      category:
+        type: string
+        enum: ["business", "creative", "technical", "analytics", "automation"]
+        description: "Template category for organization"
+      workflow_dsl:
+        $ref: "#/definitions/WorkflowSpec"
+        description: "Complete workflow definition"
+      parameters:
+        type: array
+        items:
+          $ref: "#/definitions/TemplateParameter"
+        description: "Configurable template parameters"
+      default_values:
+        type: object
+        additionalProperties: true
+        description: "Default parameter values"
+      required_integrations:
+        type: array
+        items:
+          type: string
+        description: "Required external integrations/tools"
+      complexity_level:
+        type: string
+        enum: ["beginner", "intermediate", "advanced", "expert"]
+        description: "Template complexity assessment"
+      estimated_tokens:
+        type: integer
+        minimum: 0
+        description: "Estimated token consumption"
+
+  TemplateParameter:
+    type: object
+    required: ["name", "type"]
+    properties:
+      name:
+        type: string
+        pattern: "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        description: "Parameter identifier"
+      type:
+        type: string
+        enum: ["string", "number", "boolean", "array", "object", "select"]
+        description: "Parameter data type"
+      description:
+        type: string
+        description: "Parameter usage description"
+      required:
+        type: boolean
+        default: false
+        description: "Whether parameter is required"
+      default_value:
+        description: "Default parameter value"
+      validation:
+        $ref: "#/definitions/ParameterValidation"
+      options:
+        type: array
+        items:
+          type: string
+        description: "Available options for select type parameters"
+      placeholder:
+        type: string
+        description: "UI placeholder text"
+
+  ParameterValidation:
+    type: object
+    properties:
+      min_length:
+        type: integer
+        minimum: 0
+      max_length:
+        type: integer
+        minimum: 0
+      pattern:
+        type: string
+        format: regex
+      minimum:
+        type: number
+      maximum:
+        type: number
+      enum:
+        type: array
+        items:
+          type: string
+
+  TemplateValidationConfig:
+    type: object
+    properties:
+      validate_syntax:
+        type: boolean
+        default: true
+        description: "Validate Jinja2 template syntax"
+      validate_variables:
+        type: boolean
+        default: true
+        description: "Validate variable references"
+      strict_mode:
+        type: boolean
+        default: false
+        description: "Strict variable validation mode"
+      allowed_functions:
+        type: array
+        items:
+          type: string
+        description: "Whitelist of allowed template functions"
+      security_scan:
+        type: boolean
+        default: true
+        description: "Security vulnerability scanning"
+      max_template_size:
+        type: integer
+        default: 100000
+        description: "Maximum template size in characters"
+
+  TemplateCachePolicy:
+    type: object
+    properties:
+      cache_enabled:
+        type: boolean
+        default: true
+        description: "Enable template caching"
+      cache_duration:
+        type: integer
+        minimum: 60
+        maximum: 86400
+        default: 3600
+        description: "Cache duration in seconds"
+      invalidate_on_update:
+        type: boolean
+        default: true
+        description: "Invalidate cache when template is updated"
+      version_specific_cache:
+        type: boolean
+        default: true
+        description: "Cache specific template versions separately"
+
+  TemplateVersionInfo:
+    type: object
+    required: ["version", "created_at"]
+    properties:
+      version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: "Semantic version number"
+      created_at:
+        type: string
+        format: date-time
+      created_by:
+        type: string
+        description: "Version author"
+      changelog:
+        type: string
+        description: "Version changes description"
+      breaking_changes:
+        type: boolean
+        default: false
+        description: "Whether version contains breaking changes"
+      deprecated:
+        type: boolean
+        default: false
+        description: "Whether version is deprecated"
+
+  TemplateLibrary:
+    type: object
+    properties:
+      library_id:
+        type: string
+        description: "Template library identifier"
+      name:
+        type: string
+        description: "Library display name"
+      description:
+        type: string
+        description: "Library description"
+      source_type:
+        type: string
+        enum: ["built-in", "workspace", "marketplace", "git", "url"]
+        description: "Library source type"
+      source_url:
+        type: string
+        format: uri
+        description: "Library source URL"
+      access_control:
+        $ref: "#/definitions/TemplateAccessControl"
+      templates:
+        type: array
+        items:
+          oneOf:
+            - $ref: "#/definitions/PromptTemplate"
+            - $ref: "#/definitions/PipelineTemplate"  
+            - $ref: "#/definitions/WorkflowTemplate"
+      sync_config:
+        $ref: "#/definitions/LibrarySyncConfig"
+
+  TemplateAccessControl:
+    type: object
+    properties:
+      public_read:
+        type: boolean
+        default: false
+      workspace_read:
+        type: boolean
+        default: true
+      workspace_write:
+        type: boolean
+        default: false
+      owner_permissions:
+        type: array
+        items:
+          type: string
+          enum: ["read", "write", "delete", "share", "admin"]
+
+  LibrarySyncConfig:
+    type: object
+    properties:
+      auto_sync:
+        type: boolean
+        default: false
+      sync_interval:
+        type: integer
+        minimum: 3600
+        default: 86400
+        description: "Sync interval in seconds"
+      sync_on_startup:
+        type: boolean
+        default: true
+      conflict_resolution:
+        type: string
+        enum: ["overwrite", "merge", "skip", "prompt"]
+        default: "skip"
+
+# Additional validation patterns
+patternProperties:
+  "^[a-zA-Z_][a-zA-Z0-9_]*$":
+    description: "Valid identifier pattern for variable names"
+
+# ==============================================================================
+# NESTED WORKFLOWS DOCUMENTATION
+# ==============================================================================
+#
+# flowsh uses a "flat graph with references" approach for nested workflows:
+#
+# 1. ITERATION NODES:
+#    - Create sub-workflows that process array items
+#    - Child nodes have isInIteration: true and iteration_id: "container_node_id"
+#    - start_node_id points to the first node in the sub-workflow
+#    - All nodes with matching iteration_id form the sub-workflow
+#    - Edges within the iteration also carry iteration_id context
+#
+# 2. LOOP NODES:
+#    - Create sub-workflows that execute repeatedly
+#    - Child nodes have isInLoop: true and loop_id: "container_node_id"  
+#    - start_node_id points to the first node in the sub-workflow
+#    - All nodes with matching loop_id form the sub-workflow
+#    - Edges within the loop also carry loop_id context
+#
+# 3. GRAPH STRUCTURE:
+#    - All nodes exist at the same level in the nodes array
+#    - Container relationships are established via ID references
+#    - No physical nesting - logical nesting through metadata
+#
+# 4. EXECUTION FLOW:
+#    - Container nodes execute their sub-workflows by filtering nodes by ID
+#    - Variable scoping is maintained through execution context
+#    - Results are collected and processed according to container configuration
+#
+# 5. EXAMPLE STRUCTURE:
+#    nodes:
+#      - id: "iteration1"
+#        type: "iteration"
+#        data:
+#          start_node_id: "child1"
+#          iterator_selector: ["start", "items"]
+#          
+#      - id: "child1" 
+#        type: "llm"
+#        isInIteration: true
+#        iteration_id: "iteration1"
+#        data: {...}
+#        
+#      - id: "child2"
+#        type: "code"  
+#        isInIteration: true
+#        iteration_id: "iteration1"
+#        data: {...}
+#        
+#    edges:
+#      - source: "child1"
+#        target: "child2"
+#        data:
+#          isInIteration: true
+#          iteration_id: "iteration1"
