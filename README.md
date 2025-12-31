@@ -6,11 +6,11 @@ Convert visual AI workflows into portable shell-based agent harnesses. Transform
 
 ## Overview
 
-flowsh is a transpiler that bridges the gap between visual workflow design and shell-based execution. It takes flowsh workflow YAML/DSL definitions and generates optimized, self-contained shell scripts that can run anywhere with standard bash/zsh.
+flowsh is a generator that bridges the gap between visual workflow design and shell-based execution. It takes flowsh workflow YAML/DSL definitions and generates optimized, self-contained shell scripts that can run anywhere with standard bash/zsh.
 
 ## Key Features
 
-- 🔄 **DSL-to-Shell Transpilation** - Convert flowsh workflows into native shell scripts
+- 🔄 **Workflow-to-Shell Generation** - Convert flowsh workflows into native shell scripts
 - 🤖 **Agent-First Design** - Optimized for AI agent CLI orchestration and harnesses  
 - 🚀 **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
 - 🔗 **Template System Support** - Full support for flowsh's template references and libraries
@@ -27,21 +27,30 @@ flowsh generate agent-workflow.yaml --output agents/customer-support.sh
 
 # Execute generated agent harness
 ./agents/customer-support.sh "Customer complaint about billing"
+
+# Or generate and run in one step
+flowsh run agent-workflow.yaml "Customer complaint about billing"
 ```
 
 ### Automated Workflows
 ```bash
-# Convert complex workflow to portable script
-flowsh compile data-processing-pipeline.yaml --target production.sh
+# Generate complex workflow to portable script
+flowsh generate data-processing-pipeline.yaml --output production.sh
 
 # Run anywhere without flowsh installation
 ./production.sh --input data.csv --output results/
+
+# Or run workflow directly without saving script
+flowsh run data-processing-pipeline.yaml --input data.csv --output results/
 ```
 
 ### Development Integration
 ```bash
-# Generate multiple harnesses for CI/CD
-flowsh batch-generate workflows/ --output-dir dist/scripts/
+# Generate multiple scripts from directory
+flowsh generate workflows/ --output-dir dist/scripts/
+
+# Generate from wildcard pattern
+flowsh generate workflows/*.yaml --output-dir dist/scripts/
 
 # Integrate with existing shell toolchain
 ./dist/scripts/code-review.sh --pr-url $PR_URL --notify slack
@@ -51,12 +60,7 @@ flowsh batch-generate workflows/ --output-dir dist/scripts/
 
 ### Installation
 ```bash
-# Install flowsh
 npm install -g flowsh
-# or
-pip install flowsh
-# or
-go install github.com/user/flowsh@latest
 ```
 
 ### Basic Usage
@@ -64,50 +68,34 @@ go install github.com/user/flowsh@latest
 # Generate shell script from flowsh workflow
 flowsh generate workflow.yaml
 
+# Generate and run workflow immediately
+flowsh run workflow.yaml
+
+# Generate and run with debug information
+flowsh run workflow.yaml --debug
+
 # Specify output file
 flowsh generate workflow.yaml --output my-agent.sh
 
-# Generate with specific shell target
-flowsh generate workflow.yaml --shell bash --output script.sh
-```
-
-### Advanced Features
-```bash
-# Include template resolution
-flowsh generate workflow.yaml --resolve-templates --output enhanced.sh
-
-# Generate with debugging support
-flowsh generate workflow.yaml --debug --verbose --output debug-script.sh
-
-# Optimize for production
-flowsh generate workflow.yaml --optimize --minify --output prod.sh
+# Validate workflow without generating
+flowsh validate workflow.yaml
 ```
 
 ## Generated Script Features
 
 ### Self-Contained Execution
-Generated scripts include all necessary workflow logic:
+Generated scripts include workflow logic:
 - Variable management and scoping
 - Iteration and loop handling
 - Conditional branching
-- Error handling and retry logic
-- Template processing
+- Error handling
 - Agent CLI orchestration
 
 ### Shell Integration
-Scripts integrate seamlessly with shell environments:
+Scripts work with standard shell environments:
 - Standard input/output handling
 - Environment variable support
 - Exit codes and error reporting
-- Logging and debugging
-- Signal handling
-
-### Performance Optimized
-- Minimal overhead execution
-- Efficient variable passing
-- Optimized agent CLI calls
-- Parallel execution where possible
-- Resource cleanup
 
 ## Workflow Compatibility
 
@@ -132,11 +120,8 @@ flowsh supports the complete flowsh workflow specification:
 - ✅ Error handling and fallback logic
 
 ### Template System
-- ✅ Prompt template references
-- ✅ Pipeline template integration
-- ✅ Workflow template composition
-- ✅ Jinja2 template processing
-- ✅ Template caching and validation
+- ✅ Basic template references
+- ✅ Variable substitution
 
 ## Example Output
 
@@ -227,35 +212,24 @@ main "$@"
 
 ## Architecture
 
-### Transpilation Pipeline
-1. **Parse** - flowsh YAML/DSL parsing and validation
-2. **Analyze** - Dependency analysis and optimization opportunities
-3. **Transform** - Convert workflow nodes to shell functions
-4. **Generate** - Emit optimized shell script with runtime
-5. **Optimize** - Apply performance optimizations and minification
+### Generation Pipeline
+1. **Parse** - Read and validate YAML workflow files
+2. **Transform** - Convert workflow nodes to shell functions  
+3. **Generate** - Output executable shell script
 
-### Runtime Components
-- **Variable Management** - Scoped variable handling with associative arrays
-- **Template Engine** - Jinja2-compatible template processing in bash
-- **Agent Orchestration** - CLI wrapper functions for agent calls
-- **Error Handling** - Robust error handling with proper exit codes
-- **Logging System** - Configurable logging and debugging support
+### Generated Script Components
+- **Variable Management** - Handle workflow variables
+- **Agent Orchestration** - Call agent CLI tools
+- **Error Handling** - Proper exit codes and error messages
 
 ## Integration with shai
 
-flowsh is designed as the perfect companion to [shai](https://github.com/tbrandenburg/shai):
+flowsh is designed as a companion to [shai](https://github.com/tbrandenburg/shai):
 
 - **shai**: Manual agent CLI orchestration with shell scripting
 - **flowsh**: Automated generation of agent harnesses from visual workflows
 
-```bash
-# Use shai for manual orchestration
-shai run agent1 "process data" | shai run agent2 "analyze results"
-
-# Use flowsh for automated workflow execution
-flowsh generate data-pipeline.yaml --output pipeline.sh
-./pipeline.sh --input data.json
-```
+Both projects focus on shell-based agent orchestration, with shai providing manual scripting capabilities and flowsh enabling automated workflow-to-shell generation.
 
 ## Contributing
 
