@@ -83,45 +83,68 @@ flowsh validate workflow.yaml
 
 ## Generated Script Features
 
-### Self-Contained Execution
-Generated scripts include workflow logic:
-- Variable management and scoping
-- Iteration and loop handling
-- Conditional branching
-- Error handling
-- Agent CLI orchestration
+### Phase 1 Capabilities
+Generated scripts currently include:
+- **Variable Management** - Workflow variable declarations and assignments
+- **Conditional Logic** - If-else branching with boolean evaluation  
+- **LLM Integration** - AI model calls with prompt template rendering
+- **Shell Operations** - Bash command execution for system tasks
+- **Template System** - Basic variable substitution in templates
 
 ### Shell Integration
 Scripts work with standard shell environments:
 - Standard input/output handling
 - Environment variable support
 - Exit codes and error reporting
+- Self-contained execution (no external dependencies)
 
-## Workflow Compatibility
+## Implementation Roadmap
 
-flowsh supports the complete flowsh workflow specification:
+flowsh follows a phased implementation approach to ensure a solid, usable foundation while building toward full workflow specification support.
 
-### Core Node Types
-- ✅ Start/End nodes with variable definitions
-- ✅ LLM nodes with prompt templates
-- ✅ Tool nodes with provider integration
-- ✅ Agent nodes with CLI orchestration
-- ✅ Code nodes with inline execution
-- ✅ HTTP Request nodes
-- ✅ Conditional (If-Else) nodes
-- ✅ Template Transform nodes
+### Phase 1 (MVP) - Available Now
+Essential workflow control elements for basic agent orchestration:
 
-### Advanced Features
-- ✅ Iteration containers with array processing
-- ✅ Loop containers with condition checking
-- ✅ Nested workflows with proper scoping
-- ✅ Variable aggregation and assignment
-- ✅ Template system with external references
-- ✅ Error handling and fallback logic
+- ✅ **Start/End Nodes** - Variable definitions and workflow boundaries
+- ✅ **LLM Nodes** - AI model integration with prompt templates  
+- ✅ **If-Else Nodes** - Conditional workflow branching
+- ✅ **Variable Assignment** - Dynamic variable management
+- ✅ **Code Nodes** - Bash command execution for system operations
+- ✅ **Basic Template Substitution** - Variable interpolation in templates
+- ✅ **System Variables** - Environment and runtime context
 
-### Template System
-- ✅ Basic template references
-- ✅ Variable substitution
+### Phase 2 (Intermediate) - Coming Next
+Enhanced workflow control and iteration capabilities:
+
+- 🚧 **Loop Nodes** - Conditional repetition with break conditions
+- 🚧 **Iteration Nodes** - Array/list processing workflows
+- 🚧 **Agent Nodes** - CLI tool orchestration and integration
+- 🚧 **Variable Aggregation** - Collect and merge results across iterations
+- 🚧 **Template Transform Nodes** - Advanced template processing
+
+### Phase 3+ (Advanced) - Future Development
+Full workflow specification support:
+
+- 📋 **HTTP Request Nodes** - REST API integration
+- 📋 **Tool Nodes** - External service provider integration
+- 📋 **Knowledge Retrieval** - Vector database and search integration
+- 📋 **External Templates** - Remote template library support
+- 📋 **Nested Workflows** - Sub-workflow execution with scoping
+- 📋 **Error Handling** - Comprehensive fallback and retry logic
+
+### Current Capabilities
+
+**What Works Today:**
+- Basic agent workflows with LLM calls and conditional logic
+- Shell command execution for file operations and system tasks
+- Variable management and template substitution
+- Executable script generation for MVP use cases
+
+**Realistic Use Cases:**
+- Simple customer support agents with classification logic
+- Data processing workflows with bash operations
+- Basic decision trees with LLM integration
+- Shell-based automation with AI augmentation
 
 ## Example Output
 
