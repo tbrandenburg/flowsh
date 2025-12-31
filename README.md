@@ -121,6 +121,7 @@ Enhanced workflow control and iteration capabilities:
 - 🚧 **Iteration Nodes** - Array/list processing workflows
 - 🚧 **Variable Aggregation** - Collect and merge results across iterations
 - 🚧 **Template Transform Nodes** - Advanced template processing
+- 🚧 **Sub-Workflows** - Nested workflow execution with proper scoping
 
 ### Phase 3+ (Advanced) - Future Development
 Full workflow specification support:
@@ -129,7 +130,6 @@ Full workflow specification support:
 - 📋 **Tool Nodes** - External service provider integration
 - 📋 **Knowledge Retrieval** - Vector database and search integration
 - 📋 **External Templates** - Remote template library support
-- 📋 **Nested Workflows** - Sub-workflow execution with scoping
 - 📋 **Error Handling** - Comprehensive fallback and retry logic
 
 ### Current Capabilities
