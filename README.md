@@ -110,6 +110,7 @@ Essential workflow control elements for basic agent orchestration:
 - ✅ **If-Else Nodes** - Conditional workflow branching
 - ✅ **Variable Assignment** - Dynamic variable management
 - ✅ **Code Nodes** - Bash command execution for system operations
+- ✅ **Agent Nodes** - CLI tool orchestration and integration
 - ✅ **Basic Template Substitution** - Variable interpolation in templates
 - ✅ **System Variables** - Environment and runtime context
 
@@ -118,7 +119,6 @@ Enhanced workflow control and iteration capabilities:
 
 - 🚧 **Loop Nodes** - Conditional repetition with break conditions
 - 🚧 **Iteration Nodes** - Array/list processing workflows
-- 🚧 **Agent Nodes** - CLI tool orchestration and integration
 - 🚧 **Variable Aggregation** - Collect and merge results across iterations
 - 🚧 **Template Transform Nodes** - Advanced template processing
 
