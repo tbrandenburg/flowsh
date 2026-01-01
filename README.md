@@ -1,26 +1,26 @@
 # flowsh
 
-**Generate executable shell scripts from flowsh workflow definitions**
+**A workflow-to-shell generator for AI agent orchestration**
 
-Convert visual AI workflows into portable shell-based agent harnesses. Transform complex flowsh DSL into dependency-free bash scripts for seamless agent orchestration and automation.
+flowsh aims to convert visual AI workflows into portable shell-based agent harnesses, transforming complex workflow definitions into dependency-free bash scripts for seamless agent orchestration and automation.
 
-## Overview
+## Vision
 
-flowsh is a generator that bridges the gap between visual workflow design and shell-based execution. It takes flowsh workflow YAML/DSL definitions and generates optimized, self-contained shell scripts that can run anywhere with standard bash/zsh.
+flowsh will bridge the gap between visual workflow design and shell-based execution. The goal is to take workflow YAML/DSL definitions and generate optimized, self-contained shell scripts that can run anywhere with standard bash/zsh.
 
-## Key Features
+## Planned Features
 
-- 🔄 **Workflow-to-Shell Generation** - Convert flowsh workflows into native shell scripts
-- 🤖 **Agent-First Design** - Optimized for AI agent CLI orchestration and harnesses  
-- 🚀 **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
-- 🔗 **Template System Support** - Full support for flowsh's template references and libraries
+- 🔄 **Workflow-to-Shell Generation** - Convert workflows into native shell scripts
+- 🤖 **Agent-First Design** - Optimize for AI agent CLI orchestration and harnesses  
+- 🚀 **Zero Dependencies** - Generate scripts that run anywhere with bash/zsh
+- 🔗 **Template System Support** - Support for template references and libraries
 - 📦 **Portable Execution** - Self-contained scripts with embedded workflow logic
 - 🛠️ **Shell Integration** - Seamless integration with existing shell toolchains
-- 🎯 **Workflow Fidelity** - Preserves complex workflow patterns (iterations, loops, conditions)
+- 🎯 **Workflow Fidelity** - Preserve complex workflow patterns (iterations, loops, conditions)
 
-## Use Cases
+## Envisioned Use Cases
 
-### Agent Orchestration
+### Agent Orchestration (Future)
 ```bash
 # Generate agent harness from workflow
 flowsh generate agent-workflow.yaml --output agents/customer-support.sh
@@ -32,7 +32,7 @@ flowsh generate agent-workflow.yaml --output agents/customer-support.sh
 flowsh run agent-workflow.yaml "Customer complaint about billing"
 ```
 
-### Automated Workflows
+### Automated Workflows (Future)
 ```bash
 # Generate complex workflow to portable script
 flowsh generate data-processing-pipeline.yaml --output production.sh
@@ -44,7 +44,7 @@ flowsh generate data-processing-pipeline.yaml --output production.sh
 flowsh run data-processing-pipeline.yaml --input data.csv --output results/
 ```
 
-### Development Integration
+### Development Integration (Future)
 ```bash
 # Generate multiple scripts from directory
 flowsh generate workflows/ --output-dir dist/scripts/
@@ -56,74 +56,32 @@ flowsh generate workflows/*.yaml --output-dir dist/scripts/
 ./dist/scripts/code-review.sh --pr-url $PR_URL --notify slack
 ```
 
-## Quick Start
-
-### Installation
-```bash
-npm install -g flowsh
-```
-
-### Basic Usage
-```bash
-# Generate shell script from flowsh workflow
-flowsh generate workflow.yaml
-
-# Generate and run workflow immediately
-flowsh run workflow.yaml
-
-# Generate and run with debug information
-flowsh run workflow.yaml --debug
-
-# Specify output file
-flowsh generate workflow.yaml --output my-agent.sh
-
-# Validate workflow without generating
-flowsh validate workflow.yaml
-```
-
-## Generated Script Features
-
-### Phase 1 Capabilities
-Generated scripts currently include:
-- **Variable Management** - Workflow variable declarations and assignments
-- **Conditional Logic** - If-else branching with boolean evaluation  
-- **LLM Integration** - AI model calls with prompt template rendering
-- **Shell Operations** - Bash command execution for system tasks
-- **Template System** - Basic variable substitution in templates
-
-### Shell Integration
-Scripts work with standard shell environments:
-- Standard input/output handling
-- Environment variable support
-- Exit codes and error reporting
-- Self-contained execution (no external dependencies)
-
-## Implementation Roadmap
+## Development Roadmap
 
 flowsh follows a phased implementation approach to ensure a solid, usable foundation while building toward full workflow specification support.
 
-### Phase 1 (MVP) - Available Now
+### Phase 1 (MVP) - Foundation 
 Essential workflow control elements for basic agent orchestration:
 
-- ✅ **Start/End Nodes** - Variable definitions and workflow boundaries
-- ✅ **LLM Nodes** - AI model integration with prompt templates  
-- ✅ **If-Else Nodes** - Conditional workflow branching
-- ✅ **Variable Assignment** - Dynamic variable management
-- ✅ **Code Nodes** - Bash command execution for system operations
-- ✅ **Agent Nodes** - CLI tool orchestration and integration
-- ✅ **Basic Template Substitution** - Variable interpolation in templates
-- ✅ **System Variables** - Environment and runtime context
+- 📋 **Start/End Nodes** - Variable definitions and workflow boundaries
+- 📋 **LLM Nodes** - AI model integration with prompt templates  
+- 📋 **If-Else Nodes** - Conditional workflow branching
+- 📋 **Variable Assignment** - Dynamic variable management
+- 📋 **Code Nodes** - Bash command execution for system operations
+- 📋 **Agent Nodes** - CLI tool orchestration and integration
+- 📋 **Basic Template Substitution** - Variable interpolation in templates
+- 📋 **System Variables** - Environment and runtime context
 
-### Phase 2 (Intermediate) - Coming Next
+### Phase 2 (Intermediate) - Enhanced Control
 Enhanced workflow control and iteration capabilities:
 
-- 🚧 **Loop Nodes** - Conditional repetition with break conditions
-- 🚧 **Iteration Nodes** - Array/list processing workflows
-- 🚧 **Variable Aggregation** - Collect and merge results across iterations
-- 🚧 **Template Transform Nodes** - Advanced template processing
-- 🚧 **Sub-Workflows** - Nested workflow execution with proper scoping
+- 📋 **Loop Nodes** - Conditional repetition with break conditions
+- 📋 **Iteration Nodes** - Array/list processing workflows
+- 📋 **Variable Aggregation** - Collect and merge results across iterations
+- 📋 **Template Transform Nodes** - Advanced template processing
+- 📋 **Sub-Workflows** - Nested workflow execution with proper scoping
 
-### Phase 3+ (Advanced) - Future Development
+### Phase 3+ (Advanced) - Full Specification
 Full workflow specification support:
 
 - 📋 **HTTP Request Nodes** - REST API integration
@@ -132,21 +90,23 @@ Full workflow specification support:
 - 📋 **External Templates** - Remote template library support
 - 📋 **Error Handling** - Comprehensive fallback and retry logic
 
-### Current Capabilities
+## Current Status
 
-**What Works Today:**
+This project is in early development. No features are currently implemented.
+
+**Planned Initial Capabilities:**
 - Basic agent workflows with LLM calls and conditional logic
 - Shell command execution for file operations and system tasks
 - Variable management and template substitution
 - Executable script generation for MVP use cases
 
-**Realistic Use Cases:**
+**Target Use Cases:**
 - Simple customer support agents with classification logic
 - Data processing workflows with bash operations
 - Basic decision trees with LLM integration
 - Shell-based automation with AI augmentation
 
-## Example Output
+## Example Workflow Definition
 
 ### Input: flowsh Workflow YAML
 ```yaml
@@ -169,7 +129,7 @@ workflow:
           template_id: "customer-classifier-v2"
 ```
 
-### Output: Generated Shell Script
+### Expected Output: Generated Shell Script
 ```bash
 #!/bin/bash
 # Generated by flowsh v1.0.0
@@ -233,14 +193,14 @@ main() {
 main "$@"
 ```
 
-## Architecture
+## Planned Architecture
 
-### Generation Pipeline
+### Generation Pipeline (Future)
 1. **Parse** - Read and validate YAML workflow files
 2. **Transform** - Convert workflow nodes to shell functions  
 3. **Generate** - Output executable shell script
 
-### Generated Script Components
+### Generated Script Components (Future)
 - **Variable Management** - Handle workflow variables
 - **Agent Orchestration** - Call agent CLI tools
 - **Error Handling** - Proper exit codes and error messages
@@ -274,4 +234,4 @@ This project does not copy or reproduce Dify's code but rather implements origin
 
 ---
 
-Transform your visual workflows into portable, executable shell scripts with flowsh. Build once, run anywhere. 🚀
+Transform your visual workflows into portable, executable shell scripts with flowsh. **Coming soon.** 🚀
