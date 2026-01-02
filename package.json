@@ -2,6 +2,7 @@
   "name": "flowsh",
   "version": "1.0.0",
   "description": "Workflow-to-shell generator for AI agent orchestration",
+  "type": "module",
   "main": "dist/cli/index.js",
   "bin": {
     "flowsh": "./dist/cli/index.js"
