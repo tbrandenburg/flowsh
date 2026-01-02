@@ -3,7 +3,7 @@
 # Source: AI Product Development Pipeline
 # Description: Transform product ideas into working implementations through AI agents with reusable templates
 # Version: 2.0.0
-# Generated: 2026-01-02T09:53:37.945Z
+# Generated: 2026-01-02T11:41:48.736Z
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ declare -A workflow_state
 # Control flags for testing and configuration
 USE_MOCK_TOOLS=${USE_MOCK_TOOLS:-true}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
-VERBOSE=${VERBOSE:-false}
+VERBOSE=${VERBOSE:-true}
 WORKFLOW_NAME="AI Product Development Pipeline"
 WORKFLOW_VERSION="2.0.0"
 

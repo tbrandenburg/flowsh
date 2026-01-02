@@ -2,7 +2,7 @@
 
 /**
  * flowsh CLI - Workflow-to-Shell Generator
- * 
+ *
  * Command-line interface for converting flowsh YAML workflows into executable shell scripts
  */
 
@@ -49,25 +49,27 @@ const logger = {
 /**
  * Display validation errors in a user-friendly format
  */
-function displayValidationErrors(errors: Array<{ type: string; code: string; message: string; path?: string; nodeId?: string }>): void {
+function displayValidationErrors(
+  errors: Array<{ type: string; code: string; message: string; path?: string; nodeId?: string }>
+): void {
   console.log(chalk.red('\n📋 Validation Issues Found:\n'));
-  
+
   errors.forEach((error, index) => {
     const prefix = error.type === 'error' ? chalk.red('❌ ERROR') : chalk.yellow('⚠️  WARNING');
     console.log(`${index + 1}. ${prefix}: ${error.message}`);
-    
+
     if (error.path) {
       console.log(`   ${chalk.gray('Path:')} ${error.path}`);
     }
-    
+
     if (error.nodeId) {
       console.log(`   ${chalk.gray('Node:')} ${error.nodeId}`);
     }
-    
+
     if (error.code) {
       console.log(`   ${chalk.gray('Code:')} ${error.code}`);
     }
-    
+
     console.log('');
   });
 }
@@ -78,11 +80,11 @@ function displayValidationErrors(errors: Array<{ type: string; code: string; mes
 function generateOutputFilename(inputFile: string, outputDir?: string): string {
   const baseName = basename(inputFile, extname(inputFile));
   const outputName = `${baseName}.sh`;
-  
+
   if (outputDir) {
     return join(outputDir, outputName);
   }
-  
+
   return outputName;
 }
 
@@ -93,9 +95,12 @@ function generateOutputFilename(inputFile: string, outputDir?: string): string {
 /**
  * Generate shell script from workflow YAML
  */
-async function generateCommand(workflowFile: string, options: GenerateCommandOptions): Promise<void> {
+async function generateCommand(
+  workflowFile: string,
+  options: GenerateCommandOptions
+): Promise<void> {
   const spinner = ora('Parsing workflow file...').start();
-  
+
   try {
     // Parse workflow file
     spinner.text = 'Parsing and validating workflow...';
@@ -106,25 +111,30 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
 
     if (!parseResult.success || !parseResult.workflow) {
       spinner.fail('Failed to parse workflow file');
-      
+
       if (parseResult.errors.length > 0) {
         displayValidationErrors(parseResult.errors);
       }
-      
+
       process.exit(1);
     }
 
-    // Display validation warnings if any
-    if (parseResult.validation?.warnings && parseResult.validation.warnings.length > 0) {
+    // Display validation warnings if any (both parse warnings and validation warnings)
+    const allWarnings = [
+      ...(parseResult.warnings || []),
+      ...(parseResult.validation?.warnings || []),
+    ];
+
+    if (allWarnings.length > 0) {
       spinner.warn('Validation completed with warnings');
-      displayValidationErrors(parseResult.validation.warnings);
+      displayValidationErrors(allWarnings);
     } else {
       spinner.succeed('Workflow parsed and validated successfully');
     }
 
     // Generate shell script
     const generateSpinner = ora('Generating shell script...').start();
-    
+
     const generateResult = generateShellScript(parseResult.workflow, {
       includeMocks: options.mock !== false,
       shell: options.shell || 'bash',
@@ -134,14 +144,14 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
 
     if (!generateResult.success) {
       generateSpinner.fail('Failed to generate shell script');
-      
+
       if (generateResult.warnings.length > 0) {
         console.log(chalk.yellow('\nWarnings during generation:'));
         generateResult.warnings.forEach(warning => {
           logger.warning(warning);
         });
       }
-      
+
       process.exit(1);
     }
 
@@ -149,13 +159,15 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
 
     // Display generation metadata
     const { metadata } = generateResult;
-    logger.info(`Generated script with ${metadata.nodeCount} nodes and ${metadata.edgeCount} edges`);
+    logger.info(
+      `Generated script with ${metadata.nodeCount} nodes and ${metadata.edgeCount} edges`
+    );
     logger.info(`Estimated complexity: ${metadata.estimatedComplexity}`);
-    
+
     if (metadata.hasAgentNodes) {
       logger.info('Script includes agent orchestration');
     }
-    
+
     if (metadata.hasLLMNodes) {
       logger.info('Script includes LLM interactions');
     }
@@ -163,7 +175,7 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
     // Write output file
     const outputFile = options.output || generateOutputFilename(workflowFile);
     const writeSpinner = ora(`Writing script to ${outputFile}...`).start();
-    
+
     try {
       await writeFile(outputFile, generateResult.script, 'utf-8');
       writeSpinner.succeed(`Shell script saved to ${chalk.green(outputFile)}`);
@@ -177,21 +189,20 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
     console.log(`${chalk.green('Make executable:')} chmod +x ${outputFile}`);
     console.log(`${chalk.green('Run with mocks:')} ./${outputFile} --help`);
     console.log(`${chalk.green('Run with real tools:')} ./${outputFile} --no-mock [args...]`);
-    
+
     if (generateResult.warnings.length > 0) {
       console.log(chalk.yellow('\n⚠️  Generation Warnings:'));
       generateResult.warnings.forEach(warning => {
         logger.warning(warning);
       });
     }
-
   } catch (error) {
     spinner.fail(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
-    
+
     if (options.verbose) {
       console.error(error);
     }
-    
+
     process.exit(1);
   }
 }
@@ -199,9 +210,12 @@ async function generateCommand(workflowFile: string, options: GenerateCommandOpt
 /**
  * Validate workflow without generating script
  */
-async function validateCommand(workflowFile: string, options: { strict?: boolean; verbose?: boolean }): Promise<void> {
+async function validateCommand(
+  workflowFile: string,
+  options: { strict?: boolean; verbose?: boolean }
+): Promise<void> {
   const spinner = ora('Validating workflow...').start();
-  
+
   try {
     const parseResult = await parseWorkflowFile(workflowFile, {
       validate: true,
@@ -210,46 +224,53 @@ async function validateCommand(workflowFile: string, options: { strict?: boolean
 
     if (!parseResult.success) {
       spinner.fail('Validation failed');
-      
+
       if (parseResult.errors.length > 0) {
         displayValidationErrors(parseResult.errors);
       }
-      
+
       process.exit(1);
     }
 
     spinner.succeed('Workflow validation passed');
-    
-    if (parseResult.validation?.warnings && parseResult.validation.warnings.length > 0) {
+
+    // Display all warnings (both parse warnings and validation warnings)
+    const allWarnings = [
+      ...(parseResult.warnings || []),
+      ...(parseResult.validation?.warnings || []),
+    ];
+
+    if (allWarnings.length > 0) {
       console.log(chalk.yellow('\\nValidation warnings:'));
-      displayValidationErrors(parseResult.validation.warnings);
+      displayValidationErrors(allWarnings);
     }
 
     // Display workflow info
     const workflow = parseResult.workflow!;
     const graph = workflow.graph ?? workflow.spec?.graph;
-    
+
     if (graph) {
-      logger.info(`Workflow contains ${graph.nodes.length} nodes and ${graph.edges?.length || 0} edges`);
-      
+      logger.info(
+        `Workflow contains ${graph.nodes.length} nodes and ${graph.edges?.length || 0} edges`
+      );
+
       const nodeTypes = graph.nodes.reduce((acc: Record<string, number>, node) => {
         acc[node.type] = (acc[node.type] || 0) + 1;
         return acc;
       }, {});
-      
+
       console.log(chalk.cyan('\\nNode type distribution:'));
       Object.entries(nodeTypes).forEach(([type, count]) => {
         console.log(`  ${type}: ${count}`);
       });
     }
-
   } catch (error) {
     spinner.fail(`Validation error: ${error instanceof Error ? error.message : String(error)}`);
-    
+
     if (options.verbose) {
       console.error(error);
     }
-    
+
     process.exit(1);
   }
 }
@@ -299,7 +320,7 @@ program
     console.log(chalk.cyan('\\n🌊 flowsh - Workflow-to-Shell Generator\\n'));
     console.log('Convert AI workflow YAML files into portable, executable shell scripts.');
     console.log('Perfect for agent orchestration and automation pipelines.\\n');
-    
+
     console.log(chalk.green('Features:'));
     console.log('  • Parse and validate flowsh YAML workflows');
     console.log('  • Generate portable bash/zsh scripts');
@@ -307,7 +328,7 @@ program
     console.log('  • Mock implementations for testing');
     console.log('  • Template system integration');
     console.log('  • Comprehensive error handling\\n');
-    
+
     console.log(chalk.blue('Supported Node Types:'));
     console.log('  • start/end - Workflow boundaries');
     console.log('  • agent - CLI tool orchestration');
@@ -324,7 +345,7 @@ program
   .description('Show example workflow YAML')
   .action(() => {
     console.log(chalk.cyan('\\n📋 Example Workflow YAML:\\n'));
-    
+
     const exampleYaml = `workflow:
   name: "Simple Agent Workflow"
   description: "Basic example of agent orchestration"
@@ -371,7 +392,9 @@ graph:
       target: "result"`;
 
     console.log(chalk.gray(exampleYaml));
-    console.log(chalk.green('\\n💡 Save this to workflow.yaml and run: flowsh generate workflow.yaml\\n'));
+    console.log(
+      chalk.green('\\n💡 Save this to workflow.yaml and run: flowsh generate workflow.yaml\\n')
+    );
   });
 
 // Error handling for unknown commands

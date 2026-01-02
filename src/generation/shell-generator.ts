@@ -20,6 +20,8 @@ import {
   isLoopNode,
   isIterationNode,
 } from '../dsl/types.js';
+import { ShellSanitizer } from '../security/sanitization.js';
+import { FlowshGenerationError } from '../errors/types.js';
 
 // =============================================================================
 // Generation Configuration
@@ -534,12 +536,40 @@ ${variableValidation}
 function generateAgentNodeFunction(node: WorkflowNode, functionName: string): string {
   const data = node.data as any;
 
+  // Validate and sanitize command using security utilities
+  const command = data.command || 'opencode';
+  const args = data.args || [];
+
+  // Sanitize the command for security
+  const sanitizeResult = ShellSanitizer.sanitizeCommand(command);
+  if (!sanitizeResult.success) {
+    const errorMessage = sanitizeResult.errors.map(e => e.message).join(', ');
+    throw new FlowshGenerationError(
+      `Security validation failed for agent command in node ${node.id}: ${errorMessage}`,
+      { nodeId: node.id, command, errors: sanitizeResult.errors }
+    );
+  }
+
+  const sanitizedCommand = sanitizeResult.data!;
+
+  // Sanitize arguments
+  const argsResult = ShellSanitizer.sanitizeArguments(args);
+  if (!argsResult.success) {
+    const errorMessage = argsResult.errors.map(e => e.message).join(', ');
+    throw new FlowshGenerationError(
+      `Security validation failed for agent arguments in node ${node.id}: ${errorMessage}`,
+      { nodeId: node.id, args, errors: argsResult.errors }
+    );
+  }
+
+  const sanitizedArgs = argsResult.data!;
+
   return `# Execute agent node: ${node.id}
 ${functionName}() {
     log_step "🤖 Running Agent: ${data.title || node.id}"
     
     local agent_exit_code=0
-    local command="${data.command || 'opencode'}"
+    local command="${sanitizedCommand}"
     
     # Resolve and render template if provided
     local prompt=""
@@ -567,7 +597,7 @@ ${functionName}() {
     elif command -v "\$command" >/dev/null 2>&1; then
         log_debug "Using real \$command with timeout \${AGENT_TIMEOUT}s"
         ${data.working_directory ? `cd "${data.working_directory}"` : ''}
-        timeout "\$AGENT_TIMEOUT" "\$command" ${(data.args || []).map((arg: any) => `"${arg}"`).join(' ')} "\$prompt" || agent_exit_code=\$?
+        timeout "\$AGENT_TIMEOUT" "\$command" ${sanitizedArgs.map(arg => `"${arg}"`).join(' ')} "\$prompt" || agent_exit_code=\$?
         
         # Handle timeout gracefully
         if [[ \$agent_exit_code -eq 124 ]]; then
@@ -592,12 +622,40 @@ ${functionName}() {
 function generateCodeNodeFunction(node: WorkflowNode, functionName: string): string {
   const data = node.data as any;
 
+  // Validate and sanitize command using security utilities
+  const command = data.command || '';
+  const args = data.args || [];
+
+  // Sanitize the command for security
+  const sanitizeResult = ShellSanitizer.sanitizeCommand(command);
+  if (!sanitizeResult.success) {
+    const errorMessage = sanitizeResult.errors.map(e => e.message).join(', ');
+    throw new FlowshGenerationError(
+      `Security validation failed for command in node ${node.id}: ${errorMessage}`,
+      { nodeId: node.id, command, errors: sanitizeResult.errors }
+    );
+  }
+
+  const sanitizedCommand = sanitizeResult.data!;
+
+  // Sanitize arguments
+  const argsResult = ShellSanitizer.sanitizeArguments(args);
+  if (!argsResult.success) {
+    const errorMessage = argsResult.errors.map(e => e.message).join(', ');
+    throw new FlowshGenerationError(
+      `Security validation failed for arguments in node ${node.id}: ${errorMessage}`,
+      { nodeId: node.id, args, errors: argsResult.errors }
+    );
+  }
+
+  const sanitizedArgs = argsResult.data!;
+
   return `# Execute code node: ${node.id}
 ${functionName}() {
     log_step "🔧 Running Code: ${data.title || node.id}"
     
     local exit_code=0
-    local command="${data.command}"
+    local command="${sanitizedCommand}"
     
     # Change to working directory if specified
     ${
@@ -618,10 +676,10 @@ ${functionName}() {
     # Execute command with fallback options
     if [[ "\$USE_MOCK_TOOLS" == "true" ]]; then
         log_debug "Using mock command"
-        mock_command "\$command" ${(data.args || []).map((arg: any) => `"${arg}"`).join(' ')} || exit_code=\$?
+        mock_command "\$command" ${sanitizedArgs.map(arg => `"${arg}"`).join(' ')} || exit_code=\$?
     else
         log_debug "Using real command: \$command"
-        "\$command" ${(data.args || []).map((arg: any) => `"${arg}"`).join(' ')} || exit_code=\$?
+        "\$command" ${sanitizedArgs.map(arg => `"${arg}"`).join(' ')} || exit_code=\$?
     fi
     
     ${

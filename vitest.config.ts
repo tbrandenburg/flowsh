@@ -9,7 +9,21 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],
-      exclude: ['node_modules/', 'dist/', 'src/**/*.test.ts', 'src/**/*.spec.ts'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'src/**/*.test.ts',
+        'src/**/*.spec.ts',
+        'src/cli/index.ts', // CLI entry point - hard to test
+      ],
+      thresholds: {
+        global: {
+          branches: 80,
+          functions: 80,
+          lines: 80,
+          statements: 80,
+        },
+      },
     },
   },
 });

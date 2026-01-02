@@ -1,7 +1,7 @@
 /**
  * YAML Parser for flowsh Workflows
- * 
- * Handles parsing and validation of flowsh YAML workflow files with comprehensive 
+ *
+ * Handles parsing and validation of flowsh YAML workflow files with comprehensive
  * error handling and type safety.
  */
 
@@ -9,6 +9,8 @@ import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
 import { FlowshWorkflow } from '../dsl/types.js';
 import { validateWorkflow, ValidationResult, ValidationError } from '../dsl/validation.js';
+import { YamlSecurityValidator } from '../security/yaml-validator.js';
+import { ValidationErrorInfo, ValidationWarning } from '../errors/types.js';
 
 // =============================================================================
 // Parser Configuration
@@ -30,6 +32,8 @@ export interface ParseResult {
   validation?: ValidationResult;
   /** Parser-specific errors */
   errors: ValidationError[];
+  /** Parser-specific warnings */
+  warnings: ValidationError[];
   /** Success status */
   success: boolean;
 }
@@ -42,13 +46,80 @@ export interface ParseResult {
  * Parses a flowsh workflow from a YAML string
  */
 export async function parseWorkflowYAML(
-  yamlContent: string, 
+  yamlContent: string,
   options: ParserOptions = {}
 ): Promise<ParseResult> {
   const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
   const { validate = true, strict = false } = options;
 
   try {
+    // Security validation before parsing
+    const securityResult = YamlSecurityValidator.validateYamlSecurity(yamlContent, {
+      strictMode: strict,
+    });
+
+    if (!securityResult.success) {
+      // Convert security errors to parser format
+      const securityErrors: ValidationError[] = securityResult.errors.map(
+        (error: ValidationErrorInfo) => ({
+          type: 'error',
+          code: 'SECURITY_VALIDATION_FAILED',
+          message: error.message,
+        })
+      );
+
+      return {
+        errors: securityErrors,
+        warnings: [],
+        success: false,
+      };
+    }
+
+    // Add warnings if any
+    if (securityResult.warnings.length > 0) {
+      const securityWarnings: ValidationError[] = securityResult.warnings.map(
+        (warning: ValidationWarning) => ({
+          type: 'warning',
+          code: 'SECURITY_WARNING',
+          message: warning.message,
+        })
+      );
+
+      if (strict) {
+        // In strict mode, treat warnings as errors
+        return {
+          errors: securityWarnings.map(w => ({ ...w, type: 'error' as const })),
+          warnings: [],
+          success: false,
+        };
+      } else {
+        warnings.push(...securityWarnings);
+      }
+    }
+
+    // Add warnings if any
+    if (securityResult.warnings.length > 0) {
+      const securityWarnings: ValidationError[] = securityResult.warnings.map(
+        (warning: ValidationWarning) => ({
+          type: 'warning',
+          code: 'SECURITY_WARNING',
+          message: warning.message,
+        })
+      );
+
+      if (strict) {
+        // In strict mode, treat warnings as errors
+        return {
+          errors: securityWarnings.map(w => ({ ...w, type: 'error' as const })),
+          warnings: [],
+          success: false,
+        };
+      } else {
+        warnings.push(...securityWarnings);
+      }
+    }
+
     // Parse YAML with safe loader
     const parsed = yaml.load(yamlContent, {
       schema: yaml.CORE_SCHEMA, // Use core schema for security
@@ -57,35 +128,41 @@ export async function parseWorkflowYAML(
 
     if (!parsed || typeof parsed !== 'object') {
       return {
-        errors: [{
-          type: 'error',
-          code: 'INVALID_YAML_STRUCTURE',
-          message: 'YAML must contain an object at the root level',
-        }],
+        errors: [
+          {
+            type: 'error',
+            code: 'INVALID_YAML_STRUCTURE',
+            message: 'YAML must contain an object at the root level',
+          },
+        ],
+        warnings: [],
         success: false,
       };
     }
 
     // Transform to our workflow format
     const workflow = transformParsedYAML(parsed as Record<string, unknown>);
-    
+
     let validation: ValidationResult | undefined;
-    
+
     if (validate) {
       validation = validateWorkflow(workflow);
-      
+
       if (!validation.valid) {
         errors.push(...validation.errors);
       }
-      
+
       if (strict && validation.warnings.length > 0) {
         errors.push(...validation.warnings.map(w => ({ ...w, type: 'error' as const })));
+      } else if (validation.warnings.length > 0) {
+        warnings.push(...validation.warnings);
       }
     }
 
     const result: ParseResult = {
       workflow,
       errors,
+      warnings,
       success: errors.length === 0,
     };
 
@@ -94,7 +171,6 @@ export async function parseWorkflowYAML(
     }
 
     return result;
-    
   } catch (error) {
     if (error instanceof yaml.YAMLException) {
       const yamlError: ValidationError = {
@@ -102,23 +178,27 @@ export async function parseWorkflowYAML(
         code: 'YAML_PARSE_ERROR',
         message: `YAML parsing failed: ${error.message}`,
       };
-      
+
       if (error.mark) {
         yamlError.path = `Line ${error.mark.line + 1}, Column ${error.mark.column + 1}`;
       }
 
       return {
         errors: [yamlError],
+        warnings: [],
         success: false,
       };
     }
 
     return {
-      errors: [{
-        type: 'error',
-        code: 'UNEXPECTED_ERROR',
-        message: `Unexpected error during parsing: ${error instanceof Error ? error.message : String(error)}`,
-      }],
+      errors: [
+        {
+          type: 'error',
+          code: 'UNEXPECTED_ERROR',
+          message: `Unexpected error during parsing: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      ],
+      warnings: [],
       success: false,
     };
   }
@@ -128,7 +208,7 @@ export async function parseWorkflowYAML(
  * Parses a flowsh workflow from a file path
  */
 export async function parseWorkflowFile(
-  filePath: string, 
+  filePath: string,
   options: ParserOptions = {}
 ): Promise<ParseResult> {
   try {
@@ -136,12 +216,15 @@ export async function parseWorkflowFile(
     return await parseWorkflowYAML(content, options);
   } catch (error) {
     return {
-      errors: [{
-        type: 'error',
-        code: 'FILE_READ_ERROR',
-        message: `Failed to read file: ${error instanceof Error ? error.message : String(error)}`,
-        path: filePath,
-      }],
+      errors: [
+        {
+          type: 'error',
+          code: 'FILE_READ_ERROR',
+          message: `Failed to read file: ${error instanceof Error ? error.message : String(error)}`,
+          path: filePath,
+        },
+      ],
+      warnings: [],
       success: false,
     };
   }
@@ -162,7 +245,7 @@ function transformParsedYAML(parsed: Record<string, unknown>): FlowshWorkflow {
   if (typeof parsed['version'] === 'string') {
     workflow.version = parsed['version'];
   }
-  
+
   if (typeof parsed['kind'] === 'string') {
     workflow.kind = parsed['kind'];
   }
@@ -176,31 +259,37 @@ function transformParsedYAML(parsed: Record<string, unknown>): FlowshWorkflow {
   if (parsed['workflow'] && typeof parsed['workflow'] === 'object') {
     const workflowObj = parsed['workflow'] as Record<string, unknown>;
     const name = String(workflowObj['name'] || '');
-    
+
     workflow.workflow = { name };
 
     if (workflowObj['description']) {
       workflow.workflow.description = String(workflowObj['description']);
     }
-    
+
     if (workflowObj['version']) {
       workflow.workflow.version = String(workflowObj['version']);
     }
 
     // Handle template dependencies
     if (Array.isArray(workflowObj['template_dependencies'])) {
-      workflow.workflow.template_dependencies = workflowObj['template_dependencies'].map(transformTemplateDependency);
+      workflow.workflow.template_dependencies = workflowObj['template_dependencies'].map(
+        transformTemplateDependency
+      );
     }
   }
 
   // Handle environment variables
   if (Array.isArray(parsed['environment_variables'])) {
-    workflow.environment_variables = parsed['environment_variables'].map(transformEnvironmentVariable);
+    workflow.environment_variables = parsed['environment_variables'].map(
+      transformEnvironmentVariable
+    );
   }
 
   // Handle conversation variables
   if (Array.isArray(parsed['conversation_variables'])) {
-    workflow.conversation_variables = parsed['conversation_variables'].map(transformConversationVariable);
+    workflow.conversation_variables = parsed['conversation_variables'].map(
+      transformConversationVariable
+    );
   }
 
   // Handle graph (direct or in spec)
@@ -209,21 +298,28 @@ function transformParsedYAML(parsed: Record<string, unknown>): FlowshWorkflow {
   } else if (parsed['spec'] && typeof parsed['spec'] === 'object') {
     const spec = parsed['spec'] as Record<string, unknown>;
     const workflowSpec: any = {
-      graph: spec['graph'] && typeof spec['graph'] === 'object' 
-        ? transformGraph(spec['graph'] as Record<string, unknown>)
-        : { nodes: [], edges: [] },
+      graph:
+        spec['graph'] && typeof spec['graph'] === 'object'
+          ? transformGraph(spec['graph'] as Record<string, unknown>)
+          : { nodes: [], edges: [] },
     };
 
     if (Array.isArray(spec['template_dependencies'])) {
-      workflowSpec.template_dependencies = spec['template_dependencies'].map(transformTemplateDependency);
+      workflowSpec.template_dependencies = spec['template_dependencies'].map(
+        transformTemplateDependency
+      );
     }
 
     if (Array.isArray(spec['environment_variables'])) {
-      workflowSpec.environment_variables = spec['environment_variables'].map(transformEnvironmentVariable);
+      workflowSpec.environment_variables = spec['environment_variables'].map(
+        transformEnvironmentVariable
+      );
     }
 
     if (Array.isArray(spec['conversation_variables'])) {
-      workflowSpec.conversation_variables = spec['conversation_variables'].map(transformConversationVariable);
+      workflowSpec.conversation_variables = spec['conversation_variables'].map(
+        transformConversationVariable
+      );
     }
 
     workflow.spec = workflowSpec;
@@ -235,7 +331,9 @@ function transformParsedYAML(parsed: Record<string, unknown>): FlowshWorkflow {
 /**
  * Transforms metadata object
  */
-function transformMetadata(metadata: Record<string, unknown>): NonNullable<FlowshWorkflow['metadata']> {
+function transformMetadata(
+  metadata: Record<string, unknown>
+): NonNullable<FlowshWorkflow['metadata']> {
   const result: any = {
     name: String(metadata['name'] || ''),
   };
@@ -276,7 +374,7 @@ function transformMetadata(metadata: Record<string, unknown>): NonNullable<Flows
  */
 function transformGraph(graph: Record<string, unknown>): NonNullable<FlowshWorkflow['graph']> {
   let nodes: any[] = [];
-  
+
   if (Array.isArray(graph['nodes'])) {
     // Handle array format: nodes: [ {id: "start", ...}, ... ]
     nodes = graph['nodes'].map(transformNode);
@@ -287,7 +385,7 @@ function transformGraph(graph: Record<string, unknown>): NonNullable<FlowshWorkf
   }
 
   let edges: any[] = [];
-  
+
   if (Array.isArray(graph['edges'])) {
     edges = graph['edges'].map(transformEdge);
   } else if (graph['edges'] && typeof graph['edges'] === 'object') {
@@ -308,11 +406,14 @@ function transformNode(nodeData: unknown): any {
   }
 
   const node = nodeData as Record<string, unknown>;
-  
+
   return {
     id: String(node['id'] || ''),
     type: String(node['type'] || ''),
-    data: transformNodeData(node['data'] as Record<string, unknown> | undefined, String(node['type'] || '')),
+    data: transformNodeData(
+      node['data'] as Record<string, unknown> | undefined,
+      String(node['type'] || '')
+    ),
   };
 }
 
@@ -323,15 +424,15 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
   if (!data) return {};
 
   const baseData: any = {};
-  
+
   if (data['title']) {
     baseData.title = String(data['title']);
   }
-  
+
   if (data['desc']) {
     baseData.desc = String(data['desc']);
   }
-  
+
   if (data['description']) {
     baseData.description = String(data['description']);
   }
@@ -357,7 +458,9 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
         baseData.prompt_template = transformPromptTemplate(data['prompt_template']);
       }
       if (data['template_parameters'] && typeof data['template_parameters'] === 'object') {
-        baseData.template_parameters = transformStringRecord(data['template_parameters'] as Record<string, unknown>);
+        baseData.template_parameters = transformStringRecord(
+          data['template_parameters'] as Record<string, unknown>
+        );
       }
       if (data['advanced_prompt_config']) {
         baseData.advanced_prompt_config = data['advanced_prompt_config'];
@@ -374,8 +477,12 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
       return baseData;
 
     case 'if-else':
-      baseData.conditions = Array.isArray(data['conditions']) ? data['conditions'].map(transformCondition) : [];
-      baseData.logical_operator = data['logical_operator'] ? String(data['logical_operator']) : 'and';
+      baseData.conditions = Array.isArray(data['conditions'])
+        ? data['conditions'].map(transformCondition)
+        : [];
+      baseData.logical_operator = data['logical_operator']
+        ? String(data['logical_operator'])
+        : 'and';
       return baseData;
 
     case 'code':
@@ -387,7 +494,9 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
         baseData.working_directory = String(data['working_directory']);
       }
       if (data['environment_variables'] && typeof data['environment_variables'] === 'object') {
-        baseData.environment_variables = transformStringRecord(data['environment_variables'] as Record<string, unknown>);
+        baseData.environment_variables = transformStringRecord(
+          data['environment_variables'] as Record<string, unknown>
+        );
       }
       if (data['on_success']) {
         baseData.on_success = String(data['on_success']);
@@ -409,13 +518,17 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
         baseData.prompt_template = transformPromptTemplate(data['prompt_template']);
       }
       if (data['template_parameters'] && typeof data['template_parameters'] === 'object') {
-        baseData.template_parameters = transformStringRecord(data['template_parameters'] as Record<string, unknown>);
+        baseData.template_parameters = transformStringRecord(
+          data['template_parameters'] as Record<string, unknown>
+        );
       }
       if (data['working_directory']) {
         baseData.working_directory = String(data['working_directory']);
       }
       if (data['environment_variables'] && typeof data['environment_variables'] === 'object') {
-        baseData.environment_variables = transformStringRecord(data['environment_variables'] as Record<string, unknown>);
+        baseData.environment_variables = transformStringRecord(
+          data['environment_variables'] as Record<string, unknown>
+        );
       }
       if (data['timeout']) {
         baseData.timeout = Number(data['timeout']);
