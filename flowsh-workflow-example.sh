@@ -3,7 +3,7 @@
 # Source: AI Product Development Pipeline
 # Description: Transform product ideas into working implementations through AI agents with reusable templates
 # Version: 2.0.0
-# Generated: 2026-01-02T11:41:48.736Z
+# Generated: 2026-01-02T18:35:17.249Z
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ declare -A workflow_state
 # Control flags for testing and configuration
 USE_MOCK_TOOLS=${USE_MOCK_TOOLS:-true}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
-VERBOSE=${VERBOSE:-true}
+VERBOSE=${VERBOSE:-false}
 WORKFLOW_NAME="AI Product Development Pipeline"
 WORKFLOW_VERSION="2.0.0"
 
@@ -57,6 +57,22 @@ log_debug() {
 
 log_step() {
     echo -e "${CYAN}🚀 $*${NC}"
+}
+
+# Operation logging with correlation IDs
+log_operation_start() {
+    local operation_name="$1"
+    local operation_type="$2"
+    local correlation_id="$3"
+    log_debug "$correlation_id" "Starting $operation_type: $operation_name"
+}
+
+log_operation_end() {
+    local operation_name="$1"
+    local operation_type="$2"
+    local correlation_id="$3"
+    local status="${4:-success}"
+    log_debug "$correlation_id" "Completed $operation_type: $operation_name ($status)"
 }
 
 # Enhanced error handling
@@ -228,22 +244,48 @@ mock_command() {
 # TEMPLATE SYSTEM
 # =============================================================================
 
-# Template resolution with fallback system
+# Template cache directory
+TEMPLATE_CACHE_DIR="${FLOWSH_TEMP_DIR:-/tmp/flowsh}/templates"
+mkdir -p "$TEMPLATE_CACHE_DIR"
+
+# Template resolution with comprehensive source support
 resolve_template() {
     local template_id="$1"
-    local source="${2:-library}"
-    
-    log_debug "Resolving template: $template_id from $source"
-    
+    local version="${2:-latest}"
+    local cache_key="${template_id}:${version}"
+    local cache_file="$TEMPLATE_CACHE_DIR/$cache_key"
+
+    log_debug "$correlation_id" "Resolving template: $template_id (version: $version)"
+
+    # Check local cache first
+    if [ -f "$cache_file" ]; then
+        local cache_age=$(($(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || echo 0)))
+        if [ $cache_age -lt 3600 ]; then
+            log_debug "$correlation_id" "Template cache hit: $template_id"
+            cat "$cache_file"
+            return 0
+        else
+            log_debug "$correlation_id" "Template cache expired: $template_id"
+            rm -f "$cache_file"
+        fi
+    fi
+
+    # Try built-in templates first
     case "$template_id" in
         "product-manager-expert-v3")
             cat <<'TEMPLATE'
 # Template: product-manager-expert-v3
 # Source: library
 # Version: 1.5.0
-You are an AI assistant. Please process this request: {{task_description}}
 
-Be helpful, accurate, and concise in your response.
+You are an AI assistant processing: {{task_description}}
+
+Please provide a helpful, accurate, and concise response based on the task requirements.
+
+Context:
+- Template ID: product-manager-expert-v3
+- Input Data: {{input_data}}
+- Timestamp: {{timestamp}}
 TEMPLATE
             ;;
         "software-architect-v2")
@@ -251,9 +293,15 @@ TEMPLATE
 # Template: software-architect-v2
 # Source: customized
 # Version: 2.1.0
-You are an AI assistant. Please process this request: {{task_description}}
 
-Be helpful, accurate, and concise in your response.
+You are an AI assistant processing: {{task_description}}
+
+Please provide a helpful, accurate, and concise response based on the task requirements.
+
+Context:
+- Template ID: software-architect-v2
+- Input Data: {{input_data}}
+- Timestamp: {{timestamp}}
 TEMPLATE
             ;;
         "senior-developer-v4")
@@ -261,14 +309,19 @@ TEMPLATE
 # Template: senior-developer-v4
 # Source: built-in
 # Version: 1.8.0
-You are an AI assistant. Please process this request: {{task_description}}
 
-Be helpful, accurate, and concise in your response.
+You are an AI assistant processing: {{task_description}}
+
+Please provide a helpful, accurate, and concise response based on the task requirements.
+
+Context:
+- Template ID: senior-developer-v4
+- Input Data: {{input_data}}
+- Timestamp: {{timestamp}}
 TEMPLATE
             ;;
         "task-planner")
-            cat <<'TEMPLATE'
-You are a task planner. Break down this task: {{task_description}}
+            local content='You are a task planner. Break down this task: {{task_description}}
 
 Create actionable steps and implement them systematically.
 Focus on:
@@ -277,49 +330,237 @@ Focus on:
 3. Implementation planning
 4. Testing strategy
 
-Keep your response concise and actionable.
-TEMPLATE
+Keep your response concise and actionable.'
+            echo "$content" > "$cache_file"
+            echo "$content"
+            return 0
             ;;
         "code-reviewer")
-            cat <<'TEMPLATE'
-Review and analyze this task: {{task_description}}
+            local content='Review and analyze this task: {{task_description}}
 
 Provide feedback on:
 1. Code quality and best practices
 2. Potential security issues
 3. Performance considerations
-4. Testing coverage
-TEMPLATE
+4. Testing coverage'
+            echo "$content" > "$cache_file"
+            echo "$content"
+            return 0
             ;;
-        *)
-            log_error "Unknown template '$template_id'"
+    esac
+
+    # Try external sources
+    
+    # Try source 1: file - ./templates
+    log_debug "$correlation_id" "Attempting template resolution from file: ./templates"
+    
+    if resolve_from_file_source "$template_id" "$version" "./templates" > "$cache_file.tmp"; then
+        if validate_template "$(cat "$cache_file.tmp")" "$template_id"; then
+            mv "$cache_file.tmp" "$cache_file"
+            cat "$cache_file"
+            return 0
+        else
+            log_warning "$correlation_id" "Template validation failed from file source"
+            rm -f "$cache_file.tmp"
+        fi
+    else
+        log_debug "$correlation_id" "Failed to resolve from file source: ./templates"
+        rm -f "$cache_file.tmp"
+    fi
+
+    # Try source 2: http - https://templates.flowsh.dev
+    log_debug "$correlation_id" "Attempting template resolution from http: https://templates.flowsh.dev"
+    
+    if resolve_from_http_source "$template_id" "$version" "https://templates.flowsh.dev" > "$cache_file.tmp"; then
+        if validate_template "$(cat "$cache_file.tmp")" "$template_id"; then
+            mv "$cache_file.tmp" "$cache_file"
+            cat "$cache_file"
+            return 0
+        else
+            log_warning "$correlation_id" "Template validation failed from http source"
+            rm -f "$cache_file.tmp"
+        fi
+    else
+        log_debug "$correlation_id" "Failed to resolve from http source: https://templates.flowsh.dev"
+        rm -f "$cache_file.tmp"
+    fi
+
+# Source resolution functions
+resolve_from_http_source() {
+    local template_id="$1"
+    local version="$2" 
+    local base_url="$3"
+    local url="$base_url/templates/$template_id"
+    
+    if [ "$version" != "latest" ]; then
+        url="$url?version=$version"
+    fi
+    
+    curl -s --max-time 30 \
+         -H "Accept: text/plain" \
+         -H "User-Agent: flowsh-template-engine/1.0" \
+         "$url" 2>/dev/null
+}
+
+resolve_from_file_source() {
+    local template_id="$1"
+    local version="$2"
+    local base_path="$3"
+    local file_path="$base_path/$template_id"
+    
+    if [ "$version" != "latest" ]; then
+        file_path="$file_path.$version"
+    fi
+    
+    if [ -f "$file_path" ]; then
+        cat "$file_path"
+        return 0
+    fi
+    
+    return 1
+}
+
+resolve_from_git_source() {
+    local template_id="$1"
+    local version="$2"
+    local repo_url="$3"
+    
+    # Git resolution not yet implemented
+    log_warning "$correlation_id" "Git template resolution not implemented"
+    return 1
+}
+
+resolve_from_registry_source() {
+    local template_id="$1"
+    local version="$2"
+    local registry_url="$3"
+    
+    # Use HTTP resolution for registry
+    resolve_from_http_source "$template_id" "$version" "$registry_url"
+}
+
+    # Handle fallback strategy
+    case "default" in
+        "error")
+            log_error "$correlation_id" "Template not found: $template_id"
             return 1
+            ;;
+        "inline")
+            log_warning "$correlation_id" "Using template ID as inline content: $template_id"
+            echo "$template_id"
+            ;;
+        "default")
+            log_warning "$correlation_id" "Using default template for: $template_id"
+            local default_content="Default template content for $template_id: {{task_description}}"
+            echo "$default_content" > "$cache_file"
+            echo "$default_content"
             ;;
     esac
 }
 
-# Template rendering with variable substitution
+# Enhanced template rendering with comprehensive variable substitution
 render_template() {
     local template="$1"
-    local task_description="$2"
+    local variables="$2"
     
     # Validate inputs
-    [[ -z "$template" ]] && {
-        log_error "Template content is empty"
+    if [ -z "$template" ]; then
+        log_error "$correlation_id" "Template content is empty"
         return 1
-    }
-    [[ -z "$task_description" ]] && {
-        log_error "Task description is empty"
+    fi
+    
+    log_debug "$correlation_id" "Rendering template with variables"
+    
+    # Start with the template
+    local rendered="$template"
+    
+    # Replace common workflow variables
+    rendered=$(echo "$rendered" | sed "s|{{task_description}}|$(get_workflow_var 'task_description' 'Default task')|g")
+    rendered=$(echo "$rendered" | sed "s|{{input_data}}|$variables|g")
+    rendered=$(echo "$rendered" | sed "s|{{correlation_id}}|$correlation_id|g")
+    rendered=$(echo "$rendered" | sed "s|{{timestamp}}|$(date -Iseconds)|g")
+    
+    # Apply variable substitution function for ${} patterns
+    rendered=$(substitute_variables "$rendered" "$variables")
+    
+    echo "$rendered"
+}
+
+# Advanced variable substitution supporting nested and complex patterns
+substitute_variables() {
+    local content="$1"
+    local input_data="$2"
+    
+    # Replace ${variable} patterns with workflow variables
+    local result="$content"
+    
+    # Extract all variable references
+    local vars=$(echo "$content" | grep -o '${[^}]*}' | sort -u)
+    
+    for var_ref in $vars; do
+        # Remove ${} wrapper
+        local var_name=$(echo "$var_ref" | sed 's/${\([^}]*\)}/\1/')
+        
+        # Get variable value
+        local var_value=$(get_variable_value "$var_name" "$input_data")
+        
+        # Replace in result
+        result=$(echo "$result" | sed "s|\${$var_name}|$var_value|g")
+    done
+    
+    echo "$result"
+}
+
+# Get variable value from workflow state or input data
+get_variable_value() {
+    local var_name="$1"
+    local input_data="$2"
+    
+    # Try workflow variable first
+    local value=$(get_workflow_var "$var_name" "")
+    
+    if [ -n "$value" ]; then
+        echo "$value"
+        return 0
+    fi
+    
+    # Try environment variable
+    local env_value=$(eval "echo \$$var_name" 2>/dev/null || echo "")
+    if [ -n "$env_value" ]; then
+        echo "$env_value"
+        return 0
+    fi
+    
+    # Return empty string as fallback
+    echo ""
+}
+
+# Validate template content
+validate_template() {
+    local template="$1"
+    local template_id="$2"
+    
+    # Basic validation checks
+    if [ -z "$template" ]; then
+        log_error "$correlation_id" "Template validation failed: empty content" "{\"template_id\": \"$template_id\"}"
         return 1
-    }
+    fi
     
-    # Use the variable substitution function
-    local rendered_template="$(substitute_variables "$template")"
+    # Check for potentially dangerous content
+    if echo "$template" | grep -q '$(.*rm.*-rf'; then
+        log_error "$correlation_id" "Template validation failed: dangerous command detected" "{\"template_id\": \"$template_id\"}"
+        return 1
+    fi
     
-    # Handle specific variable substitutions for backward compatibility
-    rendered_template=$(echo "$rendered_template" | sed "s|{{task_description}}|$task_description|g")
+    # Check template size (max 1MB)
+    local template_size=${#template}
+    if [ $template_size -gt 1048576 ]; then
+        log_error "$correlation_id" "Template validation failed: size too large ($template_size bytes)" "{\"template_id\": \"$template_id\"}"
+        return 1
+    fi
     
-    echo "$rendered_template"
+    log_debug "$correlation_id" "Template validation passed: $template_id ($template_size bytes)"
+    return 0
 }
 
 # =============================================================================
@@ -330,410 +571,1585 @@ render_template() {
 
 # Execute start node: start
 execute_node_start() {
-    log_step "Starting workflow: Product Development Start"
+    log_step "🚀 Starting Workflow: Product Development Start"
     
-    # Validate required variables
-    [[ -z "${workflow_vars["product_idea"]:-}" ]] && {
-        log_error "product_idea is required"
-        show_usage
-        exit 1
-    }
-    
-    log_success "Workflow initialized successfully"
+    # Initialize workflow state
     set_workflow_state "current_node" "start"
+    set_workflow_state "status" "running"
+    set_workflow_state "start_time" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    
+    # Set initial variables from node data
+        set_workflow_var "0" "[object Object]"
+    
+    log_info "Workflow started successfully"
 }
 
-# Execute LLM node: prd_agent
+# LLM Node: prd_agent
 execute_node_prd_agent() {
-    log_step "🧠 Running LLM: PRD Generation Agent"
+    local input_data="$1"
+    local correlation_id="$2"
     
+    log_operation_start "prd_agent" "llm_execution" "$correlation_id"
+    
+    # Configure LLM settings
     local model_name="gpt-4o"
     local provider="openai"
+    local temperature="0.7"
+    local max_tokens="1000"
+    local timeout_val="120"
     
-    # Prepare prompt
+    
+    # Create secure temporary files
+    local temp_dir="${FLOWSH_TEMP_DIR:-/tmp/flowsh}"
+    mkdir -p "$temp_dir"
+    
+    local temp_file_prefix="llm_prd_agent_$correlation_id"
+    local temp_file="$temp_dir/${temp_file_prefix}"
+    local output_file="${temp_file}.output"
+    local error_file="${temp_file}.error"
+    
+    # Set secure permissions
+    touch "$temp_file" "$output_file" "$error_file"
+    chmod 600 "$temp_file" "$output_file" "$error_file"
+    
+    # Resolve and prepare prompt
     local prompt=""
-    if [[ -n "product-manager-expert-v3" ]]; then
-        local template_content
-        if ! template_content=$(resolve_template "product-manager-expert-v3" "library"); then
-            log_error "Failed to resolve template 'product-manager-expert-v3'"
-            return 1
-        fi
-        
-        if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
-            log_error "Failed to render template"
-            return 1
-        fi
-    else
-        prompt="$(get_workflow_var 'task_description' 'Default LLM prompt')"
+    
+    # Resolve external template
+    local template_content
+    if ! template_content=$(resolve_template "undefined" "library"); then
+        log_error "$correlation_id" "Failed to resolve template" "{\"templateId\": \"undefined\"}"
+        return 1
     fi
     
-    # Execute LLM call
-    local llm_exit_code=0
+    # Render template with variables
+    if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
+        log_error "$correlation_id" "Failed to render template"
+        return 1
+    fi
+    
+    # Prepare API configuration
+    local api_key="${OPENAI_API_KEY:-}"
+    local endpoint="${OPENAI_API_ENDPOINT:-https://api.openai.com/v1}"
+    
+    # Validate API configuration
+    if [ "$provider" != "local" ] && [ -z "$api_key" ]; then
+        log_error "$correlation_id" "API key not configured for provider: $provider"
+        return 1
+    fi
+    
+    if [ -z "$endpoint" ]; then
+        log_error "$correlation_id" "API endpoint not configured for provider: $provider"
+        return 1
+    fi
+    
+    # Execute LLM API call with retry logic
+    local response
+    local exit_code
+    
     if [[ "$USE_MOCK_TOOLS" == "true" ]]; then
-        log_debug "Using mock LLM"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "prd_agent_response" "$response"
-        fi
+        log_debug "$correlation_id" "Using mock LLM execution"
+        local mock_response="Mock LLM response from prd_agent for prompt: $prompt"
+        
+        # Simulate processing time
+        sleep 1
+        
+        echo "$mock_response" > "$output_file"
+        exit_code=0
+        
+        log_debug "$correlation_id" "Mock LLM completed successfully"
     else
-        log_warning "Real LLM integration not implemented yet, using mock"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
+        call_llm_api
+    fi
+    
+    
+    if [ $exit_code -ne 0 ]; then
+        case $exit_code in
+            1)
+                log_error "$correlation_id" "LLM execution general error" "{\"node\": \"prd_agent\"}"
+                ;;
+            124)
+                log_error "$correlation_id" "LLM execution timeout" "{\"node\": \"prd_agent\"}"
+                ;;
+            126)
+                log_error "$correlation_id" "LLM execution command not executable" "{\"node\": \"prd_agent\"}"
+                ;;
+            127)
+                log_error "$correlation_id" "LLM execution command not found" "{\"node\": \"prd_agent\"}"
+                ;;
+            *)
+                log_error "$correlation_id" "LLM execution unknown error" "{\"node\": \"prd_agent\", \"exit_code\": $exit_code}"
+                ;;
+        esac
+        return $exit_code
+    fi
+    
+    # Process successful execution
+    if [ $exit_code -eq 0 ]; then
+        response=$(cat "$output_file" 2>/dev/null || echo "")
+        log_success "$correlation_id" "LLM execution completed" "{\"response_length\": ${#response}}"
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "prd_agent_response" "$response"
-        fi
+        # Store response for downstream nodes
+        set_workflow_var "llm_response" "$response"
+        set_workflow_var "prd_agent_response" "$response"
+        
+        # No output mappings to process
+        
+        echo "$response"
     fi
     
-    if [[ $llm_exit_code -ne 0 ]]; then
-        handle_error $llm_exit_code "LLM execution" "prd_agent"
-        return $llm_exit_code
-    fi
     
-    log_success "LLM execution completed"
+    # Cleanup temporary files
+    rm -f "$temp_file" "$output_file" "$error_file" 2>/dev/null || true
+    
     set_workflow_state "current_node" "prd_agent"
+    return $exit_code
 }
 
-# Execute LLM node: planning_agent
-execute_node_planning_agent() {
-    log_step "🧠 Running LLM: Implementation Planning Agent"
+# LLM API call function
+call_llm_api() {
+    log_debug "$correlation_id" "Calling $provider API with model $model_name"
     
+    case "$provider" in
+        "openai")
+            
+            log_debug "$correlation_id" "Making OpenAI API call to $endpoint"
+            
+            # Prepare JSON payload
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "messages": [{"role": "user", "content": "$prompt"}],
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/chat/completions" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from OpenAI response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].message.content // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "OpenAI API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "OpenAI API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "anthropic")
+            
+            log_debug "$correlation_id" "Making Anthropic API call to $endpoint"
+            
+            # Prepare JSON payload for Claude
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "max_tokens": $max_tokens,
+    "temperature": $temperature,
+    "messages": [{"role": "user", "content": "$prompt"}]
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/messages" \
+                -H "x-api-key: $api_key" \
+                -H "Content-Type: application/json" \
+                -H "anthropic-version: 2023-06-01" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from Anthropic response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.content[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Anthropic API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Anthropic API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "local")
+            
+            log_debug "$correlation_id" "Making local LLM API call to $endpoint"
+            
+            # Prepare JSON payload for local LLM (OpenAI-compatible)
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "prompt": "$prompt",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens,
+    "stream": false
+}
+EOF
+)
+            
+            # Make API call to local endpoint
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/v1/completions" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from local LLM response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Local LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Local LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        *)
+            
+            log_debug "$correlation_id" "Making custom LLM API call to $endpoint"
+            
+            # For custom endpoints, use a generic approach
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "prompt": "$prompt",
+    "model": "$model_name",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make generic API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # For custom APIs, just use the response body directly
+                    echo "$response_body" > "$output_file"
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Custom LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Custom LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+    esac
+}
+
+# LLM Node: planning_agent
+execute_node_planning_agent() {
+    local input_data="$1"
+    local correlation_id="$2"
+    
+    log_operation_start "planning_agent" "llm_execution" "$correlation_id"
+    
+    # Configure LLM settings
     local model_name="gpt-4o"
     local provider="openai"
+    local temperature="0.7"
+    local max_tokens="1000"
+    local timeout_val="120"
     
-    # Prepare prompt
+    
+    # Create secure temporary files
+    local temp_dir="${FLOWSH_TEMP_DIR:-/tmp/flowsh}"
+    mkdir -p "$temp_dir"
+    
+    local temp_file_prefix="llm_planning_agent_$correlation_id"
+    local temp_file="$temp_dir/${temp_file_prefix}"
+    local output_file="${temp_file}.output"
+    local error_file="${temp_file}.error"
+    
+    # Set secure permissions
+    touch "$temp_file" "$output_file" "$error_file"
+    chmod 600 "$temp_file" "$output_file" "$error_file"
+    
+    # Resolve and prepare prompt
     local prompt=""
-    if [[ -n "software-architect-v2" ]]; then
-        local template_content
-        if ! template_content=$(resolve_template "software-architect-v2" "customized"); then
-            log_error "Failed to resolve template 'software-architect-v2'"
-            return 1
-        fi
-        
-        if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
-            log_error "Failed to render template"
-            return 1
-        fi
-    else
-        prompt="$(get_workflow_var 'task_description' 'Default LLM prompt')"
+    
+    # Resolve external template
+    local template_content
+    if ! template_content=$(resolve_template "undefined" "customized"); then
+        log_error "$correlation_id" "Failed to resolve template" "{\"templateId\": \"undefined\"}"
+        return 1
     fi
     
-    # Execute LLM call
-    local llm_exit_code=0
+    # Render template with variables
+    if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
+        log_error "$correlation_id" "Failed to render template"
+        return 1
+    fi
+    
+    # Prepare API configuration
+    local api_key="${OPENAI_API_KEY:-}"
+    local endpoint="${OPENAI_API_ENDPOINT:-https://api.openai.com/v1}"
+    
+    # Validate API configuration
+    if [ "$provider" != "local" ] && [ -z "$api_key" ]; then
+        log_error "$correlation_id" "API key not configured for provider: $provider"
+        return 1
+    fi
+    
+    if [ -z "$endpoint" ]; then
+        log_error "$correlation_id" "API endpoint not configured for provider: $provider"
+        return 1
+    fi
+    
+    # Execute LLM API call with retry logic
+    local response
+    local exit_code
+    
     if [[ "$USE_MOCK_TOOLS" == "true" ]]; then
-        log_debug "Using mock LLM"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "planning_agent_response" "$response"
-        fi
+        log_debug "$correlation_id" "Using mock LLM execution"
+        local mock_response="Mock LLM response from planning_agent for prompt: $prompt"
+        
+        # Simulate processing time
+        sleep 1
+        
+        echo "$mock_response" > "$output_file"
+        exit_code=0
+        
+        log_debug "$correlation_id" "Mock LLM completed successfully"
     else
-        log_warning "Real LLM integration not implemented yet, using mock"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
+        call_llm_api
+    fi
+    
+    
+    if [ $exit_code -ne 0 ]; then
+        case $exit_code in
+            1)
+                log_error "$correlation_id" "LLM execution general error" "{\"node\": \"planning_agent\"}"
+                ;;
+            124)
+                log_error "$correlation_id" "LLM execution timeout" "{\"node\": \"planning_agent\"}"
+                ;;
+            126)
+                log_error "$correlation_id" "LLM execution command not executable" "{\"node\": \"planning_agent\"}"
+                ;;
+            127)
+                log_error "$correlation_id" "LLM execution command not found" "{\"node\": \"planning_agent\"}"
+                ;;
+            *)
+                log_error "$correlation_id" "LLM execution unknown error" "{\"node\": \"planning_agent\", \"exit_code\": $exit_code}"
+                ;;
+        esac
+        return $exit_code
+    fi
+    
+    # Process successful execution
+    if [ $exit_code -eq 0 ]; then
+        response=$(cat "$output_file" 2>/dev/null || echo "")
+        log_success "$correlation_id" "LLM execution completed" "{\"response_length\": ${#response}}"
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "planning_agent_response" "$response"
-        fi
+        # Store response for downstream nodes
+        set_workflow_var "llm_response" "$response"
+        set_workflow_var "planning_agent_response" "$response"
+        
+        # No output mappings to process
+        
+        echo "$response"
     fi
     
-    if [[ $llm_exit_code -ne 0 ]]; then
-        handle_error $llm_exit_code "LLM execution" "planning_agent"
-        return $llm_exit_code
-    fi
     
-    log_success "LLM execution completed"
+    # Cleanup temporary files
+    rm -f "$temp_file" "$output_file" "$error_file" 2>/dev/null || true
+    
     set_workflow_state "current_node" "planning_agent"
+    return $exit_code
+}
+
+# LLM API call function
+call_llm_api() {
+    log_debug "$correlation_id" "Calling $provider API with model $model_name"
+    
+    case "$provider" in
+        "openai")
+            
+            log_debug "$correlation_id" "Making OpenAI API call to $endpoint"
+            
+            # Prepare JSON payload
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "messages": [{"role": "user", "content": "$prompt"}],
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/chat/completions" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from OpenAI response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].message.content // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "OpenAI API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "OpenAI API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "anthropic")
+            
+            log_debug "$correlation_id" "Making Anthropic API call to $endpoint"
+            
+            # Prepare JSON payload for Claude
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "max_tokens": $max_tokens,
+    "temperature": $temperature,
+    "messages": [{"role": "user", "content": "$prompt"}]
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/messages" \
+                -H "x-api-key: $api_key" \
+                -H "Content-Type: application/json" \
+                -H "anthropic-version: 2023-06-01" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from Anthropic response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.content[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Anthropic API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Anthropic API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "local")
+            
+            log_debug "$correlation_id" "Making local LLM API call to $endpoint"
+            
+            # Prepare JSON payload for local LLM (OpenAI-compatible)
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "prompt": "$prompt",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens,
+    "stream": false
+}
+EOF
+)
+            
+            # Make API call to local endpoint
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/v1/completions" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from local LLM response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Local LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Local LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        *)
+            
+            log_debug "$correlation_id" "Making custom LLM API call to $endpoint"
+            
+            # For custom endpoints, use a generic approach
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "prompt": "$prompt",
+    "model": "$model_name",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make generic API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # For custom APIs, just use the response body directly
+                    echo "$response_body" > "$output_file"
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Custom LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Custom LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+    esac
 }
 
 # Execute generic node: extract_stories
 execute_node_extract_stories() {
-    log_step "⚙️  Executing Node: Extract Implementation Stories (template-transform)"
+    log_step "⚙️  Generic Node: Extract Implementation Stories"
     
-    log_warning "Node type 'template-transform' not fully implemented"
+    log_warning "Node type 'template-transform' not fully supported yet"
+    log_info "Node ID: extract_stories"
+    log_info "Node Type: template-transform"
     
-    # Placeholder implementation
-    sleep 1
-    log_info "Node execution completed (placeholder)"
-    
+    # Set current node state
     set_workflow_state "current_node" "extract_stories"
+    
+    log_success "Generic node processing completed"
 }
 
 # Execute generic node: story_loop
 execute_node_story_loop() {
-    log_step "⚙️  Executing Node: Implement Each Story (iteration)"
+    log_step "⚙️  Generic Node: Implement Each Story"
     
-    log_warning "Node type 'iteration' not fully implemented"
+    log_warning "Node type 'iteration' not fully supported yet"
+    log_info "Node ID: story_loop"
+    log_info "Node Type: iteration"
     
-    # Placeholder implementation
-    sleep 1
-    log_info "Node execution completed (placeholder)"
-    
+    # Set current node state
     set_workflow_state "current_node" "story_loop"
+    
+    log_success "Generic node processing completed"
 }
 
-# Execute LLM node: story_implementation
+# LLM Node: story_implementation
 execute_node_story_implementation() {
-    log_step "🧠 Running LLM: Coding Agent - Story Implementation"
+    local input_data="$1"
+    local correlation_id="$2"
     
+    log_operation_start "story_implementation" "llm_execution" "$correlation_id"
+    
+    # Configure LLM settings
     local model_name="gpt-4o"
     local provider="openai"
+    local temperature="0.7"
+    local max_tokens="1000"
+    local timeout_val="120"
     
-    # Prepare prompt
+    
+    # Create secure temporary files
+    local temp_dir="${FLOWSH_TEMP_DIR:-/tmp/flowsh}"
+    mkdir -p "$temp_dir"
+    
+    local temp_file_prefix="llm_story_implementation_$correlation_id"
+    local temp_file="$temp_dir/${temp_file_prefix}"
+    local output_file="${temp_file}.output"
+    local error_file="${temp_file}.error"
+    
+    # Set secure permissions
+    touch "$temp_file" "$output_file" "$error_file"
+    chmod 600 "$temp_file" "$output_file" "$error_file"
+    
+    # Resolve and prepare prompt
     local prompt=""
-    if [[ -n "senior-developer-v4" ]]; then
-        local template_content
-        if ! template_content=$(resolve_template "senior-developer-v4" "built-in"); then
-            log_error "Failed to resolve template 'senior-developer-v4'"
-            return 1
-        fi
-        
-        if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
-            log_error "Failed to render template"
-            return 1
-        fi
-    else
-        prompt="$(get_workflow_var 'task_description' 'Default LLM prompt')"
+    
+    # Resolve external template
+    local template_content
+    if ! template_content=$(resolve_template "undefined" "built-in"); then
+        log_error "$correlation_id" "Failed to resolve template" "{\"templateId\": \"undefined\"}"
+        return 1
     fi
     
-    # Execute LLM call
-    local llm_exit_code=0
+    # Render template with variables
+    if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
+        log_error "$correlation_id" "Failed to render template"
+        return 1
+    fi
+    
+    # Prepare API configuration
+    local api_key="${OPENAI_API_KEY:-}"
+    local endpoint="${OPENAI_API_ENDPOINT:-https://api.openai.com/v1}"
+    
+    # Validate API configuration
+    if [ "$provider" != "local" ] && [ -z "$api_key" ]; then
+        log_error "$correlation_id" "API key not configured for provider: $provider"
+        return 1
+    fi
+    
+    if [ -z "$endpoint" ]; then
+        log_error "$correlation_id" "API endpoint not configured for provider: $provider"
+        return 1
+    fi
+    
+    # Execute LLM API call with retry logic
+    local response
+    local exit_code
+    
     if [[ "$USE_MOCK_TOOLS" == "true" ]]; then
-        log_debug "Using mock LLM"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "story_implementation_response" "$response"
-        fi
+        log_debug "$correlation_id" "Using mock LLM execution"
+        local mock_response="Mock LLM response from story_implementation for prompt: $prompt"
+        
+        # Simulate processing time
+        sleep 1
+        
+        echo "$mock_response" > "$output_file"
+        exit_code=0
+        
+        log_debug "$correlation_id" "Mock LLM completed successfully"
     else
-        log_warning "Real LLM integration not implemented yet, using mock"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
+        call_llm_api
+    fi
+    
+    
+    if [ $exit_code -ne 0 ]; then
+        case $exit_code in
+            1)
+                log_error "$correlation_id" "LLM execution general error" "{\"node\": \"story_implementation\"}"
+                ;;
+            124)
+                log_error "$correlation_id" "LLM execution timeout" "{\"node\": \"story_implementation\"}"
+                ;;
+            126)
+                log_error "$correlation_id" "LLM execution command not executable" "{\"node\": \"story_implementation\"}"
+                ;;
+            127)
+                log_error "$correlation_id" "LLM execution command not found" "{\"node\": \"story_implementation\"}"
+                ;;
+            *)
+                log_error "$correlation_id" "LLM execution unknown error" "{\"node\": \"story_implementation\", \"exit_code\": $exit_code}"
+                ;;
+        esac
+        return $exit_code
+    fi
+    
+    # Process successful execution
+    if [ $exit_code -eq 0 ]; then
+        response=$(cat "$output_file" 2>/dev/null || echo "")
+        log_success "$correlation_id" "LLM execution completed" "{\"response_length\": ${#response}}"
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "story_implementation_response" "$response"
-        fi
+        # Store response for downstream nodes
+        set_workflow_var "llm_response" "$response"
+        set_workflow_var "story_implementation_response" "$response"
+        
+        # No output mappings to process
+        
+        echo "$response"
     fi
     
-    if [[ $llm_exit_code -ne 0 ]]; then
-        handle_error $llm_exit_code "LLM execution" "story_implementation"
-        return $llm_exit_code
-    fi
     
-    log_success "LLM execution completed"
+    # Cleanup temporary files
+    rm -f "$temp_file" "$output_file" "$error_file" 2>/dev/null || true
+    
     set_workflow_state "current_node" "story_implementation"
+    return $exit_code
+}
+
+# LLM API call function
+call_llm_api() {
+    log_debug "$correlation_id" "Calling $provider API with model $model_name"
+    
+    case "$provider" in
+        "openai")
+            
+            log_debug "$correlation_id" "Making OpenAI API call to $endpoint"
+            
+            # Prepare JSON payload
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "messages": [{"role": "user", "content": "$prompt"}],
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/chat/completions" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from OpenAI response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].message.content // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "OpenAI API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "OpenAI API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "anthropic")
+            
+            log_debug "$correlation_id" "Making Anthropic API call to $endpoint"
+            
+            # Prepare JSON payload for Claude
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "max_tokens": $max_tokens,
+    "temperature": $temperature,
+    "messages": [{"role": "user", "content": "$prompt"}]
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/messages" \
+                -H "x-api-key: $api_key" \
+                -H "Content-Type: application/json" \
+                -H "anthropic-version: 2023-06-01" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from Anthropic response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.content[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Anthropic API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Anthropic API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "local")
+            
+            log_debug "$correlation_id" "Making local LLM API call to $endpoint"
+            
+            # Prepare JSON payload for local LLM (OpenAI-compatible)
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "prompt": "$prompt",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens,
+    "stream": false
+}
+EOF
+)
+            
+            # Make API call to local endpoint
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/v1/completions" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from local LLM response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Local LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Local LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        *)
+            
+            log_debug "$correlation_id" "Making custom LLM API call to $endpoint"
+            
+            # For custom endpoints, use a generic approach
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "prompt": "$prompt",
+    "model": "$model_name",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make generic API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # For custom APIs, just use the response body directly
+                    echo "$response_body" > "$output_file"
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Custom LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Custom LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+    esac
 }
 
 # Execute generic node: format_deliverables
 execute_node_format_deliverables() {
-    log_step "⚙️  Executing Node: Format Final Deliverables (template-transform)"
+    log_step "⚙️  Generic Node: Format Final Deliverables"
     
-    log_warning "Node type 'template-transform' not fully implemented"
+    log_warning "Node type 'template-transform' not fully supported yet"
+    log_info "Node ID: format_deliverables"
+    log_info "Node Type: template-transform"
     
-    # Placeholder implementation
-    sleep 1
-    log_info "Node execution completed (placeholder)"
-    
+    # Set current node state
     set_workflow_state "current_node" "format_deliverables"
+    
+    log_success "Generic node processing completed"
 }
 
-# Execute LLM node: compile_results
+# LLM Node: compile_results
 execute_node_compile_results() {
-    log_step "🧠 Running LLM: Compile Final Package"
+    local input_data="$1"
+    local correlation_id="$2"
     
+    log_operation_start "compile_results" "llm_execution" "$correlation_id"
+    
+    # Configure LLM settings
     local model_name="gpt-4o"
     local provider="openai"
+    local temperature="0.7"
+    local max_tokens="1000"
+    local timeout_val="120"
     
-    # Prepare prompt
+    
+    # Create secure temporary files
+    local temp_dir="${FLOWSH_TEMP_DIR:-/tmp/flowsh}"
+    mkdir -p "$temp_dir"
+    
+    local temp_file_prefix="llm_compile_results_$correlation_id"
+    local temp_file="$temp_dir/${temp_file_prefix}"
+    local output_file="${temp_file}.output"
+    local error_file="${temp_file}.error"
+    
+    # Set secure permissions
+    touch "$temp_file" "$output_file" "$error_file"
+    chmod 600 "$temp_file" "$output_file" "$error_file"
+    
+    # Resolve and prepare prompt
     local prompt=""
-    if [[ -n "technical-project-manager-v1" ]]; then
-        local template_content
-        if ! template_content=$(resolve_template "technical-project-manager-v1" "built-in"); then
-            log_error "Failed to resolve template 'technical-project-manager-v1'"
-            return 1
-        fi
-        
-        if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
-            log_error "Failed to render template"
-            return 1
-        fi
-    else
-        prompt="$(get_workflow_var 'task_description' 'Default LLM prompt')"
+    
+    # Resolve external template
+    local template_content
+    if ! template_content=$(resolve_template "undefined" "built-in"); then
+        log_error "$correlation_id" "Failed to resolve template" "{\"templateId\": \"undefined\"}"
+        return 1
     fi
     
-    # Execute LLM call
-    local llm_exit_code=0
+    # Render template with variables
+    if ! prompt=$(render_template "$template_content" "$(get_workflow_var 'task_description' '')"); then
+        log_error "$correlation_id" "Failed to render template"
+        return 1
+    fi
+    
+    # Prepare API configuration
+    local api_key="${OPENAI_API_KEY:-}"
+    local endpoint="${OPENAI_API_ENDPOINT:-https://api.openai.com/v1}"
+    
+    # Validate API configuration
+    if [ "$provider" != "local" ] && [ -z "$api_key" ]; then
+        log_error "$correlation_id" "API key not configured for provider: $provider"
+        return 1
+    fi
+    
+    if [ -z "$endpoint" ]; then
+        log_error "$correlation_id" "API endpoint not configured for provider: $provider"
+        return 1
+    fi
+    
+    # Execute LLM API call with retry logic
+    local response
+    local exit_code
+    
     if [[ "$USE_MOCK_TOOLS" == "true" ]]; then
-        log_debug "Using mock LLM"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "compile_results_response" "$response"
-        fi
+        log_debug "$correlation_id" "Using mock LLM execution"
+        local mock_response="Mock LLM response from compile_results for prompt: $prompt"
+        
+        # Simulate processing time
+        sleep 1
+        
+        echo "$mock_response" > "$output_file"
+        exit_code=0
+        
+        log_debug "$correlation_id" "Mock LLM completed successfully"
     else
-        log_warning "Real LLM integration not implemented yet, using mock"
-        local response
-        response=$(mock_llm "$prompt" "$model_name") || llm_exit_code=$?
+        call_llm_api
+    fi
+    
+    
+    if [ $exit_code -ne 0 ]; then
+        case $exit_code in
+            1)
+                log_error "$correlation_id" "LLM execution general error" "{\"node\": \"compile_results\"}"
+                ;;
+            124)
+                log_error "$correlation_id" "LLM execution timeout" "{\"node\": \"compile_results\"}"
+                ;;
+            126)
+                log_error "$correlation_id" "LLM execution command not executable" "{\"node\": \"compile_results\"}"
+                ;;
+            127)
+                log_error "$correlation_id" "LLM execution command not found" "{\"node\": \"compile_results\"}"
+                ;;
+            *)
+                log_error "$correlation_id" "LLM execution unknown error" "{\"node\": \"compile_results\", \"exit_code\": $exit_code}"
+                ;;
+        esac
+        return $exit_code
+    fi
+    
+    # Process successful execution
+    if [ $exit_code -eq 0 ]; then
+        response=$(cat "$output_file" 2>/dev/null || echo "")
+        log_success "$correlation_id" "LLM execution completed" "{\"response_length\": ${#response}}"
         
-        if [[ $llm_exit_code -eq 0 ]]; then
-            set_workflow_var "compile_results_response" "$response"
-        fi
+        # Store response for downstream nodes
+        set_workflow_var "llm_response" "$response"
+        set_workflow_var "compile_results_response" "$response"
+        
+        # No output mappings to process
+        
+        echo "$response"
     fi
     
-    if [[ $llm_exit_code -ne 0 ]]; then
-        handle_error $llm_exit_code "LLM execution" "compile_results"
-        return $llm_exit_code
-    fi
     
-    log_success "LLM execution completed"
+    # Cleanup temporary files
+    rm -f "$temp_file" "$output_file" "$error_file" 2>/dev/null || true
+    
     set_workflow_state "current_node" "compile_results"
+    return $exit_code
+}
+
+# LLM API call function
+call_llm_api() {
+    log_debug "$correlation_id" "Calling $provider API with model $model_name"
+    
+    case "$provider" in
+        "openai")
+            
+            log_debug "$correlation_id" "Making OpenAI API call to $endpoint"
+            
+            # Prepare JSON payload
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "messages": [{"role": "user", "content": "$prompt"}],
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/chat/completions" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from OpenAI response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].message.content // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "OpenAI API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "OpenAI API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "anthropic")
+            
+            log_debug "$correlation_id" "Making Anthropic API call to $endpoint"
+            
+            # Prepare JSON payload for Claude
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "max_tokens": $max_tokens,
+    "temperature": $temperature,
+    "messages": [{"role": "user", "content": "$prompt"}]
+}
+EOF
+)
+            
+            # Make API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/messages" \
+                -H "x-api-key: $api_key" \
+                -H "Content-Type: application/json" \
+                -H "anthropic-version: 2023-06-01" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from Anthropic response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.content[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Anthropic API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Anthropic API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        "local")
+            
+            log_debug "$correlation_id" "Making local LLM API call to $endpoint"
+            
+            # Prepare JSON payload for local LLM (OpenAI-compatible)
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "model": "$model_name",
+    "prompt": "$prompt",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens,
+    "stream": false
+}
+EOF
+)
+            
+            # Make API call to local endpoint
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint/v1/completions" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                # Extract HTTP status code and response
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # Extract content from local LLM response
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "$response_body" | jq -r '.choices[0].text // "No content"' > "$output_file"
+                    else
+                        # Fallback parsing without jq
+                        echo "$response_body" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' > "$output_file"
+                    fi
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Local LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Local LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+        *)
+            
+            log_debug "$correlation_id" "Making custom LLM API call to $endpoint"
+            
+            # For custom endpoints, use a generic approach
+            local json_payload
+            json_payload=$(cat <<EOF
+{
+    "prompt": "$prompt",
+    "model": "$model_name",
+    "temperature": $temperature,
+    "max_tokens": $max_tokens
+}
+EOF
+)
+            
+            # Make generic API call
+            if curl -s -w "\n%{http_code}" \
+                -X POST "$endpoint" \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d "$json_payload" \
+                --max-time $timeout_val > "$temp_file" 2> "$error_file"; then
+                
+                local http_code
+                http_code=$(tail -n1 "$temp_file")
+                local response_body
+                response_body=$(head -n -1 "$temp_file")
+                
+                if [ "$http_code" -eq 200 ]; then
+                    # For custom APIs, just use the response body directly
+                    echo "$response_body" > "$output_file"
+                    exit_code=0
+                else
+                    log_error "$correlation_id" "Custom LLM API error" "{\"http_code\": $http_code, \"response\": \"$response_body\"}"
+                    exit_code=1
+                fi
+            else
+                exit_code=$?
+                local error_msg
+                error_msg=$(cat "$error_file" 2>/dev/null || echo "Unknown error")
+                log_error "$correlation_id" "Custom LLM API call failed" "{\"error\": \"$error_msg\"}"
+            fi
+            ;;
+    esac
 }
 
 # Execute generic node: end
 execute_node_end() {
-    log_step "⚙️  Executing Node: end (end)"
+    log_step "⚙️  Generic Node: end"
     
-    log_warning "Node type 'end' not fully implemented"
+    log_warning "Node type 'end' not fully supported yet"
+    log_info "Node ID: end"
+    log_info "Node Type: end"
     
-    # Placeholder implementation
-    sleep 1
-    log_info "Node execution completed (placeholder)"
-    
+    # Set current node state
     set_workflow_state "current_node" "end"
+    
+    log_success "Generic node processing completed"
 }
 
 # =============================================================================
-# MAIN EXECUTION FLOW
+# WORKFLOW EXECUTION FLOW
 # =============================================================================
 
-# Execute the workflow
+# Execute the complete workflow
 execute_workflow() {
-    log_info "Starting workflow execution: $WORKFLOW_NAME"
-    log_info "Nodes: 9, Edges: 8"
+    log_info "Starting workflow execution..."
+    set_workflow_state "status" "running"
     
-    execute_node_start
-    execute_node_prd_agent
-    execute_node_planning_agent
-    execute_node_extract_stories
-    execute_node_story_loop
-    execute_node_story_implementation
-    execute_node_format_deliverables
-    execute_node_compile_results
-    execute_node_end
-
+    # Generate unique correlation ID for this execution
+    local correlation_id=$(date +%s%N | sha256sum | head -c 8)
     
-    local completion_status=$(get_workflow_state "completed" "false")
-    if [[ "$completion_status" == "true" ]]; then
-        log_success "Workflow completed successfully"
-    else
-        log_warning "Workflow execution finished but completion status unclear"
+    # Execute start node: start
+    if ! execute_node_start "" "$correlation_id"; then
+        log_error "Workflow failed at node: start"
+        set_workflow_state "status" "failed"
+        return 1
     fi
+
+    # Execute llm node: prd_agent
+    if ! execute_node_prd_agent "" "$correlation_id"; then
+        log_error "Workflow failed at node: prd_agent"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute llm node: planning_agent
+    if ! execute_node_planning_agent "" "$correlation_id"; then
+        log_error "Workflow failed at node: planning_agent"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute template-transform node: extract_stories
+    if ! execute_node_extract_stories "" "$correlation_id"; then
+        log_error "Workflow failed at node: extract_stories"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute iteration node: story_loop
+    if ! execute_node_story_loop "" "$correlation_id"; then
+        log_error "Workflow failed at node: story_loop"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute template-transform node: format_deliverables
+    if ! execute_node_format_deliverables "" "$correlation_id"; then
+        log_error "Workflow failed at node: format_deliverables"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute llm node: compile_results
+    if ! execute_node_compile_results "" "$correlation_id"; then
+        log_error "Workflow failed at node: compile_results"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute end node: end
+    if ! execute_node_end "" "$correlation_id"; then
+        log_error "Workflow failed at node: end"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    # Execute llm node: story_implementation
+    if ! execute_node_story_implementation "" "$correlation_id"; then
+        log_error "Workflow failed at node: story_implementation"
+        set_workflow_state "status" "failed"
+        return 1
+    fi
+
+    
+    log_success "Workflow execution completed"
+    set_workflow_state "status" "completed"
 }
 
 # =============================================================================
-# ARGUMENT PARSING AND INITIALIZATION
+# WORKFLOW INITIALIZATION  
 # =============================================================================
 
-# Usage help
-show_usage() {
-    cat <<EOF
-$WORKFLOW_NAME v$WORKFLOW_VERSION
-
-Usage: $0 [OPTIONS] <arg1> <arg2> <arg3>
-
-Arguments:
-  arg1    Project Name - Name of the product being developed
-  arg2    Technology Stack - Preferred technology stack
-  arg3    Development Style - Code style and methodology preference
-Options:
-  --no-mock         Use real tools instead of mocks
-  --timeout SECS    Set agent timeout in seconds (default: $AGENT_TIMEOUT)
-  --verbose         Enable verbose debug output
-  --help            Show this help message
-
-Environment Variables:
-  USE_MOCK_TOOLS    Set to 'false' to use real tools (default: true)
-  AGENT_TIMEOUT     Agent timeout in seconds (default: 60)
-  VERBOSE           Set to 'true' for debug output (default: false)
-
-Examples:
-  $0 "Implement user auth" /path/to/project
-  $0 --no-mock --verbose "Fix bug in API" /path/to/project
-EOF
+# Show help message
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Generated workflow script for: ${WORKFLOW_NAME}"
+    echo ""
+    echo "Options:"
+    echo "    --project_name"
+    echo "        Name of the product being developed"
+    echo "    --tech_stack"
+    echo "        Preferred technology stack"
+    echo "    --development_style"
+    echo "        Code style and methodology preference"
+    echo "    --development_context"
+    echo "        Accumulated context throughout development process"
+    echo "    --template_cache"
+    echo "        Cached template responses for optimization"
+    echo "    --help, -h      Show this help message"
+    echo "    --mock         Use mock tools (default: true)"  
+    echo "    --real         Use real tools instead of mocks"
+    echo "    --verbose      Enable verbose output"
+    echo "    --timeout=N    Set timeout in seconds (default: ${AGENT_TIMEOUT})"
+    echo ""
+    echo "Environment Variables:"
+    echo "    USE_MOCK_TOOLS    Set to 'false' to use real tools"
+    echo "    VERBOSE          Set to 'true' for debug output"
+    echo "    AGENT_TIMEOUT    Timeout in seconds for agent calls"
 }
 
-# Initialize workflow with arguments
+# Initialize workflow with command line arguments
 init_workflow() {
-    workflow_vars["project_name"]="${1:-}"
-    workflow_vars["tech_stack"]="${2:-}"
-    workflow_vars["development_style"]="${3:-}"
-
+    log_info "Initializing workflow: ${WORKFLOW_NAME} v${WORKFLOW_VERSION}"
     
-    # Validate required arguments
-    [[ -z "${workflow_vars["project_name"]}" ]] && {
-        log_error "project_name is required"
-        show_usage
-        exit 1
-    }
-    [[ -z "${workflow_vars["tech_stack"]}" ]] && {
-        log_error "tech_stack is required"
-        show_usage
-        exit 1
-    }
-    [[ -z "${workflow_vars["development_style"]}" ]] && {
-        log_error "development_style is required"
-        show_usage
-        exit 1
-    }
-    
-    log_success "Workflow initialized with provided arguments"
-    log_debug "project_name: ${workflow_vars["project_name"]}"
-    log_debug "tech_stack: ${workflow_vars["tech_stack"]}"
-    log_debug "development_style: ${workflow_vars["development_style"]}"
-}
-
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --no-mock)
-            USE_MOCK_TOOLS=false
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+        --project_name)
+            if [[ -z "${2:-}" ]]; then
+                log_error "Option --project_name requires a value"
+                show_help
+                exit 1
+            fi
+            set_workflow_var "project_name" "$2"
+            shift 2
+            ;;
+        --tech_stack)
+            if [[ -z "${2:-}" ]]; then
+                log_error "Option --tech_stack requires a value"
+                show_help
+                exit 1
+            fi
+            set_workflow_var "tech_stack" "$2"
+            shift 2
+            ;;
+        --development_style)
+            if [[ -z "${2:-}" ]]; then
+                log_error "Option --development_style requires a value"
+                show_help
+                exit 1
+            fi
+            set_workflow_var "development_style" "$2"
+            shift 2
+            ;;
+        --development_context)
+            if [[ -z "${2:-}" ]]; then
+                log_error "Option --development_context requires a value"
+                show_help
+                exit 1
+            fi
+            set_workflow_var "development_context" "$2"
+            shift 2
+            ;;
+        --template_cache)
+            if [[ -z "${2:-}" ]]; then
+                log_error "Option --template_cache requires a value"
+                show_help
+                exit 1
+            fi
+            set_workflow_var "template_cache" "$2"
+            shift 2
+            ;;
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --mock)
+            USE_MOCK_TOOLS=true
+            export USE_MOCK_TOOLS
             shift
             ;;
-        --timeout)
-            [[ -n "${2:-}" ]] || {
-                log_error "--timeout requires a value"
-                exit 1
-            }
-            [[ "$2" =~ ^[0-9]+$ ]] || {
-                log_error "Timeout must be a positive integer"
-                exit 1
-            }
-            AGENT_TIMEOUT="$2"
-            shift 2
+        --real)
+            USE_MOCK_TOOLS=false
+            export USE_MOCK_TOOLS
+            shift
             ;;
         --verbose)
             VERBOSE=true
+            export VERBOSE
             shift
             ;;
-        --help)
-            show_usage
-            exit 0
-            ;;
-        -*)
-            log_error "Unknown option: $1"
-            show_usage >&2
-            exit 1
+        --timeout=*)
+            AGENT_TIMEOUT="${1#*=}"
+            export AGENT_TIMEOUT
+            shift
             ;;
         *)
-            break
+            log_error "Unknown option: $1"
+            show_help
+            exit 1
             ;;
-    esac
-done
+        esac
+    done
+    
+    # Set default values for missing variables
+        [[ -z "$(get_workflow_var 'project_name' '')" ]] && set_workflow_var "project_name" ""
+        [[ -z "$(get_workflow_var 'tech_stack' '')" ]] && set_workflow_var "tech_stack" ""
+        [[ -z "$(get_workflow_var 'development_style' '')" ]] && set_workflow_var "development_style" ""
+        [[ -z "$(get_workflow_var 'development_context' '')" ]] && set_workflow_var "development_context" ""
+        [[ -z "$(get_workflow_var 'template_cache' '')" ]] && set_workflow_var "template_cache" ""
+    
+    log_info "Workflow initialization completed"
+}
 
 # =============================================================================
 # MAIN EXECUTION

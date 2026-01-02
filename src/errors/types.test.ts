@@ -1,11 +1,7 @@
 /**
  * Tests for error handling types and utilities
  */
-import { describe, it, expect } from 'vitest';
 import {
-  ValidationResult,
-  ValidationErrorInfo,
-  ValidationWarning,
   FlowshError,
   FlowshValidationError,
   FlowshSecurityError,
@@ -17,6 +13,7 @@ import {
   createValidationError,
   createValidationWarning,
 } from './types.js';
+import { describe, it, expect } from 'vitest';
 
 describe('Error Types', () => {
   describe('ValidationResult', () => {

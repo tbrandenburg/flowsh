@@ -5,15 +5,35 @@
  * including React Flow output generation, validation, and performance testing.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
 
 import { ReactFlowGenerator, generateReactFlowOutput } from '../generator.js';
 import { parseWorkflowFile } from '../../parsing/parser.js';
+import { initializeLogger } from '../../logging/logger.js';
 import { AdvancedGraphValidator } from '../validation.js';
+import { LoggingConfig } from '../../config/types.js';
 import { FlowshWorkflow } from '../../dsl/types.js';
 import { createLayoutEngine } from '../layout.js';
+
+// =============================================================================
+// Test Setup - Initialize Logger for Tests
+// =============================================================================
+
+beforeAll(() => {
+  // Initialize logger with test-friendly configuration
+  const testLoggingConfig: LoggingConfig = {
+    level: 'error', // Only log errors during tests to keep output clean
+    format: 'pretty',
+    destination: 'console',
+    enableCorrelationIds: false,
+    enablePerformanceLogs: false,
+    enableSecretsRedaction: false,
+  };
+
+  initializeLogger(testLoggingConfig);
+});
 
 // =============================================================================
 // Test Data Generation

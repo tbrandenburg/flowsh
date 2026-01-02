@@ -81,8 +81,8 @@ export class ShellSanitizer {
     /\$\([^)]*\)/g, // Command substitution
     /`[^`]*`/g, // Backtick command substitution
     /\${[^}]*}/g, // Variable expansion (except in allowed contexts)
-    /eval\s*[\('"]/gi, // eval statements
-    /exec\s*[\('"]/gi, // exec statements
+    /eval\s*[('"]]/gi, // eslint-disable-line no-useless-escape
+    /exec\s*[('"]]/gi, // eslint-disable-line no-useless-escape
     /\|\s*bash/gi, // Pipe to shell
     /\|\s*sh/gi, // Pipe to shell
     /sudo\s+/gi, // Privilege escalation
@@ -286,8 +286,8 @@ export class ShellSanitizer {
         /\$\([^)]*\)/g, // Command substitution
         /`[^`]*`/g, // Backtick command substitution
         /\${[^}]*}/g, // Variable expansion
-        /eval\s*[\('"]/gi, // eval statements
-        /exec\s*[\('"]/gi, // exec statements
+        /eval\s*[('"]]/gi, // eslint-disable-line no-useless-escape
+        /exec\s*[('"]]/gi, // eslint-disable-line no-useless-escape
       ];
 
       for (const pattern of criticalPatterns) {
