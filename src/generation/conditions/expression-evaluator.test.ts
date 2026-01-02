@@ -2,16 +2,16 @@
  * Tests for Condition Expression Evaluator
  */
 
+import { MathJSSecureExpressionEvaluator } from './expression-evaluator.js';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FlowshConditionEvaluator } from './expression-evaluator.js';
 import { WorkflowContext } from './types.js';
 
 describe('FlowshConditionEvaluator', () => {
-  let evaluator: FlowshConditionEvaluator;
+  let evaluator: MathJSSecureExpressionEvaluator;
   let context: WorkflowContext;
 
   beforeEach(() => {
-    evaluator = new FlowshConditionEvaluator();
+    evaluator = new MathJSSecureExpressionEvaluator();
     context = {
       variables: new Map<string, any>([
         ['NODE_ENV', 'production'],

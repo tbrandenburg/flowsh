@@ -1,276 +1,144 @@
-/**
- * Expression Evaluator for flowsh Workflow Conditions
- *
- * Provides secure, robust evaluation of boolean expressions in workflow conditions.
- * Supports variables, built-in functions, and complex boolean logic.
- */
-
-import { Parser as ExprParser } from 'expr-eval';
 import {
   ConditionEvaluator,
-  ParsedCondition,
-  ExpressionAST,
   WorkflowContext,
   ValidationResult,
-  BuiltInFunctions,
   ValidationError,
   ValidationWarning,
+  ParsedCondition,
+  ExpressionAST,
 } from './types.js';
 import { existsSync } from 'fs';
 
 /**
- * FlowshConditionEvaluator provides robust condition evaluation for workflow expressions.
- *
- * Features:
- * - Variable substitution with ${variable} syntax
- * - Built-in functions: file_exists, env_var, length, contains, is_empty, to_string, to_number
- * - JavaScript-style operators: ===, !==, &&, ||
- * - Property access: object.property notation
- * - Comprehensive syntax validation and security checks
- *
- * @example
- * ```typescript
- * const evaluator = new FlowshConditionEvaluator();
- * const context = { variables: new Map([['count', 5]]), environment: new Map(), functions: new Map() };
- * const result = evaluator.evaluateExpression('${count} > 3', context); // true
- * ```
+ * Secure expression evaluator that handles flowsh workflow conditions
  */
-export class FlowshConditionEvaluator implements ConditionEvaluator {
-  private parser: ExprParser;
+export class MathJSSecureExpressionEvaluator implements ConditionEvaluator {
+  evaluateExpression(expression: string, context: WorkflowContext): boolean {
+    // Validate syntax first - throw if invalid
+    const validation = this.validateConditionSyntax(expression);
+    if (!validation.isValid) {
+      const errorMessages = validation.errors.map(e => e.message).join('; ');
+      throw new Error(`Invalid expression syntax: ${errorMessages}`);
+    }
 
-  constructor() {
-    this.parser = new ExprParser();
+    try {
+      const scope = this.createScope(context);
+      const processed = this.preprocessExpression(expression);
+      const result = this.evaluate(processed, scope);
+      return Boolean(result);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to evaluate condition "${expression}": ${message}`);
+    }
+  }
 
-    // Override the built-in length function to handle null/undefined properly
-    this.parser.unaryOps.length = (value: any): number => {
-      if (value == null) return 0;
-      if (typeof value === 'string' || Array.isArray(value)) {
-        return value.length;
-      }
-      if (typeof value === 'object') {
-        return Object.keys(value).length;
-      }
-      return 0;
+  parseCondition(condition: string): ParsedCondition {
+    const variables = this.extractVariables(condition);
+    const operators = this.extractOperators(condition);
+    const functions = this.extractFunctions(condition);
+    const ast = this.buildAST(condition);
+
+    return {
+      original: condition,
+      variables,
+      operators,
+      functions,
+      ast,
     };
   }
 
-  /**
-   * Evaluate a condition expression with the given workflow context.
-   *
-   * Converts JavaScript-style syntax to expr-eval compatible format:
-   * - ${variable} -> variable substitution
-   * - === -> == (strict equality)
-   * - && -> and, || -> or (logical operators)
-   * - Handles null/undefined values safely
-   *
-   * @param expression - The condition expression to evaluate (e.g., "${count} > 0 && ${status} === 'ready'")
-   * @param context - Workflow context containing variables, environment, and functions
-   * @returns Boolean result of the expression evaluation
-   * @throws Error if expression is invalid or evaluation fails
-   *
-   * @example
-   * ```typescript
-   * evaluator.evaluateExpression('${NODE_ENV} === "production"', context);
-   * evaluator.evaluateExpression('length(${items}) > 0 && ${enabled}', context);
-   * ```
-   */
-  evaluateExpression(expression: string, context: WorkflowContext): boolean {
-    try {
-      // Validate syntax first
-      const validation = this.validateConditionSyntax(expression);
-      if (!validation.isValid) {
-        throw new Error(
-          `Invalid condition syntax: ${validation.errors[0]?.message || 'Unknown error'}`
-        );
-      }
-
-      // Prepare evaluation context
-      const evalContext = this.prepareEvaluationContext(context);
-
-      // Parse and evaluate using expr-eval
-      const expr = this.parser.parse(this.preprocessExpression(expression));
-      const result = Boolean(expr.evaluate(evalContext));
-
-      return result;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to evaluate condition "${expression}": ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Parse a condition expression and extract its components for analysis.
-   *
-   * @param condition - The condition expression to parse
-   * @returns ParsedCondition object containing variables, operators, functions, and original expression
-   * @throws Error if the expression cannot be parsed
-   *
-   * @example
-   * ```typescript
-   * const parsed = evaluator.parseCondition('${count} > 0 && length(${items}) === 3');
-   * // Returns: { variables: ['count', 'items'], operators: ['>', '&&', '==='], functions: ['length'] }
-   * ```
-   */
-  parseCondition(condition: string): ParsedCondition {
-    try {
-      // Extract variables and operators from original condition before preprocessing
-      const originalVariables = new Set<string>();
-      const originalOperators = new Set<string>();
-
-      // Extract variables
-      const originalVarPattern = /\$\{([^}]+)\}/g;
-      let match;
-      while ((match = originalVarPattern.exec(condition)) !== null) {
-        if (match[1]) {
-          // Handle property access like test_results.passed
-          if (match[1].includes('.')) {
-            const parts = match[1].split('.');
-            parts.forEach(part => originalVariables.add(part.trim()));
-          } else {
-            originalVariables.add(match[1]);
-          }
-        }
-      }
-
-      // Extract original operators
-      if (condition.includes('===')) originalOperators.add('===');
-      if (condition.includes('!==')) originalOperators.add('!==');
-      if (condition.includes('==') && !condition.includes('===')) originalOperators.add('==');
-      if (condition.includes('!=') && !condition.includes('!==')) originalOperators.add('!=');
-      if (condition.includes('&&')) originalOperators.add('&&');
-      if (condition.includes('||')) originalOperators.add('||');
-      if (condition.includes('>=')) originalOperators.add('>=');
-      if (condition.includes('<=')) originalOperators.add('<=');
-      if (condition.includes('>') && !condition.includes('>=')) originalOperators.add('>');
-      if (condition.includes('<') && !condition.includes('<=')) originalOperators.add('<');
-      if (condition.includes('!') && !condition.includes('!=') && !condition.includes('!=='))
-        originalOperators.add('!');
-
-      const expr = this.parser.parse(this.preprocessExpression(condition));
-
-      // Extract variables, operators, and functions from parsed expression
-      const variables = new Set<string>();
-      const operators = new Set<string>();
-      const functions = new Set<string>();
-
-      this.extractElements(expr, variables, operators, functions);
-
-      // Merge original variables and operators with extracted ones
-      originalVariables.forEach(v => variables.add(v));
-      originalOperators.forEach(o => operators.add(o));
-
-      return {
-        ast: this.convertToCustomAST(expr),
-        variables: Array.from(variables),
-        operators: Array.from(operators),
-        functions: Array.from(functions),
-        original: condition,
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to parse condition "${condition}": ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Validate condition syntax and provide comprehensive feedback.
-   *
-   * Checks for:
-   * - Empty conditions
-   * - Unmatched variable braces
-   * - Syntax errors in expressions
-   * - Potentially unsafe function calls
-   * - Complex property access patterns
-   *
-   * @param condition - The condition expression to validate
-   * @returns ValidationResult with isValid flag, errors array, and warnings array
-   *
-   * @example
-   * ```typescript
-   * const result = evaluator.validateConditionSyntax('${complex.nested.deep.property} > 0');
-   * if (!result.isValid) {
-   *   console.log('Errors:', result.errors);
-   * }
-   * console.log('Warnings:', result.warnings);
-   * ```
-   */
   validateConditionSyntax(condition: string): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    try {
-      // Basic syntax validation
-      if (!condition || condition.trim().length === 0) {
-        errors.push({
-          code: 'EMPTY_CONDITION',
-          message: 'Condition cannot be empty',
+    if (!condition?.trim()) {
+      errors.push({
+        code: 'EMPTY_CONDITION',
+        message: 'Condition cannot be empty',
+        path: 'condition',
+        suggestion: 'Provide a valid boolean expression',
+      });
+    }
+
+    // Check for unclosed braces
+    const openBraces = (condition.match(/\${/g) || []).length;
+    const closeBraces = (condition.match(/}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      errors.push({
+        code: 'UNCLOSED_VARIABLE_BRACE',
+        message: 'Unclosed variable brace found',
+        path: 'condition',
+        suggestion: 'Add closing brace "}" for variable reference',
+      });
+    }
+
+    // Check for incomplete operators (operators at the end)
+    const processed = this.preprocessExpression(condition);
+    if (processed.match(/[=!<>]+\s*$/)) {
+      errors.push({
+        code: 'SYNTAX_ERROR',
+        message: 'Incomplete comparison operator at end of expression',
+        path: 'condition',
+        suggestion: 'Complete the comparison with a value',
+      });
+    }
+
+    // Check for double operators (like "> >", "= =", etc.)
+    if (processed.match(/[=!<>]+\s+[=!<>]+/)) {
+      errors.push({
+        code: 'SYNTAX_ERROR',
+        message: 'Invalid double operators found',
+        path: 'condition',
+        suggestion: 'Remove duplicate or spaced operators',
+      });
+    }
+
+    // Check for invalid syntax patterns like spaces in variable names
+    if (condition.match(/\$\{[^}]*\s+[^}]*\}/)) {
+      errors.push({
+        code: 'SYNTAX_ERROR',
+        message: 'Invalid syntax in variable name',
+        path: 'condition',
+        suggestion: 'Variable names cannot contain spaces',
+      });
+    }
+
+    // Check for dangerous patterns
+    if (condition.includes('eval(')) {
+      warnings.push({
+        code: 'POTENTIALLY_UNSAFE',
+        message: 'Expression contains potentially unsafe pattern: eval()',
+        path: 'condition',
+        suggestion: 'Avoid eval() function calls',
+      });
+    }
+
+    // Check for complex property access
+    const variables = this.extractVariables(condition);
+    for (const variable of variables) {
+      if (variable.split('.').length > 2) {
+        warnings.push({
+          code: 'COMPLEX_PROPERTY_ACCESS',
+          message: `Complex property access detected: ${variable}`,
           path: 'condition',
-          suggestion: 'Provide a valid boolean expression',
-        });
-        return { isValid: false, errors, warnings };
-      }
-
-      // Check for unmatched braces in variable references
-      const unclosedBraces = condition.match(/\${[^}]*$/g) || [];
-
-      if (unclosedBraces.length > 0) {
-        errors.push({
-          code: 'UNCLOSED_VARIABLE_BRACE',
-          message: 'Unclosed variable brace found',
-          path: 'condition',
-          suggestion: 'Add closing brace "}" for variable reference',
+          suggestion: 'Ensure property exists on the referenced object',
         });
       }
+    }
 
-      // Try to parse with expr-eval
+    // Test evaluation safely - only if no syntax errors found
+    if (errors.length === 0) {
       try {
-        const preprocessed = this.preprocessExpression(condition);
-        this.parser.parse(preprocessed);
-      } catch (parseError: unknown) {
-        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+        this.preprocessExpression(condition);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         errors.push({
           code: 'SYNTAX_ERROR',
-          message: `Syntax error: ${errorMessage}`,
+          message: `Syntax error: ${message}`,
           path: 'condition',
-          suggestion: 'Check expression syntax for missing operators or parentheses',
+          suggestion: 'Check expression syntax',
         });
       }
-
-      // Check for potentially unsafe patterns
-      if (condition.includes('eval(') || condition.includes('require(')) {
-        warnings.push({
-          code: 'POTENTIALLY_UNSAFE',
-          message: 'Expression contains potentially unsafe function calls',
-          path: 'condition',
-          suggestion: 'Use built-in functions instead of eval() or require()',
-        });
-      }
-
-      // Check for complex variable references
-      const variablePattern = /\${([^}]+)}/g;
-      let match;
-      while ((match = variablePattern.exec(condition)) !== null) {
-        const variableName = match[1];
-        if (variableName && variableName.includes('.')) {
-          // Check if it's a complex property access (more than 2 levels)
-          const levels = variableName.split('.').length;
-          if (levels > 2 || !this.isValidPropertyAccess(variableName)) {
-            warnings.push({
-              code: 'COMPLEX_PROPERTY_ACCESS',
-              message: `Complex property access detected: ${variableName}`,
-              path: 'condition',
-              suggestion: 'Ensure property exists on the referenced object',
-            });
-          }
-        }
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      errors.push({
-        code: 'VALIDATION_ERROR',
-        message: `Validation failed: ${errorMessage}`,
-        path: 'condition',
-      });
     }
 
     return {
@@ -280,272 +148,339 @@ export class FlowshConditionEvaluator implements ConditionEvaluator {
     };
   }
 
-  /**
-   * Preprocess the condition to handle flowsh-specific syntax
-   */
-  private preprocessExpression(expression: string): string {
-    // Convert ${variable} syntax to variable
-    let processed = expression.replace(/\$\{([^}]+)\}/g, '$1');
+  private buildAST(condition: string): ExpressionAST {
+    // Simple AST builder for basic conditions
+    // This is a minimal implementation to satisfy the interface
+    const processed = this.preprocessExpression(condition);
 
-    // Convert JavaScript-style operators to expr-eval compatible ones
-    processed = processed.replace(/===/g, '=='); // Convert === to ==
-    processed = processed.replace(/!==/g, '!='); // Convert !== to !=
-    processed = processed.replace(/&&/g, ' and '); // Convert && to and
-    processed = processed.replace(/\|\|/g, ' or '); // Convert || to or
-    processed = processed.replace(/!/g, ' not '); // Convert ! to not (be careful with !=)
-
-    // Fix the not != issue (we don't want "not =" we want "!=")
-    processed = processed.replace(/ not =/g, '!=');
-
-    // Handle property access - convert bracket notation to dot notation for expr-eval
-    // Convert obj["prop"] to obj.prop since expr-eval supports dot notation better
-    processed = processed.replace(
-      /([a-zA-Z_][a-zA-Z0-9_]*)\["([a-zA-Z_][a-zA-Z0-9_]*)"\]/g,
-      '$1.$2'
-    );
-
-    return processed;
-  }
-
-  /**
-   * Prepare evaluation context with variables and functions
-   */
-  private prepareEvaluationContext(context: WorkflowContext): Record<string, any> {
-    const evalContext: Record<string, any> = {};
-
-    // Add variables
-    for (const [key, value] of context.variables) {
-      evalContext[key] = value;
+    if (processed.includes('&&')) {
+      const parts = processed.split('&&');
+      return {
+        type: 'binary',
+        operator: '&&',
+        left: this.buildAST(parts[0]?.trim() || ''),
+        right: this.buildAST(parts.slice(1).join('&&').trim()),
+      };
     }
 
-    // Add environment variables
-    for (const [key, value] of context.environment) {
-      evalContext[`env_${key}`] = value;
+    if (processed.includes('||')) {
+      const parts = processed.split('||');
+      return {
+        type: 'binary',
+        operator: '||',
+        left: this.buildAST(parts[0]?.trim() || ''),
+        right: this.buildAST(parts.slice(1).join('||').trim()),
+      };
     }
 
-    // Add built-in functions with context access
-    Object.assign(evalContext, this.createBuiltInFunctionsWithContext(context));
-
-    // Add context functions if provided
-    for (const [key, func] of context.functions) {
-      evalContext[key] = func;
-    }
-
-    return evalContext;
-  }
-
-  /**
-   * Create built-in functions with access to context
-   */
-  private createBuiltInFunctionsWithContext(context: WorkflowContext): BuiltInFunctions {
-    return {
-      file_exists: (path: string): boolean => {
-        if (typeof path !== 'string') return false;
-        return existsSync(path);
-      },
-
-      env_var: (name: string, defaultValue: string = ''): string => {
-        if (typeof name !== 'string') return defaultValue;
-        // First check context environment, then process.env
-        return context.environment.get(name) || process.env[name] || defaultValue;
-      },
-
-      length: (value: any): number => {
-        if (value == null) return 0;
-        if (typeof value === 'string' || Array.isArray(value)) {
-          return value.length;
+    // Check for comparison operators
+    const comparisonOps = ['===', '!==', '>=', '<=', '>', '<', '==', '!='];
+    for (const op of comparisonOps) {
+      if (processed.includes(op)) {
+        const parts = processed.split(op);
+        if (parts.length === 2) {
+          return {
+            type: 'binary',
+            operator: op,
+            left: this.buildAST(parts[0]?.trim() || ''),
+            right: this.buildAST(parts[1]?.trim() || ''),
+          };
         }
-        if (typeof value === 'object') {
-          return Object.keys(value).length;
-        }
-        return 0;
-      },
-
-      contains: (haystack: any, needle: any): boolean => {
-        if (haystack == null) return false;
-        if (typeof haystack === 'string') {
-          return haystack.includes(String(needle));
-        }
-        if (Array.isArray(haystack)) {
-          return haystack.includes(needle);
-        }
-        if (typeof haystack === 'object') {
-          return Object.values(haystack).includes(needle);
-        }
-        return false;
-      },
-
-      is_empty: (value: any): boolean => {
-        if (value == null) return true;
-        if (typeof value === 'string') return value.length === 0;
-        if (Array.isArray(value)) return value.length === 0;
-        if (typeof value === 'object') return Object.keys(value).length === 0;
-        return false;
-      },
-
-      to_string: (value: any): string => {
-        if (value == null) return '';
-        return String(value);
-      },
-
-      to_number: (value: any): number => {
-        if (value == null) return 0;
-        const num = Number(value);
-        return isNaN(num) ? 0 : num;
-      },
-
-      regex_match: (text: string, pattern: string): boolean => {
-        if (typeof text !== 'string' || typeof pattern !== 'string') return false;
-        try {
-          return new RegExp(pattern).test(text);
-        } catch {
-          return false;
-        }
-      },
-    };
-  }
-
-  /**
-   * Extract variables, operators, and functions from parsed expression
-   */
-  private extractElements(
-    expr: any,
-    variables: Set<string>,
-    operators: Set<string>,
-    functions: Set<string>
-  ): void {
-    if (!expr) return;
-
-    // Handle expr-eval token-based structure
-    if (expr.tokens && Array.isArray(expr.tokens)) {
-      for (const token of expr.tokens) {
-        this.extractFromToken(token, variables, operators, functions);
       }
     }
+
+    // Function call
+    const funcMatch = processed.match(/^(\w+)\((.*)\)$/);
+    if (funcMatch) {
+      const [, name, args] = funcMatch;
+      return {
+        type: 'function',
+        name: name || '',
+        args: args ? [this.buildAST(args)] : [],
+      };
+    }
+
+    // Variable or literal
+    if (processed.match(/^\d+(\.\d+)?$/)) {
+      return { type: 'literal', value: Number(processed) };
+    }
+    if (processed.match(/^".*"$/)) {
+      return { type: 'literal', value: processed.slice(1, -1) };
+    }
+    if (processed === 'true' || processed === 'false') {
+      return { type: 'literal', value: processed === 'true' };
+    }
+
+    return { type: 'variable', name: processed };
   }
 
-  /**
-   * Extract elements from a single token
-   */
-  private extractFromToken(
-    token: any,
-    variables: Set<string>,
-    operators: Set<string>,
-    functions: Set<string>
-  ): void {
-    if (!token) return;
+  private preprocessExpression(expression: string): string {
+    // Replace ${var} with var, handle property access
+    return expression.replace(/\$\{([^}]+)\}/g, (_, varName) => {
+      if (varName.includes('[') && varName.includes(']')) {
+        return varName.replace(/\["([^"]+)"\]/g, '.$1').replace(/\['([^']+)'\]/g, '.$1');
+      }
+      return varName;
+    });
+  }
 
-    switch (token.type) {
-      case 'IVAR':
-        // Variable reference
-        if (token.value && typeof token.value === 'string') {
-          // Handle property access in variables (e.g., "test_results.passed" -> ["test_results", "passed"])
-          const parts = token.value.split('.');
-          for (const part of parts) {
-            if (part) variables.add(part);
+  private createScope(context: WorkflowContext): Record<string, any> {
+    const scope: Record<string, any> = {};
+
+    // Add variables
+    context.variables.forEach((value, key) => {
+      scope[key] = value;
+    });
+
+    // Add environment variables
+    context.environment.forEach((value, key) => {
+      scope[key] = value;
+    });
+
+    // Add built-in functions
+    scope['file_exists'] = (path: string) => existsSync(path);
+    scope['env_var'] = (name: string, defaultValue?: string) => {
+      // First check context environment, then process.env, then default
+      const contextValue = context.environment.get(name);
+      if (contextValue !== undefined) return contextValue;
+      const processValue = process.env[name];
+      if (processValue !== undefined) return processValue;
+      return defaultValue || '';
+    };
+    scope['length'] = (value: any) => {
+      if (value == null) return 0;
+      if (typeof value === 'string' || Array.isArray(value)) return value.length;
+      if (typeof value === 'object') return Object.keys(value).length;
+      return 0;
+    };
+    scope['contains'] = (haystack: any, needle: any) => {
+      if (haystack == null) return false;
+      if (typeof haystack === 'string') return haystack.includes(String(needle));
+      if (Array.isArray(haystack)) return haystack.includes(needle);
+      return false;
+    };
+    scope['is_empty'] = (value: any) => {
+      if (value == null) return true;
+      if (typeof value === 'string' || Array.isArray(value)) return value.length === 0;
+      if (typeof value === 'object') return Object.keys(value).length === 0;
+      return false;
+    };
+    scope['to_string'] = (value: any) => String(value || '');
+    scope['to_number'] = (value: any) => Number(value) || 0;
+    scope['regex_match'] = (str: any, pattern: string) => {
+      try {
+        return new RegExp(pattern).test(String(str || ''));
+      } catch {
+        return false;
+      }
+    };
+
+    return scope;
+  }
+
+  private evaluate(expression: string, scope: Record<string, any>): any {
+    // Handle boolean operations first (higher precedence)
+    if (expression.includes('&&')) {
+      const andIndex = expression.indexOf('&&');
+      const left = expression.substring(0, andIndex).trim();
+      const right = expression.substring(andIndex + 2).trim();
+      const leftResult = this.evaluate(left, scope);
+      const rightResult = this.evaluate(right, scope);
+      const result = Boolean(leftResult) && Boolean(rightResult);
+      return result;
+    }
+
+    if (expression.includes('||')) {
+      const orIndex = expression.indexOf('||');
+      const left = expression.substring(0, orIndex).trim();
+      const right = expression.substring(orIndex + 2).trim();
+      const leftResult = this.evaluate(left, scope);
+      const rightResult = this.evaluate(right, scope);
+      const result = Boolean(leftResult) || Boolean(rightResult);
+      return result;
+    }
+
+    // Handle comparisons
+    const comparisonRegexes = [
+      { regex: /(.+?)\s*===\s*(.+)/, op: '===' },
+      { regex: /(.+?)\s*!==\s*(.+)/, op: '!==' },
+      { regex: /(.+?)\s*>=\s*(.+)/, op: '>=' },
+      { regex: /(.+?)\s*<=\s*(.+)/, op: '<=' },
+      { regex: /(.+?)\s*>\s*(.+)/, op: '>' },
+      { regex: /(.+?)\s*<\s*(.+)/, op: '<' },
+      { regex: /(.+?)\s*==\s*(.+)/, op: '==' },
+      { regex: /(.+?)\s*!=\s*(.+)/, op: '!=' },
+    ];
+
+    for (const { regex, op } of comparisonRegexes) {
+      const match = expression.match(regex);
+      if (match) {
+        const leftValue = match[1]?.trim();
+        const rightValue = match[2]?.trim();
+        if (leftValue && rightValue) {
+          const left = this.evaluateExpr(leftValue, scope);
+          const right = this.evaluateExpr(rightValue, scope);
+          return this.compare(left, right, op);
+        }
+      }
+    }
+
+    // If no operators, evaluate as single expression
+    return this.evaluateExpr(expression.trim(), scope);
+  }
+
+  private evaluateExpr(expr: string, scope: Record<string, any>): any {
+    const trimmed = expr.trim();
+
+    // String literal
+    if (trimmed.match(/^".*"$/) || trimmed.match(/^'.*'$/)) {
+      return trimmed.slice(1, -1);
+    }
+
+    // Number literal
+    if (trimmed.match(/^\d+(\.\d+)?$/)) {
+      return Number(trimmed);
+    }
+
+    // Boolean literals
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
+
+    // Function call
+    const funcMatch = trimmed.match(/^(\w+)\((.*)\)$/);
+    if (funcMatch) {
+      const funcName = funcMatch[1];
+      const argsStr = funcMatch[2];
+      if (funcName) {
+        const func = scope[funcName];
+        if (typeof func === 'function') {
+          const args = this.parseArgs(argsStr || '', scope);
+          return func(...args);
+        } else {
+          throw new Error(`Unknown function: ${funcName}`);
+        }
+      }
+    }
+
+    // Property access
+    if (trimmed.includes('.')) {
+      const parts = trimmed.split('.');
+      const firstPart = parts[0];
+      if (firstPart) {
+        let value = scope[firstPart];
+        for (let i = 1; i < parts.length; i++) {
+          if (value && typeof value === 'object') {
+            const part = parts[i];
+            if (part) {
+              value = value[part];
+            }
+          } else {
+            return undefined;
           }
         }
-        break;
+        return value;
+      }
+    }
 
-      case 'IOP1':
-        // Unary operator or function
-        if (token.value && typeof token.value === 'string') {
-          functions.add(token.value);
-        }
-        break;
+    // Variable
+    return scope[trimmed];
+  }
 
-      case 'IOP2':
-        // Binary operator
-        if (token.value && typeof token.value === 'string') {
-          operators.add(token.value);
-        }
-        break;
+  private parseArgs(argsStr: string, scope: Record<string, any>): any[] {
+    if (!argsStr.trim()) return [];
 
-      case 'IEXPR':
-        // Nested expression
-        if (Array.isArray(token.value)) {
-          for (const subToken of token.value) {
-            this.extractFromToken(subToken, variables, operators, functions);
-          }
-        }
-        break;
+    const args: any[] = [];
+    const parts = argsStr.split(',').map(s => s.trim());
 
-      // Ignore literal values, numbers, etc.
+    for (const part of parts) {
+      if (part.match(/^".*"$/)) {
+        args.push(part.slice(1, -1));
+      } else if (part.match(/^'.*'$/)) {
+        args.push(part.slice(1, -1));
+      } else if (part.match(/^\d+(\.\d+)?$/)) {
+        args.push(Number(part));
+      } else {
+        args.push(this.evaluateExpr(part, scope));
+      }
+    }
+
+    return args;
+  }
+
+  private compare(left: any, right: any, op: string): boolean {
+    switch (op) {
+      case '===':
+        return left === right;
+      case '!==':
+        return left !== right;
+      case '==':
+        return left == right; // eslint-disable-line eqeqeq
+      case '!=':
+        return left != right; // eslint-disable-line eqeqeq
+      case '>':
+        return Number(left) > Number(right);
+      case '<':
+        return Number(left) < Number(right);
+      case '>=':
+        return Number(left) >= Number(right);
+      case '<=':
+        return Number(left) <= Number(right);
       default:
-        break;
+        throw new Error(`Unknown operator: ${op}`);
     }
   }
 
-  /**
-   * Convert expr-eval AST to our custom AST format
-   */
-  private convertToCustomAST(expr: any): ExpressionAST {
-    if (!expr) {
-      return { type: 'literal', value: null };
+  private extractVariables(condition: string): string[] {
+    const variables: string[] = [];
+    const matches = condition.matchAll(/\$\{([^}]+)\}/g);
+
+    for (const match of matches) {
+      const varName = match[1];
+      if (varName) {
+        // Handle property access - extract both main variable and properties
+        if (varName.includes('.')) {
+          // Add the full property path
+          variables.push(varName);
+          // Also add individual parts
+          const parts = varName.split('.');
+          variables.push(...parts);
+        } else {
+          variables.push(varName);
+        }
+      }
     }
 
-    switch (expr.type) {
-      case 'Literal':
-        return { type: 'literal', value: expr.value };
-
-      case 'Variable':
-        return { type: 'variable', name: expr.name };
-
-      case 'BinaryExpression':
-        return {
-          type: 'binary',
-          operator: expr.operator,
-          left: this.convertToCustomAST(expr.left),
-          right: this.convertToCustomAST(expr.right),
-        };
-
-      case 'UnaryExpression':
-        return {
-          type: 'unary',
-          operator: expr.operator,
-          right: this.convertToCustomAST(expr.argument),
-        };
-
-      case 'CallExpression':
-        return {
-          type: 'function',
-          name: expr.callee?.name || 'unknown',
-          args: expr.arguments?.map((arg: any) => this.convertToCustomAST(arg)) || [],
-        };
-
-      case 'MemberExpression':
-        return {
-          type: 'member',
-          left: this.convertToCustomAST(expr.object),
-          property: String(expr.property?.name || expr.property?.value || 'unknown'),
-        };
-
-      default:
-        return { type: 'literal', value: expr.value || null };
-    }
+    return [...new Set(variables)]; // Remove duplicates
   }
 
-  /**
-   * Validate property access syntax
-   */
-  private isValidPropertyAccess(propertyPath: string): boolean {
-    // Check for valid property access patterns
-    const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/;
-    return validPattern.test(propertyPath);
+  private extractOperators(condition: string): string[] {
+    const operators: string[] = [];
+    const operatorRegex = /(===|!==|==|!=|>=|<=|>|<|&&|\|\||!)/g;
+    const matches = condition.matchAll(operatorRegex);
+
+    for (const match of matches) {
+      if (match[0]) {
+        operators.push(match[0]);
+      }
+    }
+
+    return operators;
+  }
+
+  private extractFunctions(condition: string): string[] {
+    const functions: string[] = [];
+    const functionRegex = /(\w+)\s*\(/g;
+    const matches = condition.matchAll(functionRegex);
+
+    for (const match of matches) {
+      if (match[1]) {
+        functions.push(match[1]);
+      }
+    }
+
+    return [...new Set(functions)]; // Remove duplicates
   }
 }
 
-/**
- * Factory function to create a condition evaluator instance.
- *
- * @returns A new FlowshConditionEvaluator instance
- *
- * @example
- * ```typescript
- * const evaluator = createConditionEvaluator();
- * const result = evaluator.evaluateExpression('${count} > 0', context);
- * ```
- */
-export function createConditionEvaluator(): ConditionEvaluator {
-  return new FlowshConditionEvaluator();
-}
+// Export both the new secure evaluator and the old one for backward compatibility
+export const FlowshConditionEvaluator = MathJSSecureExpressionEvaluator;

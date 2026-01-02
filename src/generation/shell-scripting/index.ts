@@ -5,8 +5,8 @@
  * These are the core shell functions that support workflow execution.
  */
 
-import { FlowshWorkflow } from '../../dsl/types.js';
 import { GenerationOptions } from '../shell-generator.js';
+import { FlowshWorkflow } from '../../dsl/types.js';
 
 /**
  * Shell script utilities generator
@@ -84,6 +84,22 @@ log_debug() {
 
 log_step() {
     echo -e "\${CYAN}🚀 \$*\${NC}"
+}
+
+# Operation logging with correlation IDs
+log_operation_start() {
+    local operation_name="\$1"
+    local operation_type="\$2"
+    local correlation_id="\$3"
+    log_debug "\$correlation_id" "Starting \$operation_type: \$operation_name"
+}
+
+log_operation_end() {
+    local operation_name="\$1"
+    local operation_type="\$2"
+    local correlation_id="\$3"
+    local status="\${4:-success}"
+    log_debug "\$correlation_id" "Completed \$operation_type: \$operation_name (\$status)"
 }
 
 # Enhanced error handling
@@ -309,16 +325,16 @@ fi`;
     const allVariables = [...envVars, ...convVars];
 
     let parseLogic = '';
-    let helpText = '';
+    let helpEchos: string[] = [];
 
     allVariables.forEach((variable: any) => {
       const varName = variable.variable;
       const description = variable.description || variable.name || '';
 
-      // Add to help text
-      helpText += `    --${varName}\\n`;
+      // Add to help text as echo statements
+      helpEchos.push(`    echo "    --${varName}"`);
       if (description) {
-        helpText += `        ${description}\\n`;
+        helpEchos.push(`    echo "        ${description}"`);
       }
 
       // Add parsing logic
@@ -345,11 +361,12 @@ show_help() {
     echo "Generated workflow script for: \${WORKFLOW_NAME}"
     echo ""
     echo "Options:"
-${helpText}    --help, -h      Show this help message
-    --mock         Use mock tools (default: true)  
-    --real         Use real tools instead of mocks
-    --verbose      Enable verbose output
-    --timeout=N    Set timeout in seconds (default: \${AGENT_TIMEOUT})
+${helpEchos.join('\n')}
+    echo "    --help, -h      Show this help message"
+    echo "    --mock         Use mock tools (default: true)"  
+    echo "    --real         Use real tools instead of mocks"
+    echo "    --verbose      Enable verbose output"
+    echo "    --timeout=N    Set timeout in seconds (default: \${AGENT_TIMEOUT})"
     echo ""
     echo "Environment Variables:"
     echo "    USE_MOCK_TOOLS    Set to 'false' to use real tools"
@@ -405,37 +422,60 @@ ${parseLogic}        --help|-h)
       .join('\n    ')}
     
     log_info "Workflow initialization completed"
-}
-
-# Main workflow execution function 
-execute_workflow() {
-    log_info "Starting workflow execution..."
-    set_workflow_state "status" "running"
-    
-    # Execute the start node to begin workflow
-    if ! execute_node_start; then
-        log_error "Workflow failed at start node"
-        set_workflow_state "status" "failed"
-        exit 1
-    fi
-    
-    log_success "Workflow execution completed successfully"
-    set_workflow_state "status" "completed"
 }`;
   }
 
   /**
    * Generates the main workflow flow execution
    */
-  static generateMainFlow(nodes: any[], _edges: any[]): string {
-    let flowLogic = '# Workflow flow generated automatically\n    ';
+  static generateMainFlow(nodes: any[], edges: any[]): string {
+    // Build adjacency list for workflow execution order
+    const adjacencyList = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
 
-    // Simple linear execution for now
-    // TODO: Add support for complex branching and conditional logic
-    const startNode = nodes.find(n => n.type === 'start');
-    if (startNode) {
-      flowLogic += `log_step "Starting workflow execution"
-    execute_node_${startNode.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    // Initialize all nodes
+    nodes.forEach(node => {
+      adjacencyList.set(node.id, []);
+      inDegree.set(node.id, 0);
+    });
+
+    // Build the graph from edges
+    edges.forEach(edge => {
+      const source = edge.source;
+      const target = edge.target;
+
+      if (adjacencyList.has(source) && inDegree.has(target)) {
+        adjacencyList.get(source)!.push(target);
+        inDegree.set(target, (inDegree.get(target) || 0) + 1);
+      }
+    });
+
+    // Find start node(s) - nodes with zero in-degree
+    const startNodes = Array.from(inDegree.entries())
+      .filter(([_, degree]) => degree === 0)
+      .map(([nodeId, _]) => nodeId);
+
+    // Generate execution logic
+    let flowLogic = '';
+
+    if (startNodes.length === 0) {
+      // Fallback: find explicit start node
+      const startNode = nodes.find(n => n.type === 'start');
+      if (startNode) {
+        flowLogic = `    # Execute start node
+    execute_node_${startNode.id.replace(/[^a-zA-Z0-9]/g, '_')}
+    
+    # Execute remaining nodes in sequence (fallback mode)
+    ${nodes
+      .filter(n => n.type !== 'start')
+      .map(n => `execute_node_${n.id.replace(/[^a-zA-Z0-9]/g, '_')}`)
+      .join('\n    ')}`;
+      } else {
+        flowLogic = '    log_error "No start node found in workflow"';
+      }
+    } else {
+      // Generate proper topological execution order
+      flowLogic = this.generateTopologicalExecution(nodes, adjacencyList, startNodes);
     }
 
     return `# =============================================================================
@@ -447,10 +487,87 @@ execute_workflow() {
     log_info "Starting workflow execution..."
     set_workflow_state "status" "running"
     
-    ${flowLogic}
+    # Generate unique correlation ID for this execution
+    local correlation_id=\$(date +%s%N | sha256sum | head -c 8)
+    
+${flowLogic}
     
     log_success "Workflow execution completed"
     set_workflow_state "status" "completed"
 }`;
+  }
+
+  /**
+   * Generates topological execution order for workflow nodes
+   */
+  private static generateTopologicalExecution(
+    nodes: any[],
+    adjacencyList: Map<string, string[]>,
+    startNodes: string[]
+  ): string {
+    const executionSteps: string[] = [];
+
+    // Simple approach: execute start nodes, then follow edges
+    startNodes.forEach(nodeId => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (node) {
+        executionSteps.push(`    # Execute ${node.type} node: ${nodeId}`);
+        executionSteps.push(
+          `    if ! execute_node_${nodeId.replace(/[^a-zA-Z0-9]/g, '_')} "" "\$correlation_id"; then`
+        );
+        executionSteps.push(`        log_error "Workflow failed at node: ${nodeId}"`);
+        executionSteps.push(`        set_workflow_state "status" "failed"`);
+        executionSteps.push(`        return 1`);
+        executionSteps.push(`    fi`);
+        executionSteps.push('');
+
+        // Add subsequent nodes connected to this node
+        const connectedNodes = this.getConnectedExecutionChain(nodeId, adjacencyList);
+        connectedNodes.forEach(nextNodeId => {
+          const nextNode = nodes.find(n => n.id === nextNodeId);
+          if (nextNode) {
+            executionSteps.push(`    # Execute ${nextNode.type} node: ${nextNodeId}`);
+            executionSteps.push(
+              `    if ! execute_node_${nextNodeId.replace(/[^a-zA-Z0-9]/g, '_')} "" "\$correlation_id"; then`
+            );
+            executionSteps.push(`        log_error "Workflow failed at node: ${nextNodeId}"`);
+            executionSteps.push(`        set_workflow_state "status" "failed"`);
+            executionSteps.push(`        return 1`);
+            executionSteps.push(`    fi`);
+            executionSteps.push('');
+          }
+        });
+      }
+    });
+
+    return executionSteps.join('\n');
+  }
+
+  /**
+   * Gets the chain of connected nodes from a starting node
+   */
+  private static getConnectedExecutionChain(
+    startNodeId: string,
+    adjacencyList: Map<string, string[]>
+  ): string[] {
+    const visited = new Set<string>();
+    const executionChain: string[] = [];
+
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+
+      visited.add(nodeId);
+      const connected = adjacencyList.get(nodeId) || [];
+
+      connected.forEach(nextNodeId => {
+        if (!visited.has(nextNodeId)) {
+          executionChain.push(nextNodeId);
+          traverse(nextNodeId);
+        }
+      });
+    };
+
+    traverse(startNodeId);
+    return executionChain;
   }
 }
