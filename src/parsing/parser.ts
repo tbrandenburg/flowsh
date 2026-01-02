@@ -122,9 +122,9 @@ export async function parseWorkflowYAML(
       }
     }
 
-    // Parse YAML with safe loader
+    // Parse YAML with FAILSAFE schema for maximum security
     const parsed = yaml.load(yamlContent, {
-      schema: yaml.CORE_SCHEMA, // Use core schema for security
+      schema: yaml.FAILSAFE_SCHEMA, // SECURITY FIX: Use FAILSAFE_SCHEMA instead of CORE_SCHEMA to prevent prototype pollution
       filename: 'workflow.yaml',
     }) as unknown;
 
@@ -135,6 +135,22 @@ export async function parseWorkflowYAML(
             type: 'error',
             code: 'INVALID_YAML_STRUCTURE',
             message: 'YAML must contain an object at the root level',
+          },
+        ],
+        warnings: [],
+        success: false,
+      };
+    }
+
+    // SECURITY FIX: Add comprehensive post-parse object validation to prevent prototype pollution
+    const securityValidationResult = validateObjectSecurity(parsed as Record<string, unknown>);
+    if (!securityValidationResult.isSecure) {
+      return {
+        errors: [
+          {
+            type: 'error',
+            code: 'SECURITY_VIOLATION',
+            message: securityValidationResult.reason || 'Object contains security violations',
           },
         ],
         warnings: [],
@@ -260,6 +276,99 @@ export async function parseWorkflowFile(
       success: false,
     };
   }
+}
+
+// =============================================================================
+// Security Validation for Post-Parse Objects
+// =============================================================================
+
+/**
+ * Security validation result for parsed objects
+ */
+interface ObjectSecurityValidationResult {
+  isSecure: boolean;
+  reason?: string;
+}
+
+/**
+ * SECURITY FIX: Comprehensive post-parse object validation to prevent prototype pollution
+ * and other object-based attacks after YAML parsing
+ */
+function validateObjectSecurity(
+  obj: Record<string, unknown>,
+  path = 'root',
+  depth = 0
+): ObjectSecurityValidationResult {
+  // Prevent deep nesting attacks
+  if (depth > 10) {
+    return {
+      isSecure: false,
+      reason: `Object nesting exceeds safe limit at path: ${path}`,
+    };
+  }
+
+  // Check for dangerous property names that could lead to prototype pollution
+  const dangerousKeys = ['__proto__', 'constructor', 'prototype', 'valueOf', 'toString'];
+
+  for (const key of Object.keys(obj)) {
+    // Check for dangerous key names
+    if (dangerousKeys.includes(key)) {
+      return {
+        isSecure: false,
+        reason: `Dangerous property name detected: ${key} at path: ${path}`,
+      };
+    }
+
+    // Check for suspicious key patterns
+    if (key.startsWith('__') || key.includes('prototype')) {
+      return {
+        isSecure: false,
+        reason: `Suspicious property name detected: ${key} at path: ${path}`,
+      };
+    }
+
+    const value = obj[key];
+    const currentPath = `${path}.${key}`;
+
+    // Recursively validate nested objects
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      const nestedResult = validateObjectSecurity(
+        value as Record<string, unknown>,
+        currentPath,
+        depth + 1
+      );
+      if (!nestedResult.isSecure) {
+        return nestedResult;
+      }
+    }
+
+    // Validate array contents
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        const arrayValue = value[i];
+        if (arrayValue !== null && typeof arrayValue === 'object' && !Array.isArray(arrayValue)) {
+          const arrayResult = validateObjectSecurity(
+            arrayValue as Record<string, unknown>,
+            `${currentPath}[${i}]`,
+            depth + 1
+          );
+          if (!arrayResult.isSecure) {
+            return arrayResult;
+          }
+        }
+      }
+    }
+
+    // Prevent function injection
+    if (typeof value === 'function') {
+      return {
+        isSecure: false,
+        reason: `Function detected in object at path: ${currentPath}`,
+      };
+    }
+  }
+
+  return { isSecure: true };
 }
 
 // =============================================================================
