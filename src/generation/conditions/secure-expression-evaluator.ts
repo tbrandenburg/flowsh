@@ -294,8 +294,8 @@ export class SecureExpressionEvaluator implements ConditionEvaluator {
       // Parse to AST for syntax validation
       const ast = this.parseToAST(preprocessedCondition);
 
-      // Validate AST for security
-      const securityValidation = this.validateASTSecurity(ast, 0);
+      // Validate AST for security (allow reasonable depth for complex expressions)
+      const securityValidation = this.validateASTSecurity(ast, 10);
       if (!securityValidation.isValid) {
         errors.push(...securityValidation.errors);
       }
@@ -310,13 +310,14 @@ export class SecureExpressionEvaluator implements ConditionEvaluator {
         });
       }
 
-      // Check for complex property access (flowsh style)
-      const variables = this.extractFlowshVariables(condition);
-      for (const variable of variables) {
-        if (variable.split('.').length > 2) {
+      // Check for complex property access (flowsh style) - check full variable names first
+      const complexVarMatches = condition.matchAll(/\$\{([^}]+)\}/g);
+      for (const match of complexVarMatches) {
+        const fullVarName = match[1];
+        if (fullVarName && fullVarName.split('.').length > 2) {
           warnings.push({
             code: 'COMPLEX_PROPERTY_ACCESS',
-            message: `Complex property access detected: ${variable}`,
+            message: `Complex property access detected: ${fullVarName}`,
             path: 'root',
           });
         }
@@ -329,8 +330,8 @@ export class SecureExpressionEvaluator implements ConditionEvaluator {
       };
     } catch (error) {
       errors.push({
-        code: 'PARSE_ERROR',
-        message: `Parse error: ${error instanceof Error ? error.message : String(error)}`,
+        code: 'SYNTAX_ERROR',
+        message: `Syntax error: ${error instanceof Error ? error.message : String(error)}`,
         path: 'root',
         line: 1,
         column: 0,

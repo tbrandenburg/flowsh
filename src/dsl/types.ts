@@ -1,6 +1,6 @@
 /**
  * Core DSL Type Definitions for flowsh Workflows
- * 
+ *
  * This module defines the complete type system for flowsh workflow YAML files,
  * ensuring type safety throughout the parsing and generation process.
  */
@@ -9,11 +9,11 @@
 // Base Types and Utilities
 // =============================================================================
 
-export type NodeType = 
-  | 'start' 
+export type NodeType =
+  | 'start'
   | 'end'
-  | 'llm' 
-  | 'if-else' 
+  | 'llm'
+  | 'if-else'
   | 'variable-assignment'
   | 'code'
   | 'agent'
@@ -23,7 +23,14 @@ export type NodeType =
   | 'template-transform'
   | 'answer';
 
-export type VariableType = 'text' | 'select' | 'number' | 'boolean' | 'object' | 'array' | 'text-input';
+export type VariableType =
+  | 'text'
+  | 'select'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'array'
+  | 'text-input';
 
 export type TemplateSource = 'library' | 'customized' | 'built-in' | 'inline';
 
@@ -75,12 +82,12 @@ export interface ArrayVariable extends BaseVariable {
   items?: BaseVariable;
 }
 
-export type Variable = 
-  | TextVariable 
-  | SelectVariable 
-  | NumberVariable 
-  | BooleanVariable 
-  | ObjectVariable 
+export type Variable =
+  | TextVariable
+  | SelectVariable
+  | NumberVariable
+  | BooleanVariable
+  | ObjectVariable
   | ArrayVariable;
 
 // =============================================================================
@@ -186,7 +193,17 @@ export interface LLMNodeData extends BaseNodeData {
 
 export interface IfElseCondition {
   variable: string;
-  comparison_operator: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'not_contains' | 'is_empty' | 'is_not_empty';
+  comparison_operator:
+    | '=='
+    | '!='
+    | '>'
+    | '<'
+    | '>='
+    | '<='
+    | 'contains'
+    | 'not_contains'
+    | 'is_empty'
+    | 'is_not_empty';
   value?: string | number | boolean;
 }
 
@@ -259,7 +276,7 @@ export interface AnswerNodeData extends BaseNodeData {
 // Node Interface
 // =============================================================================
 
-export type NodeData = 
+export type NodeData =
   | StartNodeData
   | EndNodeData
   | LLMNodeData
@@ -280,7 +297,7 @@ export interface WorkflowNode {
 }
 
 // =============================================================================
-// Edge Interface  
+// Edge Interface
 // =============================================================================
 
 export interface WorkflowEdge {
@@ -355,50 +372,74 @@ export interface FlowshWorkflow {
 // Utility Types for Type Guards
 // =============================================================================
 
-export function isStartNode(node: WorkflowNode): node is WorkflowNode & { type: 'start'; data: StartNodeData } {
+export function isStartNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'start'; data: StartNodeData } {
   return node.type === 'start';
 }
 
-export function isEndNode(node: WorkflowNode): node is WorkflowNode & { type: 'end'; data: EndNodeData } {
+export function isEndNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'end'; data: EndNodeData } {
   return node.type === 'end';
 }
 
-export function isLLMNode(node: WorkflowNode): node is WorkflowNode & { type: 'llm'; data: LLMNodeData } {
+export function isLLMNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'llm'; data: LLMNodeData } {
   return node.type === 'llm';
 }
 
-export function isIfElseNode(node: WorkflowNode): node is WorkflowNode & { type: 'if-else'; data: IfElseNodeData } {
+export function isIfElseNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'if-else'; data: IfElseNodeData } {
   return node.type === 'if-else';
 }
 
-export function isCodeNode(node: WorkflowNode): node is WorkflowNode & { type: 'code'; data: CodeNodeData } {
+export function isCodeNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'code'; data: CodeNodeData } {
   return node.type === 'code';
 }
 
-export function isAgentNode(node: WorkflowNode): node is WorkflowNode & { type: 'agent'; data: AgentNodeData } {
+export function isAgentNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'agent'; data: AgentNodeData } {
   return node.type === 'agent';
 }
 
-export function isVariableAssignmentNode(node: WorkflowNode): node is WorkflowNode & { type: 'variable-assignment'; data: VariableAssignmentNodeData } {
+export function isVariableAssignmentNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'variable-assignment'; data: VariableAssignmentNodeData } {
   return node.type === 'variable-assignment';
 }
 
-export function isLoopNode(node: WorkflowNode): node is WorkflowNode & { type: 'loop'; data: LoopNodeData } {
+export function isLoopNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'loop'; data: LoopNodeData } {
   return node.type === 'loop';
 }
 
-export function isIterationNode(node: WorkflowNode): node is WorkflowNode & { type: 'iteration'; data: IterationNodeData } {
+export function isIterationNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'iteration'; data: IterationNodeData } {
   return node.type === 'iteration';
 }
 
-export function isVariableAggregationNode(node: WorkflowNode): node is WorkflowNode & { type: 'variable-aggregation'; data: VariableAggregationNodeData } {
+export function isVariableAggregationNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'variable-aggregation'; data: VariableAggregationNodeData } {
   return node.type === 'variable-aggregation';
 }
 
-export function isTemplateTransformNode(node: WorkflowNode): node is WorkflowNode & { type: 'template-transform'; data: TemplateTransformNodeData } {
+export function isTemplateTransformNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'template-transform'; data: TemplateTransformNodeData } {
   return node.type === 'template-transform';
 }
 
-export function isAnswerNode(node: WorkflowNode): node is WorkflowNode & { type: 'answer'; data: AnswerNodeData } {
+export function isAnswerNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'answer'; data: AnswerNodeData } {
   return node.type === 'answer';
 }

@@ -2,9 +2,9 @@
  * Structured logging system for flowsh
  * Provides comprehensive logging with correlation IDs, performance metrics, and configurable output
  */
-import winston from 'winston';
-import { v4 as uuidv4 } from 'uuid';
 import { LoggingConfig } from '../config/types.js';
+import { v4 as uuidv4 } from 'uuid';
+import winston from 'winston';
 
 /**
  * Log levels supported by the system

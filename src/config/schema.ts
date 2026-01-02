@@ -2,8 +2,8 @@
  * Configuration schema validation using Joi
  * Provides comprehensive validation for all configuration options
  */
-import Joi from 'joi';
 import { FlowshConfig } from './types.js';
+import Joi from 'joi';
 
 /**
  * Joi schema for generation configuration

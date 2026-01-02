@@ -2,10 +2,10 @@
  * Configuration loader for flowsh
  * Implements hierarchical configuration loading from multiple sources
  */
-import { cosmiconfigSync } from 'cosmiconfig';
-import { merge } from 'lodash-es';
 import { FlowshConfig, DEFAULT_CONFIG, ConfigSource, ConfigLoadResult } from './types.js';
 import { validateConfigWithDetails } from './schema.js';
+import { cosmiconfigSync } from 'cosmiconfig';
+import { merge } from 'lodash-es';
 
 /**
  * Deep clone utility to avoid mutation

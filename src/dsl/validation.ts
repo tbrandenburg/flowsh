@@ -1,17 +1,17 @@
 /**
  * DSL Validation and Utility Functions
- * 
+ *
  * Provides validation logic and utility functions for flowsh workflows.
  */
 
-import { 
-  FlowshWorkflow, 
-  WorkflowNode, 
-  WorkflowEdge, 
-  NodeType, 
+import {
+  FlowshWorkflow,
+  WorkflowNode,
+  WorkflowEdge,
+  NodeType,
   WorkflowGraph,
   Variable,
-  VariableType 
+  VariableType,
 } from './types.js';
 
 // =============================================================================
@@ -98,7 +98,7 @@ export function validateGraph(graph: WorkflowGraph): ValidationResult {
   // Check for duplicate node IDs
   const nodeIds = new Set<string>();
   const duplicateIds: string[] = [];
-  
+
   for (const node of graph.nodes) {
     if (nodeIds.has(node.id)) {
       duplicateIds.push(node.id);
@@ -191,7 +191,7 @@ export function validateNode(node: WorkflowNode): ValidationResult {
         });
       }
       break;
-    
+
     case 'code':
       if (!('command' in node.data) || !node.data.command) {
         errors.push({
@@ -202,7 +202,7 @@ export function validateNode(node: WorkflowNode): ValidationResult {
         });
       }
       break;
-    
+
     case 'agent':
       if (!('command' in node.data) || !node.data.command) {
         errors.push({
@@ -213,9 +213,13 @@ export function validateNode(node: WorkflowNode): ValidationResult {
         });
       }
       break;
-    
+
     case 'if-else':
-      if (!('conditions' in node.data) || !node.data.conditions || node.data.conditions.length === 0) {
+      if (
+        !('conditions' in node.data) ||
+        !node.data.conditions ||
+        node.data.conditions.length === 0
+      ) {
         errors.push({
           type: 'error',
           code: 'MISSING_IF_CONDITIONS',
@@ -321,7 +325,7 @@ export function validateConnectivity(graph: WorkflowGraph): ValidationResult {
   if (startNodes.length > 0 && graph.edges) {
     const reachable = findReachableNodes(startNodes[0]!.id, graph.edges);
     const unreachableNodes = graph.nodes.filter(node => !reachable.has(node.id));
-    
+
     if (unreachableNodes.length > 0) {
       warnings.push({
         type: 'warning',
@@ -334,7 +338,10 @@ export function validateConnectivity(graph: WorkflowGraph): ValidationResult {
 
   // Check for circular dependencies (simple cycle detection)
   if (graph.edges) {
-    const cycles = detectCycles(graph.nodes.map(n => n.id), graph.edges);
+    const cycles = detectCycles(
+      graph.nodes.map(n => n.id),
+      graph.edges
+    );
     if (cycles.length > 0) {
       warnings.push({
         type: 'warning',
@@ -361,9 +368,18 @@ export function validateConnectivity(graph: WorkflowGraph): ValidationResult {
  */
 export function isValidNodeType(type: string): type is NodeType {
   const validTypes: NodeType[] = [
-    'start', 'end', 'llm', 'if-else', 'variable-assignment', 
-    'code', 'agent', 'loop', 'iteration', 'variable-aggregation', 
-    'template-transform', 'answer'
+    'start',
+    'end',
+    'llm',
+    'if-else',
+    'variable-assignment',
+    'code',
+    'agent',
+    'loop',
+    'iteration',
+    'variable-aggregation',
+    'template-transform',
+    'answer',
   ];
   return validTypes.includes(type as NodeType);
 }
@@ -373,7 +389,13 @@ export function isValidNodeType(type: string): type is NodeType {
  */
 export function isValidVariableType(type: string): type is VariableType {
   const validTypes: VariableType[] = [
-    'text', 'select', 'number', 'boolean', 'object', 'array', 'text-input'
+    'text',
+    'select',
+    'number',
+    'boolean',
+    'object',
+    'array',
+    'text-input',
   ];
   return validTypes.includes(type as VariableType);
 }
@@ -416,11 +438,15 @@ export function validateVariable(variable: Variable): ValidationResult {
         });
       }
       break;
-    
+
     case 'number':
-      if ('min' in variable && 'max' in variable && 
-          variable.min !== undefined && variable.max !== undefined && 
-          variable.min > variable.max) {
+      if (
+        'min' in variable &&
+        'max' in variable &&
+        variable.min !== undefined &&
+        variable.max !== undefined &&
+        variable.min > variable.max
+      ) {
         errors.push({
           type: 'error',
           code: 'INVALID_NUMBER_RANGE',
@@ -448,9 +474,9 @@ function findReachableNodes(startNodeId: string, edges: WorkflowEdge[]): Set<str
   while (toVisit.length > 0) {
     const currentId = toVisit.shift()!;
     if (reachable.has(currentId)) continue;
-    
+
     reachable.add(currentId);
-    
+
     // Find all nodes this node connects to
     const outgoingEdges = edges.filter(edge => edge.source === currentId);
     for (const edge of outgoingEdges) {
@@ -524,7 +550,7 @@ export function extractVariableReferences(text: string): string[] {
  * Validates that all variable references in templates exist
  */
 export function validateVariableReferences(
-  workflow: FlowshWorkflow, 
+  workflow: FlowshWorkflow,
   availableVariables: Set<string>
 ): ValidationResult {
   const errors: ValidationError[] = [];
@@ -537,13 +563,15 @@ export function validateVariableReferences(
     // Check prompt templates for variable references
     if ('prompt_template' in node.data && node.data.prompt_template) {
       let templateText = '';
-      
+
       if (typeof node.data.prompt_template === 'object') {
         if ('content' in node.data.prompt_template && node.data.prompt_template.content) {
           templateText = node.data.prompt_template.content;
         }
       } else if (Array.isArray(node.data.prompt_template)) {
-        templateText = (node.data.prompt_template as Array<{ text: string }>).map((msg: { text: string }) => msg.text).join(' ');
+        templateText = (node.data.prompt_template as Array<{ text: string }>)
+          .map((msg: { text: string }) => msg.text)
+          .join(' ');
       }
 
       const references = extractVariableReferences(templateText);

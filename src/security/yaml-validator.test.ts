@@ -1,8 +1,8 @@
 /**
  * Tests for YAML security validation utilities
  */
-import { describe, it, expect } from 'vitest';
 import { YamlSecurityValidator } from './yaml-validator.js';
+import { describe, it, expect } from 'vitest';
 
 describe('YamlSecurityValidator', () => {
   describe('validateYamlSecurity', () => {

@@ -45,6 +45,8 @@ export interface ReactFlowNode {
   type: string;
   position: ReactFlowPosition;
   data: ReactFlowNodeData;
+  width?: number;
+  height?: number;
   style?: React.CSSProperties;
   className?: string;
   hidden?: boolean;
@@ -234,6 +236,7 @@ export interface NodeStyleConfig {
 }
 
 export interface EdgeStyleConfig {
+  [edgeType: string]: React.CSSProperties;
   default: React.CSSProperties;
   conditional: React.CSSProperties;
   error: React.CSSProperties;
@@ -290,6 +293,29 @@ export interface ReactFlowGeneratorOptions {
     minZoom: number;
     maxZoom: number;
   };
+}
+
+// =============================================================================
+// Export Types
+// =============================================================================
+
+export type ExportFormat = 'json' | 'svg' | 'mermaid' | 'dot' | 'png' | 'pdf';
+
+export interface ExportOptions {
+  theme?: ThemeConfig;
+  width?: number;
+  height?: number;
+  pretty?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface ExportResult {
+  success: boolean;
+  format: ExportFormat;
+  content?: string;
+  size?: number;
+  metadata?: Record<string, any>;
+  error?: string;
 }
 
 // =============================================================================

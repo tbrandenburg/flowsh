@@ -1,8 +1,8 @@
 /**
  * Tests for shell sanitization security utilities
  */
-import { describe, it, expect } from 'vitest';
 import { ShellSanitizer } from './sanitization.js';
+import { describe, it, expect } from 'vitest';
 
 describe('ShellSanitizer', () => {
   describe('sanitizeCommand', () => {

@@ -5,6 +5,7 @@
  * for React Flow output generation in flowsh.
  */
 
+import { advancedThemes } from './advanced-themes.js';
 import { ThemeConfig } from './types.js';
 
 // =============================================================================
@@ -612,6 +613,7 @@ export const themes: Record<string, ThemeConfig> = {
   default: defaultTheme,
   light: lightTheme,
   dark: darkTheme,
+  ...advancedThemes,
 };
 
 /**
