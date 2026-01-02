@@ -10,6 +10,7 @@
 import { Command } from 'commander';
 import { v4 as uuidv4 } from 'uuid';
 
+import { generateReactFlowOutput } from '../visualization/generator.js';
 import { generateShellScript } from '../generation/shell-generator.js';
 import { initializeLogger, getLogger } from '../logging/logger.js';
 import { FlowshCliError, FlowshError } from '../errors/types.js';
@@ -44,6 +45,16 @@ interface ValidateCommandOptions {
 interface HealthCommandOptions {
   config?: string;
   format?: 'json' | 'pretty';
+}
+
+interface VisualizeCommandOptions {
+  output?: string;
+  theme?: 'default' | 'dark' | 'light';
+  format?: 'json' | 'pretty';
+  verbose?: boolean;
+  validate?: boolean;
+  config?: string;
+  logLevel?: 'error' | 'warn' | 'info' | 'debug';
 }
 
 // =============================================================================
@@ -405,6 +416,128 @@ async function healthCommand(options: HealthCommandOptions): Promise<void> {
   }
 }
 
+/**
+ * Generate React Flow visualization from workflow YAML
+ */
+async function visualizeCommand(
+  workflowFile: string,
+  options: VisualizeCommandOptions
+): Promise<void> {
+  const operationId = uuidv4();
+
+  try {
+    await initializeApp(options.config, options);
+    const logger = getLogger();
+    const operationLogger = logger.createOperationLogger('visualize_workflow', {
+      correlationId,
+      operationId,
+      workflowFile,
+      options,
+    });
+
+    operationLogger.info('Starting workflow visualization');
+
+    // Parse and validate workflow
+    operationLogger.info('Parsing workflow file');
+    const parseResult = await parseWorkflowFile(workflowFile, {
+      validate: options.validate !== false,
+      strict: false,
+    });
+
+    if (!parseResult.success || !parseResult.workflow) {
+      const error = new FlowshCliError(
+        `Failed to parse workflow file: ${parseResult.errors.map(e => e.message).join(', ')}`,
+        1,
+        { parseResult, workflowFile },
+        correlationId
+      );
+      operationLogger.fail(error);
+      throw error;
+    }
+
+    operationLogger.info('Workflow parsed successfully', {
+      nodeCount: parseResult.workflow.graph?.nodes.length || 0,
+      warningCount: parseResult.warnings?.length || 0,
+    });
+
+    // Generate React Flow output
+    operationLogger.info('Generating React Flow visualization');
+    const reactFlowOutput = generateReactFlowOutput(parseResult.workflow, {
+      theme: options.theme || 'default',
+    });
+
+    operationLogger.info('Visualization generated successfully', {
+      nodeCount: reactFlowOutput.nodes.length,
+      edgeCount: reactFlowOutput.edges.length,
+      theme: options.theme || 'default',
+      isValid: reactFlowOutput.validation.isValid,
+    });
+
+    // Handle output
+    const outputContent = JSON.stringify(reactFlowOutput, null, 2);
+
+    if (options.output) {
+      // Write to file
+      operationLogger.info('Writing output file', { outputFile: options.output });
+      const fs = await import('fs/promises');
+      await fs.writeFile(options.output, outputContent, 'utf-8');
+    } else {
+      // Output to console
+      if (options.format === 'pretty') {
+        console.log('\n🎨 React Flow Visualization Generated Successfully!\n');
+        console.log('📊 Summary:');
+        console.log(`   Nodes: ${reactFlowOutput.nodes.length}`);
+        console.log(`   Edges: ${reactFlowOutput.edges.length}`);
+        console.log(`   Theme: ${options.theme || 'default'}`);
+        console.log(
+          `   Layout: ${reactFlowOutput.layout.algorithm} (${reactFlowOutput.layout.direction})`
+        );
+        console.log(`   Viewport: ${JSON.stringify(reactFlowOutput.viewport)}`);
+
+        console.log('\n✅ Validation:');
+        console.log(`   Valid: ${reactFlowOutput.validation.isValid ? '✅' : '❌'}`);
+        if (reactFlowOutput.validation.errors.length > 0) {
+          console.log(`   Errors: ${reactFlowOutput.validation.errors.length}`);
+        }
+        if (reactFlowOutput.validation.warnings.length > 0) {
+          console.log(`   Warnings: ${reactFlowOutput.validation.warnings.length}`);
+        }
+
+        if (reactFlowOutput.validation.warnings.length > 0) {
+          console.log('\n⚠️  Warnings:');
+          reactFlowOutput.validation.warnings.forEach(warning => {
+            console.log(`   ${warning.code}: ${warning.message}`);
+          });
+        }
+
+        if (reactFlowOutput.validation.suggestions.length > 0) {
+          console.log('\n💡 Suggestions:');
+          reactFlowOutput.validation.suggestions.forEach(suggestion => {
+            console.log(`   ${suggestion.type}: ${suggestion.message}`);
+          });
+        }
+
+        console.log('\n💡 Usage:');
+        console.log('   Copy the JSON output below and use it with React Flow:');
+        console.log('   const { nodes, edges, viewport } = reactFlowData;');
+        console.log('\n📄 React Flow JSON:');
+      }
+      console.log(outputContent);
+    }
+
+    const duration = operationLogger.complete('Visualization generation completed successfully');
+
+    if (options.format === 'pretty' && options.output) {
+      console.log('✅ Visualization completed successfully!');
+      console.log(`📄 Output: ${options.output}`);
+      console.log(`⏱️  Duration: ${duration}ms`);
+      console.log(`🔗 ID: ${correlationId}`);
+    }
+  } catch (error) {
+    handleError(error, 'visualize');
+  }
+}
+
 // =============================================================================
 // CLI Setup
 // =============================================================================
@@ -454,6 +587,21 @@ program
   .option('--format <format>', 'Output format (json|pretty)', 'pretty')
   .action(async (options: HealthCommandOptions) => {
     await healthCommand(options);
+  });
+
+// Visualize command
+program
+  .command('visualize')
+  .alias('viz')
+  .description('Generate React Flow visualization from workflow YAML')
+  .argument('<workflow-file>', 'Path to workflow YAML file')
+  .option('-o, --output <file>', 'Output JSON file (default: stdout)')
+  .option('--theme <theme>', 'Visualization theme (default|dark|light)', 'default')
+  .option('--format <format>', 'Output format (json|pretty)', 'pretty')
+  .option('-v, --verbose', 'Enable verbose output')
+  .option('--no-validate', 'Skip validation')
+  .action(async (workflowFile: string, options: VisualizeCommandOptions) => {
+    await visualizeCommand(workflowFile, options);
   });
 
 // Info command

@@ -31,9 +31,11 @@
   "author": "flowsh team",
   "license": "MIT",
   "dependencies": {
+    "@types/dagre": "^0.7.53",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
     "cosmiconfig": "^9.0.0",
+    "dagre": "^0.8.5",
     "joi": "^18.0.2",
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.22",
