@@ -137,3 +137,30 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Flowsh specific ignores
+# Generated shell scripts in root (should be in scripts/generated-outputs/)
+*.sh
+!scripts/**/*.sh
+
+# Debug files
+debug-*.js
+debug-*.ts
+
+# Test workflow files in root (should be in examples/)
+simple-*.yaml
+test-*.yaml
+
+# Backup directories
+backup/
+*.backup
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
