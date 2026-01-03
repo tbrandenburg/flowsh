@@ -1,0 +1,7 @@
+Example: start-node-example
+Validation: false
+Compilation: false
+Script Generation: false
+Syntax Check: false
+Overall: FAILED
+Timestamp: Sat Jan  3 03:28:16 PM CET 2026

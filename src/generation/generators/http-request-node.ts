@@ -81,7 +81,7 @@ ${bodyCode}
         local metrics=$(cat "$metrics_file" 2>/dev/null)
         local curl_stderr=$(cat "$stderr_file" 2>/dev/null)
         
-        if [[ -n "$metrics" && "$metrics" =~ ^([0-9]{3});([0-9.]+);([0-9]+);(.*)$ ]]; then
+        if [[ -n "$metrics" && "$metrics" =~ ^([0-9]{3})\\;([0-9.]+)\\;([0-9]+)\\;(.*)$ ]]; then
             local http_code="\${BASH_REMATCH[1]}"
             local time_total="\${BASH_REMATCH[2]}"
             local size_download="\${BASH_REMATCH[3]}"

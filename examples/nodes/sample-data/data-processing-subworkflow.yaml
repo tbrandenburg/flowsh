@@ -1,0 +1,150 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: data-processing-subworkflow
+  description: 'Sub-workflow for data processing operations'
+  version: '1.0'
+
+workflow:
+  name: 'Data Processing Sub-workflow'
+  description: 'Reusable sub-workflow for data validation, transformation, and analysis'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Sub-workflow Input'
+        description: 'Accept input data for processing'
+        variables:
+          - variable: 'input_data'
+            type: 'text'
+            label: 'Input Data'
+            description: 'Raw data to process'
+            required: true
+          - variable: 'processing_mode'
+            type: 'select'
+            label: 'Processing Mode'
+            description: 'Type of processing to perform'
+            options: ['validate', 'transform', 'analyze']
+            default: 'validate'
+            required: true
+
+    - id: 'validate_data'
+      type: 'variable-assignment'
+      data:
+        title: 'Data Validation'
+        description: 'Validate input data format and content'
+        variable: 'validation_result'
+        assignment_type: 'expression'
+        expression: "if [ ! -z '${input_data}' ] && [ ${#input_data} -gt 0 ]; then echo 'valid'; else echo 'invalid'; fi"
+
+    - id: 'process_data'
+      type: 'if-else'
+      data:
+        title: 'Processing Decision'
+        description: 'Decide processing path based on mode'
+        conditions:
+          - variable: 'processing_mode'
+            comparison_operator: '=='
+            value: 'validate'
+
+    - id: 'validation_processing'
+      type: 'variable-assignment'
+      data:
+        title: 'Validation Processing'
+        description: 'Perform validation processing'
+        variable: 'processed_output'
+        assignment_type: 'expression'
+        expression: "echo 'Validation completed: ${validation_result} for data: ${input_data}'"
+
+    - id: 'transform_check'
+      type: 'if-else'
+      data:
+        title: 'Transform Mode Check'
+        description: 'Check if transform mode is selected'
+        conditions:
+          - variable: 'processing_mode'
+            comparison_operator: '=='
+            value: 'transform'
+
+    - id: 'transform_processing'
+      type: 'variable-assignment'
+      data:
+        title: 'Transform Processing'
+        description: 'Perform data transformation'
+        variable: 'processed_output'
+        assignment_type: 'expression'
+        expression: "echo 'Transformed data: ' && echo '${input_data}' | tr '[:lower:]' '[:upper:]'"
+
+    - id: 'analyze_processing'
+      type: 'variable-assignment'
+      data:
+        title: 'Analysis Processing'
+        description: 'Perform data analysis'
+        variable: 'processed_output'
+        assignment_type: 'expression'
+        expression: "echo 'Analysis result: Length=${#input_data}, Type=${processing_mode}, Status=${validation_result}'"
+
+    - id: 'generate_metadata'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Processing Metadata'
+        description: 'Create metadata about the processing operation'
+        variable: 'processing_metadata'
+        assignment_type: 'expression'
+        expression: "echo 'Sub-workflow execution: Mode=${processing_mode}, Timestamp='$(date)', Validation=${validation_result}'"
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'Sub-workflow Output'
+        description: 'Return processed results to parent workflow'
+        outputs:
+          - variable: 'processed_output'
+            type: 'text'
+            label: 'Processed Data'
+            description: 'The result of data processing'
+          - variable: 'processing_metadata'
+            type: 'text'
+            label: 'Processing Metadata'
+            description: 'Metadata about the processing operation'
+          - variable: 'validation_result'
+            type: 'text'
+            label: 'Validation Status'
+            description: 'Result of data validation'
+
+  edges:
+    - source: 'start'
+      target: 'validate_data'
+    - source: 'validate_data'
+      target: 'process_data'
+
+    # Validation path
+    - source: 'process_data'
+      target: 'validation_processing'
+      condition: 'true'
+
+    # Non-validation paths
+    - source: 'process_data'
+      target: 'transform_check'
+      condition: 'false'
+
+    - source: 'transform_check'
+      target: 'transform_processing'
+      condition: 'true'
+
+    - source: 'transform_check'
+      target: 'analyze_processing'
+      condition: 'false'
+
+    # All paths converge to metadata generation
+    - source: 'validation_processing'
+      target: 'generate_metadata'
+    - source: 'transform_processing'
+      target: 'generate_metadata'
+    - source: 'analyze_processing'
+      target: 'generate_metadata'
+
+    - source: 'generate_metadata'
+      target: 'end'

@@ -1,0 +1,225 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: agent-node-example
+  description: 'Demonstrates agent node with AI-powered command execution and prompt templates'
+  version: '1.0'
+
+workflow:
+  name: 'Agent Node Example'
+  description: 'Shows how to use agent nodes for AI-assisted shell command generation and execution'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Task Input'
+        description: 'Define the task for the AI agent to perform'
+        variables:
+          - variable: 'task_description'
+            type: 'text'
+            label: 'Task Description'
+            description: 'Describe what you want the agent to do'
+            required: true
+            default: 'Create a simple text file with current system information'
+          - variable: 'output_format'
+            type: 'select'
+            label: 'Output Format'
+            description: 'How should the agent format the results'
+            options: ['simple', 'detailed', 'json']
+            default: 'detailed'
+            required: true
+          - variable: 'safety_mode'
+            type: 'boolean'
+            label: 'Enable Safety Mode'
+            description: 'Restrict agent to safe, read-only operations'
+            default: true
+
+    - id: 'prepare_agent_prompt'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Agent Instructions'
+        description: 'Create detailed instructions for the agent'
+        variable: 'agent_instructions'
+        assignment_type: 'expression'
+        expression: "echo 'Task: ${task_description}. Format: ${output_format}. Safety: ${safety_mode}. Generate safe shell commands only.'"
+
+    - id: 'system_info_agent'
+      type: 'agent'
+      data:
+        title: 'System Information Agent'
+        description: 'AI agent that generates and executes commands to gather system information'
+        command: 'sh'
+        args: ['-c']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            You are a helpful system administrator agent. Your task is to generate safe shell commands to complete the user's request.
+
+            User Request: ${task_description}
+            Output Format: ${output_format}
+            Safety Mode: ${safety_mode}
+
+            Guidelines:
+            - Only use safe, read-only commands if safety_mode is true
+            - Generate commands that gather system information
+            - Format output according to the requested format
+            - Avoid any destructive operations
+            - Use common Unix/Linux commands (ls, cat, date, whoami, uname, etc.)
+
+            Generate a single shell command or pipe chain to complete this task safely.
+        template_parameters:
+          task: '${task_description}'
+          format: '${output_format}'
+          safety: '${safety_mode}'
+        working_directory: '/tmp'
+        environment_variables:
+          AGENT_TASK: '${task_description}'
+          OUTPUT_FORMAT: '${output_format}'
+          SAFETY_MODE: '${safety_mode}'
+        timeout: 30
+
+    - id: 'file_operations_agent'
+      type: 'agent'
+      data:
+        title: 'File Operations Agent'
+        description: 'Agent specialized in safe file operations'
+        command: 'sh'
+        args: ['-c']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            You are a file operations specialist agent. Create safe commands for file manipulation.
+
+            Context: The previous agent completed: ${task_description}
+
+            Your task: Create a summary file of the system information gathered.
+            - Create a file at /tmp/agent-example-output.txt
+            - Include timestamp and basic system info
+            - Use only safe file operations (echo, cat, date, etc.)
+            - Make the output ${output_format} format
+
+            Generate the appropriate shell commands to create this summary file.
+        template_parameters:
+          previous_task: '${task_description}'
+          format: '${output_format}'
+        working_directory: '/tmp'
+        timeout: 20
+
+    - id: 'validation_agent'
+      type: 'agent'
+      data:
+        title: 'Output Validation Agent'
+        description: 'Agent that validates and formats the final output'
+        command: 'sh'
+        args: ['-c']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            You are a validation agent. Your job is to verify the output file exists and display its contents appropriately.
+
+            Task: Check if /tmp/agent-example-output.txt exists and display it
+            Format: ${output_format}
+
+            Commands to generate:
+            1. Check if the file exists
+            2. Display its contents with appropriate formatting
+            3. Add a validation timestamp
+
+            Use commands like: test -f, cat, echo, date
+        template_parameters:
+          format: '${output_format}'
+        working_directory: '/tmp'
+        timeout: 10
+
+    - id: 'cleanup_agent'
+      type: 'agent'
+      data:
+        title: 'Cleanup Agent'
+        description: 'Agent responsible for cleaning up temporary files'
+        command: 'sh'
+        args: ['-c']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            You are a cleanup agent. Generate commands to safely clean up the temporary files created during this workflow.
+
+            Files to clean:
+            - /tmp/agent-example-output.txt
+            - Any other temporary files created
+
+            Safety requirements:
+            - Only remove files we created in /tmp/agent-example-*
+            - Use safe removal commands
+            - Confirm files exist before removing
+
+            Generate the appropriate cleanup commands.
+        working_directory: '/tmp'
+        timeout: 10
+
+    - id: 'final_report'
+      type: 'answer'
+      data:
+        title: 'Agent Node Example Results'
+        description: 'Summary of agent node capabilities and results'
+        answer: |
+          # 🤖 Agent Node Example Completed!
+
+          ## Task Executed
+          **Original Request**: ${task_description}
+          **Output Format**: ${output_format}
+          **Safety Mode**: ${safety_mode}
+
+          ## Agent Operations Performed
+
+          1. **System Information Agent** 🔍
+             - Generated commands to gather system information
+             - Executed safely with proper environment setup
+             - Followed safety guidelines based on user preferences
+
+          2. **File Operations Agent** 📝
+             - Created summary files with collected information
+             - Used template-driven command generation
+             - Maintained proper working directory isolation
+
+          3. **Validation Agent** ✅
+             - Verified output file creation and contents
+             - Applied requested formatting standards
+             - Performed final validation checks
+
+          4. **Cleanup Agent** 🧹
+             - Safely removed temporary files
+             - Followed cleanup best practices
+             - Ensured no resource leaks
+
+          ## Agent Node Features Demonstrated
+
+          - **AI-Powered Command Generation**: Agents dynamically create shell commands based on natural language instructions
+          - **Template System Integration**: Inline prompt templates with parameter substitution
+          - **Context Awareness**: Agents can reference previous operations and maintain workflow context
+          - **Safety Controls**: Built-in safety modes to restrict dangerous operations
+          - **Environment Management**: Proper working directory and environment variable handling
+          - **Specialized Roles**: Different agents for different types of operations (info gathering, file ops, validation, cleanup)
+          - **Timeout Management**: Appropriate timeouts for different complexity tasks
+
+          This example demonstrates how agent nodes can provide intelligent, AI-assisted automation while maintaining safety and control.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'prepare_agent_prompt'
+    - source: 'prepare_agent_prompt'
+      target: 'system_info_agent'
+    - source: 'system_info_agent'
+      target: 'file_operations_agent'
+    - source: 'file_operations_agent'
+      target: 'validation_agent'
+    - source: 'validation_agent'
+      target: 'cleanup_agent'
+    - source: 'cleanup_agent'
+      target: 'final_report'

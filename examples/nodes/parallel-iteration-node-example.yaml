@@ -1,0 +1,316 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: parallel-iteration-node-example
+  description: 'Demonstrates parallel iteration node for high-performance concurrent processing'
+  version: '1.0'
+
+workflow:
+  name: 'Parallel Iteration Node Example'
+  description: 'Shows advanced parallel processing capabilities with concurrent execution, progress tracking, and error handling'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Parallel Processing Configuration'
+        description: 'Configure parameters for parallel iteration processing'
+        variables:
+          - variable: 'task_list'
+            type: 'text'
+            label: 'Task List'
+            description: 'Comma-separated list of tasks to process in parallel'
+            required: true
+            default: 'task1,task2,task3,task4,task5,task6,task7,task8,task9,task10'
+          - variable: 'max_concurrent'
+            type: 'number'
+            label: 'Max Concurrent Tasks'
+            description: 'Maximum number of tasks to run simultaneously'
+            required: true
+            default: 4
+            min: 1
+            max: 10
+          - variable: 'chunk_size'
+            type: 'number'
+            label: 'Chunk Size'
+            description: 'Number of tasks to process in each batch'
+            required: true
+            default: 3
+            min: 1
+            max: 5
+          - variable: 'error_handling'
+            type: 'select'
+            label: 'Error Handling Strategy'
+            description: 'How to handle individual task failures'
+            options: ['fail', 'ignore', 'continue']
+            default: 'continue'
+            required: true
+          - variable: 'enable_progress_tracking'
+            type: 'boolean'
+            label: 'Enable Progress Tracking'
+            description: 'Track and report progress during execution'
+            default: true
+
+    - id: 'prepare_task_array'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Task Array'
+        description: 'Convert task list to array format for parallel processing'
+        variable: 'tasks_array'
+        assignment_type: 'expression'
+        expression: "echo '${task_list}' | tr ',' '\n'"
+
+    - id: 'setup_performance_monitoring'
+      type: 'variable-assignment'
+      data:
+        title: 'Setup Performance Monitoring'
+        description: 'Initialize performance tracking variables'
+        variable: 'start_time'
+        assignment_type: 'expression'
+        expression: 'date +%s'
+
+    - id: 'parallel_task_processor'
+      type: 'parallel-iteration'
+      data:
+        title: 'Parallel Task Processing Engine'
+        description: 'Process tasks concurrently with advanced parallel execution features'
+        input_variable: 'tasks_array'
+        output_variable: 'parallel_results'
+        max_parallel: '${max_concurrent}'
+        chunk_size: '${chunk_size}'
+        progress_tracking: '${enable_progress_tracking}'
+        error_handling: '${error_handling}'
+
+    # Task processing logic that runs in parallel for each item
+    - id: 'process_individual_task'
+      type: 'variable-assignment'
+      data:
+        title: 'Process Individual Task'
+        description: 'Extract and prepare current task for processing'
+        variable: 'current_task'
+        assignment_type: 'variable'
+        source_variable: 'parallel_item'
+
+    - id: 'simulate_task_work'
+      type: 'code'
+      data:
+        title: 'Simulate Task Execution'
+        description: 'Simulate actual work being done for each task'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Starting ${current_task}...' && sleep $(( (RANDOM % 3) + 1 )) && echo 'Completed ${current_task} at $(date)'",
+          ]
+        timeout: 10
+        environment_variables:
+          TASK_ID: '${current_task}'
+          WORKER_ID: '$${parallel_worker_id}'
+
+    - id: 'generate_task_result'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Task Result'
+        description: 'Create detailed result record for current task'
+        variable: 'task_result'
+        assignment_type: 'expression'
+        expression: "echo 'Task: ${current_task} | Status: SUCCESS | Worker: ${parallel_worker_id} | Duration: 2s | Output: Task completed successfully'"
+
+    # Advanced parallel processing with conditional logic
+    - id: 'task_complexity_check'
+      type: 'if-else'
+      data:
+        title: 'Task Complexity Analysis'
+        description: 'Analyze task complexity to determine processing approach'
+        conditions:
+          - variable: 'current_task'
+            comparison_operator: 'contains'
+            value: 'complex'
+          - variable: 'current_task'
+            comparison_operator: 'contains'
+            value: 'heavy'
+        logical_operator: 'or'
+
+    - id: 'process_complex_task'
+      type: 'code'
+      data:
+        title: 'Complex Task Processing'
+        description: 'Enhanced processing for complex tasks'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Complex processing for ${current_task}...' && sleep 2 && echo 'Complex task ${current_task} completed with advanced algorithms'",
+          ]
+        timeout: 15
+        environment_variables:
+          COMPLEXITY_MODE: 'advanced'
+          PROCESSING_THREADS: '2'
+
+    - id: 'process_simple_task'
+      type: 'code'
+      data:
+        title: 'Simple Task Processing'
+        description: 'Standard processing for regular tasks'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Standard processing for ${current_task}...' && sleep 1 && echo 'Standard task ${current_task} completed'",
+          ]
+        timeout: 5
+        environment_variables:
+          COMPLEXITY_MODE: 'standard'
+
+    # Aggregation and analysis after parallel processing
+    - id: 'aggregate_results'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate Parallel Results'
+        description: 'Combine all parallel processing results'
+        input_variables: ['parallel_results']
+        output_variable: 'combined_results'
+        aggregation_method: 'concat'
+        separator: "\n"
+
+    - id: 'calculate_performance_metrics'
+      type: 'variable-assignment'
+      data:
+        title: 'Calculate Performance Metrics'
+        description: 'Analyze performance of parallel execution'
+        variable: 'end_time'
+        assignment_type: 'expression'
+        expression: 'date +%s'
+
+    - id: 'compute_execution_stats'
+      type: 'variable-assignment'
+      data:
+        title: 'Compute Execution Statistics'
+        description: 'Calculate throughput and efficiency metrics'
+        variable: 'execution_duration'
+        assignment_type: 'expression'
+        expression: 'echo $((${end_time} - ${start_time}))'
+
+    - id: 'count_processed_tasks'
+      type: 'variable-assignment'
+      data:
+        title: 'Count Processed Tasks'
+        description: 'Count total number of tasks processed'
+        variable: 'total_tasks'
+        assignment_type: 'expression'
+        expression: "echo '${task_list}' | tr ',' '\n' | wc -l"
+
+    - id: 'calculate_throughput'
+      type: 'variable-assignment'
+      data:
+        title: 'Calculate Throughput'
+        description: 'Calculate tasks per second throughput'
+        variable: 'throughput'
+        assignment_type: 'expression'
+        expression: "if [ ${execution_duration} -gt 0 ]; then echo 'scale=2; ${total_tasks} / ${execution_duration}' | bc 2>/dev/null || echo '0'; else echo '${total_tasks}'; fi"
+
+    - id: 'final_report'
+      type: 'answer'
+      data:
+        title: 'Parallel Iteration Results'
+        description: 'Comprehensive analysis of parallel processing performance'
+        answer: |
+          # 🚀 Parallel Iteration Node Example Results
+
+          ## Configuration Summary
+          - **Total Tasks**: ${total_tasks}
+          - **Max Concurrent**: ${max_concurrent}
+          - **Chunk Size**: ${chunk_size}
+          - **Error Handling**: ${error_handling}
+          - **Progress Tracking**: ${enable_progress_tracking}
+
+          ## Performance Metrics
+          - **Execution Time**: ${execution_duration} seconds
+          - **Throughput**: ${throughput} tasks/second
+          - **Concurrency Efficiency**: ${max_concurrent} parallel workers
+          - **Chunk Processing**: ${chunk_size} tasks per batch
+
+          ## Processing Results
+
+          ${combined_results}
+
+          ## Parallel Processing Analysis
+
+          ### Concurrency Benefits
+          - **Scalability**: Processing ${total_tasks} tasks across ${max_concurrent} parallel workers
+          - **Resource Optimization**: Chunked processing with ${chunk_size} items per batch
+          - **Error Resilience**: ${error_handling} strategy for handling individual failures
+          - **Progress Monitoring**: Real-time tracking of ${enable_progress_tracking} execution progress
+
+          ### Performance Characteristics
+          - **Parallel Speedup**: Theoretical max ${max_concurrent}x improvement over sequential processing
+          - **Actual Throughput**: ${throughput} tasks/second with current configuration
+          - **Resource Utilization**: Balanced load across available parallel workers
+          - **Fault Tolerance**: Robust error handling ensures workflow continuation
+
+          ## Parallel Iteration Node Features Demonstrated
+
+          - **Concurrent Execution**: Multiple tasks running simultaneously
+          - **Configurable Parallelism**: Adjustable concurrent worker limits
+          - **Chunked Processing**: Batch processing for memory efficiency
+          - **Progress Tracking**: Real-time monitoring of execution progress
+          - **Error Handling Strategies**: Multiple approaches to handle failures
+          - **Performance Optimization**: Automatic load balancing and resource management
+          - **Worker Management**: Intelligent worker allocation and task distribution
+          - **Result Aggregation**: Efficient collection and combination of parallel results
+          - **Scalability Controls**: Fine-tuned performance parameters
+
+          This example showcases how parallel iteration nodes enable high-performance processing of large datasets with intelligent concurrency management and robust error handling.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'prepare_task_array'
+    - source: 'prepare_task_array'
+      target: 'setup_performance_monitoring'
+    - source: 'setup_performance_monitoring'
+      target: 'parallel_task_processor'
+
+    # Parallel processing body (executed for each item concurrently)
+    - source: 'parallel_task_processor'
+      target: 'process_individual_task'
+    - source: 'process_individual_task'
+      target: 'simulate_task_work'
+    - source: 'simulate_task_work'
+      target: 'task_complexity_check'
+
+    # Complexity-based processing
+    - source: 'task_complexity_check'
+      target: 'process_complex_task'
+      condition: 'true'
+
+    - source: 'task_complexity_check'
+      target: 'process_simple_task'
+      condition: 'false'
+
+    # Both paths converge to result generation
+    - source: 'process_complex_task'
+      target: 'generate_task_result'
+    - source: 'process_simple_task'
+      target: 'generate_task_result'
+
+    # Return to parallel processor or continue to completion
+    - source: 'generate_task_result'
+      target: 'parallel_task_processor'
+
+    # When parallel processing completes
+    - source: 'parallel_task_processor'
+      target: 'aggregate_results'
+      condition: 'parallel_complete'
+
+    - source: 'aggregate_results'
+      target: 'calculate_performance_metrics'
+    - source: 'calculate_performance_metrics'
+      target: 'compute_execution_stats'
+    - source: 'compute_execution_stats'
+      target: 'count_processed_tasks'
+    - source: 'count_processed_tasks'
+      target: 'calculate_throughput'
+    - source: 'calculate_throughput'
+      target: 'final_report'

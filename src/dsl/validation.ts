@@ -166,7 +166,26 @@ export function validateNode(node: WorkflowNode): ValidationResult {
       code: 'INVALID_NODE_TYPE',
       message: `Invalid node type: ${node.type}`,
       path: 'type',
-      suggestions: ['start', 'end', 'llm', 'if-else', 'code', 'agent', 'loop', 'iteration'],
+      suggestions: [
+        'start',
+        'end',
+        'llm',
+        'if-else',
+        'variable-assignment',
+        'code',
+        'agent',
+        'loop',
+        'iteration',
+        'variable-aggregation',
+        'template-transform',
+        'http-request',
+        'sub-workflow',
+        'parallel-iteration',
+        'retry',
+        'fallback',
+        'circuit-breaker',
+        'answer',
+      ],
     });
   }
 
@@ -379,6 +398,12 @@ export function isValidNodeType(type: string): type is NodeType {
     'iteration',
     'variable-aggregation',
     'template-transform',
+    'http-request',
+    'sub-workflow',
+    'parallel-iteration',
+    'retry',
+    'fallback',
+    'circuit-breaker',
     'answer',
   ];
   return validTypes.includes(type as NodeType);

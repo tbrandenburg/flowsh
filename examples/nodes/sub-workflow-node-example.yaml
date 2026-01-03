@@ -1,0 +1,398 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: sub-workflow-node-example
+  description: 'Demonstrates sub-workflow node with workflow composition and modular design patterns'
+  version: '1.0'
+
+workflow:
+  name: 'Sub-workflow Node Example'
+  description: 'Shows how to use sub-workflow nodes for modular workflow design and reusable components'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Main Workflow Input'
+        description: 'Collect data and configuration for sub-workflow processing'
+        variables:
+          - variable: 'dataset_1'
+            type: 'text'
+            label: 'First Dataset'
+            description: 'Primary dataset for processing'
+            required: true
+            default: 'customer data: John,Jane,Bob,Alice,Carol'
+          - variable: 'dataset_2'
+            type: 'text'
+            label: 'Second Dataset'
+            description: 'Secondary dataset for processing'
+            required: true
+            default: 'product data: laptops,phones,tablets,monitors,keyboards'
+          - variable: 'dataset_3'
+            type: 'text'
+            label: 'Third Dataset'
+            description: 'Additional dataset for comprehensive processing'
+            required: true
+            default: 'sales data: Q1-2024,Q2-2024,Q3-2024,Q4-2024'
+          - variable: 'processing_priority'
+            type: 'select'
+            label: 'Processing Priority'
+            description: 'Priority level for data processing'
+            options: ['low', 'normal', 'high', 'urgent']
+            default: 'normal'
+            required: true
+
+    # Prepare data for sub-workflow processing
+    - id: 'prepare_processing_config'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Processing Configuration'
+        description: 'Set up configuration for sub-workflow execution'
+        variable: 'processing_config'
+        assignment_type: 'expression'
+        expression: "echo 'Main workflow config: Priority=${processing_priority}, Timestamp='$(date)"
+
+    # First sub-workflow call - Validation
+    - id: 'validate_dataset_1'
+      type: 'sub-workflow'
+      data:
+        title: 'Validate First Dataset'
+        description: 'Use sub-workflow to validate the first dataset'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=${dataset_1}
+          processing_mode=validate
+        output_mappings: |
+          dataset_1_result=processed_output
+          dataset_1_metadata=processing_metadata
+          dataset_1_status=validation_result
+
+    # Second sub-workflow call - Transformation
+    - id: 'transform_dataset_2'
+      type: 'sub-workflow'
+      data:
+        title: 'Transform Second Dataset'
+        description: 'Use sub-workflow to transform the second dataset'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=${dataset_2}
+          processing_mode=transform
+        output_mappings: |
+          dataset_2_result=processed_output
+          dataset_2_metadata=processing_metadata
+          dataset_2_status=validation_result
+
+    # Third sub-workflow call - Analysis
+    - id: 'analyze_dataset_3'
+      type: 'sub-workflow'
+      data:
+        title: 'Analyze Third Dataset'
+        description: 'Use sub-workflow to analyze the third dataset'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=${dataset_3}
+          processing_mode=analyze
+        output_mappings: |
+          dataset_3_result=processed_output
+          dataset_3_metadata=processing_metadata
+          dataset_3_status=validation_result
+
+    # Conditional sub-workflow execution based on priority
+    - id: 'check_priority_processing'
+      type: 'if-else'
+      data:
+        title: 'Priority-Based Processing Decision'
+        description: 'Determine if additional processing is needed based on priority'
+        conditions:
+          - variable: 'processing_priority'
+            comparison_operator: '=='
+            value: 'high'
+          - variable: 'processing_priority'
+            comparison_operator: '=='
+            value: 'urgent'
+        logical_operator: 'or'
+
+    # High-priority additional processing sub-workflow
+    - id: 'high_priority_processing'
+      type: 'sub-workflow'
+      data:
+        title: 'High Priority Processing'
+        description: 'Additional processing for high-priority data'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=Combined high-priority data: ${dataset_1} | ${dataset_2} | ${dataset_3}
+          processing_mode=analyze
+        output_mappings: |
+          priority_result=processed_output
+          priority_metadata=processing_metadata
+          priority_status=validation_result
+
+    # Parallel sub-workflow execution simulation
+    - id: 'prepare_parallel_data'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Data for Parallel Processing'
+        description: 'Create data chunks for parallel sub-workflow processing'
+        variable: 'parallel_data_chunk_1'
+        assignment_type: 'expression'
+        expression: "echo '${dataset_1}' | cut -d',' -f1-3"
+
+    - id: 'prepare_parallel_data_2'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Second Parallel Chunk'
+        description: 'Create second data chunk for parallel processing'
+        variable: 'parallel_data_chunk_2'
+        assignment_type: 'expression'
+        expression: "echo '${dataset_2}' | cut -d',' -f1-3"
+
+    # Parallel sub-workflow calls (simulated sequence for demonstration)
+    - id: 'parallel_processing_1'
+      type: 'sub-workflow'
+      data:
+        title: 'Parallel Processing - Chunk 1'
+        description: 'Process first data chunk in parallel pattern'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=${parallel_data_chunk_1}
+          processing_mode=validate
+        output_mappings: |
+          parallel_result_1=processed_output
+          parallel_metadata_1=processing_metadata
+
+    - id: 'parallel_processing_2'
+      type: 'sub-workflow'
+      data:
+        title: 'Parallel Processing - Chunk 2'
+        description: 'Process second data chunk in parallel pattern'
+        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        input_mappings: |
+          input_data=${parallel_data_chunk_2}
+          processing_mode=transform
+        output_mappings: |
+          parallel_result_2=processed_output
+          parallel_metadata_2=processing_metadata
+
+    # Aggregate all sub-workflow results
+    - id: 'aggregate_subworkflow_results'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate All Sub-workflow Results'
+        description: 'Combine results from all sub-workflow executions'
+        input_variables:
+          [
+            'dataset_1_result',
+            'dataset_2_result',
+            'dataset_3_result',
+            'parallel_result_1',
+            'parallel_result_2',
+          ]
+        output_variable: 'combined_results'
+        aggregation_method: 'concat'
+        separator: "\n"
+
+    - id: 'aggregate_metadata'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate Processing Metadata'
+        description: 'Combine metadata from all sub-workflow executions'
+        input_variables:
+          [
+            'dataset_1_metadata',
+            'dataset_2_metadata',
+            'dataset_3_metadata',
+            'parallel_metadata_1',
+            'parallel_metadata_2',
+          ]
+        output_variable: 'combined_metadata'
+        aggregation_method: 'concat'
+        separator: ' | '
+
+    # Handle high-priority results if they exist
+    - id: 'check_priority_results'
+      type: 'if-else'
+      data:
+        title: 'Check Priority Processing Results'
+        description: 'Include high-priority results if processing was performed'
+        conditions:
+          - variable: 'processing_priority'
+            comparison_operator: '=='
+            value: 'high'
+          - variable: 'processing_priority'
+            comparison_operator: '=='
+            value: 'urgent'
+        logical_operator: 'or'
+
+    - id: 'include_priority_results'
+      type: 'variable-assignment'
+      data:
+        title: 'Include Priority Processing Results'
+        description: 'Add priority processing results to final output'
+        variable: 'final_results_with_priority'
+        assignment_type: 'expression'
+        expression: "echo '${combined_results}' && echo && echo 'Priority Processing:' && echo '${priority_result}'"
+
+    - id: 'standard_results'
+      type: 'variable-assignment'
+      data:
+        title: 'Standard Results Output'
+        description: 'Use standard results without priority processing'
+        variable: 'final_results_with_priority'
+        assignment_type: 'variable'
+        source_variable: 'combined_results'
+
+    # Generate comprehensive summary
+    - id: 'generate_execution_summary'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Execution Summary'
+        description: 'Create summary of all sub-workflow executions'
+        variable: 'execution_summary'
+        assignment_type: 'expression'
+        expression: "echo 'Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: ${processing_priority} | Completion: '$(date)"
+
+    - id: 'final_report'
+      type: 'answer'
+      data:
+        title: 'Sub-workflow Node Example Results'
+        description: 'Comprehensive results from modular sub-workflow execution'
+        answer: |
+          # 🔄 Sub-workflow Node Example Results
+
+          ## Configuration Summary
+          - **Processing Priority**: ${processing_priority}
+          - **Primary Datasets**: 3 datasets processed
+          - **Parallel Chunks**: 2 chunks processed
+          - **Total Sub-workflows**: 5+ executions
+
+          ## Sub-workflow Execution Results
+
+          ### Dataset Processing Results
+          ${final_results_with_priority}
+
+          ### Processing Metadata
+          ${combined_metadata}
+
+          ### Execution Summary
+          ${execution_summary}
+
+          ## Sub-workflow Node Features Demonstrated
+
+          ### Core Capabilities
+          - **Workflow Composition**: Breaking complex workflows into reusable components
+          - **Input/Output Mapping**: Flexible parameter passing between workflows
+          - **Modular Design**: Reusable sub-workflows for common processing patterns
+          - **Conditional Execution**: Dynamic sub-workflow selection based on conditions
+          - **Result Aggregation**: Combining outputs from multiple sub-workflow calls
+
+          ### Input Mapping Features
+          - **Variable Binding**: Mapping parent workflow variables to sub-workflow inputs
+          - **Expression Evaluation**: Dynamic input calculation before sub-workflow execution
+          - **Multiple Inputs**: Support for multiple parameter mappings per sub-workflow
+          - **Type Safety**: Proper handling of different variable types
+
+          ### Output Mapping Features  
+          - **Result Capture**: Mapping sub-workflow outputs to parent workflow variables
+          - **Multiple Outputs**: Support for multiple return values from sub-workflows
+          - **Variable Renaming**: Flexible output variable naming in parent context
+          - **Metadata Preservation**: Maintaining processing metadata across workflow boundaries
+
+          ### Workflow File Management
+          - **Relative Paths**: Support for relative workflow file references
+          - **Absolute Paths**: Full path specification for workflow files
+          - **File Validation**: Automatic validation of sub-workflow file existence
+          - **Version Compatibility**: Ensuring compatibility between workflow versions
+
+          ### Execution Patterns
+          - **Sequential Execution**: Sub-workflows executed in defined order
+          - **Conditional Execution**: Sub-workflows executed based on runtime conditions
+          - **Parallel Patterns**: Multiple sub-workflows with independent data
+          - **Pipeline Patterns**: Chaining sub-workflows with data flow
+          - **Fan-out/Fan-in**: Distributing work across multiple sub-workflows
+
+          ### Use Cases
+          - **Data Processing Pipelines**: Breaking complex data operations into stages
+          - **Validation Workflows**: Reusable validation logic across multiple workflows
+          - **Transformation Chains**: Sequential data transformation operations
+          - **Parallel Processing**: Distributing work across multiple workflow instances
+          - **Microservice Patterns**: Workflow-based microservice architectures
+          - **Configuration Management**: Modular configuration processing workflows
+
+          ### Benefits of Sub-workflow Design
+
+          1. **Reusability**: Write once, use many times across different workflows
+          2. **Maintainability**: Update sub-workflow logic in one place
+          3. **Testing**: Isolated testing of individual workflow components
+          4. **Scalability**: Distribute processing across multiple workflow instances
+          5. **Organization**: Clean separation of concerns and responsibilities
+          6. **Debugging**: Easier troubleshooting of isolated workflow components
+
+          ### Integration Patterns
+          - **Library Workflows**: Collections of reusable sub-workflows
+          - **Template Workflows**: Parameterized workflow templates
+          - **Processing Pipelines**: Multi-stage processing with sub-workflow stages
+          - **Error Handling**: Centralized error handling in sub-workflows
+          - **Monitoring**: Comprehensive monitoring across workflow boundaries
+
+          This example demonstrates how sub-workflow nodes enable powerful workflow composition patterns, creating maintainable, scalable, and reusable workflow architectures.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'prepare_processing_config'
+    - source: 'prepare_processing_config'
+      target: 'validate_dataset_1'
+    - source: 'validate_dataset_1'
+      target: 'transform_dataset_2'
+    - source: 'transform_dataset_2'
+      target: 'analyze_dataset_3'
+    - source: 'analyze_dataset_3'
+      target: 'check_priority_processing'
+
+    # Priority processing branch
+    - source: 'check_priority_processing'
+      target: 'high_priority_processing'
+      condition: 'true'
+
+    # Standard processing branch
+    - source: 'check_priority_processing'
+      target: 'prepare_parallel_data'
+      condition: 'false'
+
+    # After priority processing, continue to parallel
+    - source: 'high_priority_processing'
+      target: 'prepare_parallel_data'
+
+    # Parallel processing setup
+    - source: 'prepare_parallel_data'
+      target: 'prepare_parallel_data_2'
+    - source: 'prepare_parallel_data_2'
+      target: 'parallel_processing_1'
+    - source: 'parallel_processing_1'
+      target: 'parallel_processing_2'
+
+    # Aggregation
+    - source: 'parallel_processing_2'
+      target: 'aggregate_subworkflow_results'
+    - source: 'aggregate_subworkflow_results'
+      target: 'aggregate_metadata'
+    - source: 'aggregate_metadata'
+      target: 'check_priority_results'
+
+    # Priority results handling
+    - source: 'check_priority_results'
+      target: 'include_priority_results'
+      condition: 'true'
+
+    - source: 'check_priority_results'
+      target: 'standard_results'
+      condition: 'false'
+
+    # Final processing
+    - source: 'include_priority_results'
+      target: 'generate_execution_summary'
+    - source: 'standard_results'
+      target: 'generate_execution_summary'
+    - source: 'generate_execution_summary'
+      target: 'final_report'
