@@ -1,0 +1,95 @@
+workflow:
+  name: 'File Processing Iteration Test'
+  description: 'Test workflow demonstrating iteration functionality with array processing'
+
+environment_variables:
+  - variable: 'files'
+    name: 'File List'
+    type: 'text'
+    description: 'JSON array of files to process'
+    default: '["file1.txt", "file2.txt", "file3.txt"]'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Start'
+        description: 'Initialize processing variables'
+        variables:
+          processed_count: 0
+
+    - id: 'setup_message'
+      type: 'code'
+      data:
+        title: 'Setup Message'
+        description: 'Display iteration initialization message'
+        command: 'echo'
+        args: ['Starting file processing iteration']
+
+    - id: 'file_iteration'
+      type: 'iteration'
+      data:
+        title: 'File Iteration'
+        description: 'Iterate through file list'
+        input_variable: 'files'
+        output_variable: 'processed_files'
+
+    - id: 'process_file'
+      type: 'code'
+      data:
+        title: 'Process File'
+        description: 'Process current file in iteration'
+        command: 'echo'
+        args: ['Processing file: {{iteration_item}} (Index: {{iteration_index}})']
+
+    - id: 'increment_count'
+      type: 'variable-assignment'
+      data:
+        title: 'Increment Count'
+        description: 'Increase processed file counter'
+        variable: 'processed_count'
+        value: '$((processed_count + 1))'
+
+    - id: 'completion_message'
+      type: 'code'
+      data:
+        title: 'Completion Message'
+        description: 'Display final processing results'
+        command: 'echo'
+        args: ['File processing complete! Processed {{processed_count}} files']
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'End'
+        description: 'Workflow completed successfully'
+
+  edges:
+    - id: 'start_to_setup'
+      source: 'start'
+      target: 'setup_message'
+
+    - id: 'setup_to_iteration'
+      source: 'setup_message'
+      target: 'file_iteration'
+
+    - id: 'iteration_to_process'
+      source: 'file_iteration'
+      target: 'process_file'
+
+    - id: 'process_to_increment'
+      source: 'process_file'
+      target: 'increment_count'
+
+    - id: 'increment_to_iteration_back'
+      source: 'increment_count'
+      target: 'file_iteration'
+
+    - id: 'iteration_to_completion'
+      source: 'file_iteration'
+      target: 'completion_message'
+
+    - id: 'completion_to_end'
+      source: 'completion_message'
+      target: 'end'

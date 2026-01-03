@@ -25,6 +25,17 @@ bash script.sh
 - **Unix Philosophy** - Does one thing well, plays nicely with other tools
 - **jq-like UX** - Familiar command-line interface for developers
 
+## 🆕 What's New - Phase 2A
+
+flowsh now supports **enhanced control flow** with loops and iterations, making it practical for real-world automation:
+
+- **Loop Nodes** - Conditional repetition with safety limits (prevents infinite loops)
+- **Iteration Nodes** - Array processing with JSON and newline-separated input support
+- **Rich Utility Framework** - Enhanced logging, debugging, and error handling
+- **Variable Context** - Loop and iteration variables (`loop_index`, `iteration_item`, etc.)
+
+See `examples/counting-loop.yaml` and `examples/file-processing-iteration.yaml` for working examples.
+
 ## Example
 
 ### Input: workflow.yaml
@@ -114,6 +125,8 @@ flowsh validate workflow.yaml
 
 flowsh supports a focused set of node types optimized for shell script generation:
 
+**Core Workflow Nodes:**
+
 - **start/end** - Workflow boundaries and control flow
 - **answer** - Workflow completion with output messages
 - **code** - Shell command execution and script integration
@@ -122,12 +135,20 @@ flowsh supports a focused set of node types optimized for shell script generatio
 - **variable-assignment** - Dynamic variable management and templating
 - **if-else** - Conditional workflow branching and logic
 
+**Phase 2A - Enhanced Control Flow:**
+
+- **loop** - Conditional repetition with break conditions and safety limits
+- **iteration** - Array/list processing with sequential or parallel execution
+
 ## Generated Script Features
 
 - **Clean & Readable** - Easy to understand and debug
 - **Self-Contained** - No external dependencies
 - **Error Handling** - Proper exit codes and error messages
 - **Variable Management** - Template substitution and environment variables
+- **Advanced Control Flow** - Loops, iterations, and conditional branching
+- **Safety Features** - Infinite loop protection and timeout handling
+- **Rich Logging** - Colorized output with debug and progress tracking
 - **Portable** - Runs on any system with bash/zsh
 
 ## Design Philosophy

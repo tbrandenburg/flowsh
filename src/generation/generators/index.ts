@@ -12,6 +12,8 @@ export { VariableAssignmentNodeGenerator } from './variable-assignment-node.js';
 export { IfElseNodeGenerator } from './if-else-node.js';
 export { StartNodeGenerator } from './start-node.js';
 export { AnswerNodeGenerator, EndNodeGenerator } from './answer-node.js';
+export { LoopNodeGenerator } from './loop-node.js';
+export { IterationNodeGenerator } from './iteration-node.js';
 
 // Re-export registry types for convenience
 export type { NodeGenerator, GenerationContext, GenerationOptions } from '../registry/types.js';
@@ -21,9 +23,11 @@ export { NodeGeneratorRegistry, defaultRegistry } from '../registry/node-generat
 import { VariableAssignmentNodeGenerator } from './variable-assignment-node.js';
 import { NodeGeneratorRegistry } from '../registry/node-generator-registry.js';
 import { AnswerNodeGenerator, EndNodeGenerator } from './answer-node.js';
+import { IterationNodeGenerator } from './iteration-node.js';
 import { IfElseNodeGenerator } from './if-else-node.js';
 import { StartNodeGenerator } from './start-node.js';
 import { AgentNodeGenerator } from './agent-node.js';
+import { LoopNodeGenerator } from './loop-node.js';
 import { CodeNodeGenerator } from './code-node.js';
 import { LLMNodeGenerator } from './llm-node.js';
 
@@ -40,6 +44,8 @@ export function registerDefaultGenerators(registry: NodeGeneratorRegistry): void
   registry.register(new LLMNodeGenerator());
   registry.register(new VariableAssignmentNodeGenerator());
   registry.register(new IfElseNodeGenerator());
+  registry.register(new LoopNodeGenerator());
+  registry.register(new IterationNodeGenerator());
 }
 
 /**
