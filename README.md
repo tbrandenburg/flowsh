@@ -94,7 +94,12 @@ Convert YAML workflow to shell script (outputs to stdout):
 ```bash
 flowsh compile workflow.yaml > script.sh
 flowsh compile workflow.yaml | bash  # Direct execution
+flowsh compile workflow.yaml --verbose  # Show detailed progress
 ```
+
+**Options:**
+
+- `--verbose`, `-v` - Show detailed progress and performance information
 
 ### validate
 
@@ -109,12 +114,13 @@ flowsh validate workflow.yaml
 
 flowsh supports a focused set of node types optimized for shell script generation:
 
-- **start/end** - Workflow boundaries and variable definitions
-- **code** - Shell command execution
-- **agent** - CLI tool orchestration
-- **llm** - AI model integration (via API calls)
-- **variable-assignment** - Dynamic variable management
-- **if-else** - Conditional workflow branching
+- **start/end** - Workflow boundaries and control flow
+- **answer** - Workflow completion with output messages
+- **code** - Shell command execution and script integration
+- **agent** - CLI tool orchestration (opencode, git, npm, etc.)
+- **llm** - AI model integration via API calls
+- **variable-assignment** - Dynamic variable management and templating
+- **if-else** - Conditional workflow branching and logic
 
 ## Generated Script Features
 

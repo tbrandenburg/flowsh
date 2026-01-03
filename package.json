@@ -1,7 +1,7 @@
 {
   "name": "flowsh",
   "version": "1.0.0",
-  "description": "Workflow-to-shell generator for AI agent orchestration",
+  "description": "The jq of Workflows - Simple YAML workflow to shell script compiler",
   "type": "module",
   "main": "dist/cli/index.js",
   "bin": {
@@ -21,6 +21,10 @@
   "keywords": [
     "workflow",
     "shell",
+    "compiler",
+    "jq",
+    "unix",
+    "bash",
     "ai",
     "agent",
     "orchestration",
