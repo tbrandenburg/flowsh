@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean
+.PHONY: help install build dev test lint format clean run
 
 # Default target
 help:
@@ -16,6 +16,7 @@ help:
 	@echo "  make install      Install dependencies"
 	@echo "  make build        Compile TypeScript"
 	@echo "  make dev          Start development mode with hot-reload"
+	@echo "  make run          Run flowsh CLI (shows help)"
 	@echo "  make test         Run test suite"
 	@echo
 	@echo "✅ Code Quality:"
@@ -50,6 +51,10 @@ build:
 # Development mode with hot-reload
 dev:
 	npm run dev
+
+# Run flowsh CLI without parameters (shows help)
+run: build
+	node dist/cli/index.js
 
 # Run test suite
 test:
