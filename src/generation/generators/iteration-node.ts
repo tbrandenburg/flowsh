@@ -17,11 +17,19 @@ export class IterationNodeGenerator extends BaseNodeGenerator {
     const nodeId = this.sanitizeVariableName(node.id);
     const functionName = `execute_iteration_${nodeId}`;
 
-    // Extract configuration with defaults
-    const inputVariable = this.sanitizeVariableName(data.input_variable);
-    const outputVariable = data.output_variable
-      ? this.sanitizeVariableName(data.output_variable)
-      : 'iteration_results';
+    // Extract configuration with defaults and backward compatibility
+    // Support both input_variable (old) and iterator_selector (new) formats
+    const inputVarRaw = data.input_variable || (data as any).iterator_selector || 'input_array';
+    const inputVariable = this.sanitizeVariableName(
+      Array.isArray(inputVarRaw) ? inputVarRaw.join('_') : String(inputVarRaw)
+    );
+
+    const outputVarRaw =
+      data.output_variable || (data as any).output_selector || 'iteration_results';
+    const outputVariable = this.sanitizeVariableName(
+      Array.isArray(outputVarRaw) ? outputVarRaw.join('_') : String(outputVarRaw)
+    );
+
     const title = data.title || node.id;
     const parallel = data.parallel || false;
     const maxParallel = data.max_parallel || 4;
@@ -169,35 +177,39 @@ ${functionName}() {
     const result = super.validate(node);
     const data = node.data as IterationNodeData;
 
-    // Iteration-specific validation
-    if (!data.input_variable) {
+    // Iteration-specific validation - support both old and new property names
+    const inputVar = data.input_variable || (data as any).iterator_selector;
+    if (!inputVar) {
       result.errors.push({
         type: 'error',
         code: 'MISSING_INPUT_VARIABLE',
-        message: 'Iteration node must specify an input_variable',
+        message: 'Iteration node must specify an input_variable or iterator_selector',
         nodeId: node.id,
       });
     } else {
       // Validate variable name
-      const sanitizedVar = this.sanitizeVariableName(data.input_variable);
-      if (sanitizedVar !== data.input_variable) {
+      const inputVarStr = Array.isArray(inputVar) ? inputVar.join('_') : String(inputVar);
+      const sanitizedVar = this.sanitizeVariableName(inputVarStr);
+      if (sanitizedVar !== inputVarStr) {
         result.warnings.push({
           type: 'warning',
           code: 'SANITIZED_VARIABLE_NAME',
-          message: `Variable name "${data.input_variable}" was sanitized to "${sanitizedVar}"`,
+          message: `Variable name "${inputVarStr}" was sanitized to "${sanitizedVar}"`,
           nodeId: node.id,
         });
       }
     }
 
     // Validate output variable
-    if (data.output_variable) {
-      const sanitizedVar = this.sanitizeVariableName(data.output_variable);
-      if (sanitizedVar !== data.output_variable) {
+    const outputVar = data.output_variable || (data as any).output_selector;
+    if (outputVar) {
+      const outputVarStr = Array.isArray(outputVar) ? outputVar.join('_') : String(outputVar);
+      const sanitizedVar = this.sanitizeVariableName(outputVarStr);
+      if (sanitizedVar !== outputVarStr) {
         result.warnings.push({
           type: 'warning',
           code: 'SANITIZED_OUTPUT_VARIABLE',
-          message: `Output variable name "${data.output_variable}" was sanitized to "${sanitizedVar}"`,
+          message: `Output variable name "${outputVarStr}" was sanitized to "${sanitizedVar}"`,
           nodeId: node.id,
         });
       }

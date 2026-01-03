@@ -18,10 +18,10 @@ export class TemplateTransformNodeGenerator extends BaseNodeGenerator {
     const nodeId = this.sanitizeVariableName(node.id);
     const functionName = `execute_template_transform_${nodeId}`;
 
-    // Extract configuration
-    const outputVar = this.sanitizeVariableName(data.output_variable);
+    // Extract configuration with defensive programming
+    const outputVar = this.sanitizeVariableName(data.output_variable || 'template_output');
     const title = data.title || node.id;
-    const template = data.template;
+    const template = data.template || { source: 'inline', content: '' };
     const parameters = data.template_parameters || {};
 
     // Generate template resolution code
@@ -196,6 +196,11 @@ process_template_functions() {
   }
 
   private generateTemplateResolution(template: any): string {
+    // Defensive programming: ensure template is an object
+    if (!template || typeof template !== 'object') {
+      template = { source: 'inline', content: '' };
+    }
+
     const source = template.source || 'inline';
     const templateId = template.template_id || '';
     const content = template.content || '';

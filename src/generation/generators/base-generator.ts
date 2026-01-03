@@ -67,6 +67,11 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
    * Sanitize shell variable names to prevent injection
    */
   protected sanitizeVariableName(varName: string): string {
+    // Defensive programming: ensure varName is a string
+    if (typeof varName !== 'string') {
+      varName = String(varName || 'var');
+    }
+
     // Only allow alphanumeric and underscore, starting with letter/underscore
     const sanitized = varName.replace(/[^a-zA-Z0-9_]/g, '_');
     if (!/^[a-zA-Z_]/.test(sanitized)) {
@@ -85,23 +90,68 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
 
   /**
    * Replace template variables in command with sanitized variable references
+   * Supports both {{variable}} and {{#variable.path#}} syntax
    */
   protected processTemplateVariables(command: string): string {
-    return command.replace(/\{\{(\w+)\}\}/g, (_, varName: string) => {
-      const sanitizedVar = this.sanitizeVariableName(varName);
+    // Defensive programming: ensure command is a string
+    if (typeof command !== 'string') {
+      command = String(command || '');
+    }
+
+    // Handle new {{#variable.path#}} syntax
+    let result = command.replace(/\{\{#([^#]+)#\}\}/g, (_, varPath: string) => {
+      // Convert paths like "env.tech_stack" to shell variable access
+      const parts = varPath.split('.');
+      if (parts.length === 1) {
+        const sanitizedVar = this.sanitizeVariableName(parts[0] || '');
+        return `\${${sanitizedVar.toUpperCase()}}`;
+      } else {
+        // For complex paths, create a shell variable lookup
+        // This will be processed by the substitute_variables function in the generated script
+        return `{{#${varPath}#}}`; // Keep the original for later processing
+      }
+    });
+
+    // Handle traditional {{variable}} syntax
+    result = result.replace(/\{\{(\w+)\}\}/g, (_, varName: string) => {
+      const sanitizedVar = this.sanitizeVariableName(varName || '');
       return `\${${sanitizedVar.toUpperCase()}}`;
     });
+
+    return result;
   }
 
   /**
    * Extract template variable names from a command string
+   * Supports both {{variable}} and {{#variable.path#}} syntax
    */
   protected extractTemplateVariables(text: string): string[] {
-    const matches = text.match(/\{\{(\w+)\}\}/g) || [];
-    return matches.map(match => {
-      const rawVarName = match.replace(/\{\{|\}\}/g, '');
-      return this.sanitizeVariableName(rawVarName).toUpperCase();
+    // Defensive programming: ensure text is a string
+    if (typeof text !== 'string') {
+      text = String(text || '');
+    }
+
+    const variables: string[] = [];
+
+    // Extract {{#variable.path#}} variables
+    const newSyntaxMatches = text.match(/\{\{#([^#]+)#\}\}/g) || [];
+    newSyntaxMatches.forEach(match => {
+      const varPath = match.replace(/\{\{#|#\}\}/g, '');
+      const parts = varPath.split('.');
+      // Add the base variable name
+      if (parts.length > 0 && parts[0]) {
+        variables.push(this.sanitizeVariableName(parts[0]).toUpperCase());
+      }
     });
+
+    // Extract {{variable}} variables
+    const traditionalMatches = text.match(/\{\{(\w+)\}\}/g) || [];
+    traditionalMatches.forEach(match => {
+      const rawVarName = match.replace(/\{\{|\}\}/g, '');
+      variables.push(this.sanitizeVariableName(rawVarName || '').toUpperCase());
+    });
+
+    return [...new Set(variables)];
   }
 
   /**
