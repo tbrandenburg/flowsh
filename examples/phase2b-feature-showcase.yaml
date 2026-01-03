@@ -1,0 +1,258 @@
+workflow:
+  name: 'Phase 2B Feature Showcase'
+  description: 'Demonstrates Phase 2B enhanced features: HTTP requests, variable aggregation, template transforms, and sub-workflows'
+  version: '1.0'
+
+environment_variables:
+  - variable: 'api_base_url'
+    name: 'API Base URL'
+    type: 'text'
+    description: 'Base URL for API requests'
+    default: 'https://api.example.com'
+
+  - variable: 'auth_token'
+    name: 'Authentication Token'
+    type: 'text'
+    description: 'Bearer token for API authentication'
+    default: 'demo_token_123'
+
+  - variable: 'user_ids'
+    name: 'User IDs'
+    type: 'text'
+    description: 'Comma-separated list of user IDs to process'
+    default: '1,2,3'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Start Workflow'
+        description: 'Initialize Phase 2B feature demonstration'
+
+    # Template Transform: Parse user IDs into array format
+    - id: 'parse_user_ids'
+      type: 'template-transform'
+      data:
+        title: 'Parse User IDs'
+        description: 'Transform comma-separated user IDs into JSON array'
+        template_source: 'inline'
+        template_content: |
+          {{#split user_ids ','}}
+          {{#trim}}{{.}}{{/trim}}
+          {{/split}}
+        output_variable: 'user_id_array'
+        parameters:
+          user_ids: '${user_ids}'
+
+    # HTTP Request: Fetch user data for each ID
+    - id: 'fetch_user_1'
+      type: 'http-request'
+      data:
+        title: 'Fetch User 1 Data'
+        description: 'Get user profile for first user'
+        url: '${api_base_url}/users/1'
+        method: 'GET'
+        auth_type: 'bearer'
+        auth_token: '${auth_token}'
+        timeout: 30
+        retries: 3
+        retry_delay: 2
+        error_handling: 'continue'
+
+    - id: 'fetch_user_2'
+      type: 'http-request'
+      data:
+        title: 'Fetch User 2 Data'
+        description: 'Get user profile for second user'
+        url: '${api_base_url}/users/2'
+        method: 'GET'
+        auth_type: 'bearer'
+        auth_token: '${auth_token}'
+        timeout: 30
+        retries: 3
+        retry_delay: 2
+        error_handling: 'continue'
+
+    - id: 'fetch_user_3'
+      type: 'http-request'
+      data:
+        title: 'Fetch User 3 Data'
+        description: 'Get user profile for third user'
+        url: '${api_base_url}/users/3'
+        method: 'GET'
+        auth_type: 'bearer'
+        auth_token: '${auth_token}'
+        timeout: 30
+        retries: 3
+        retry_delay: 2
+        error_handling: 'continue'
+
+    # Variable Aggregation: Collect all user responses
+    - id: 'aggregate_user_data'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate User Data'
+        description: 'Collect all user responses into single array'
+        aggregation_method: 'collect'
+        input_variables: ['http_response_body', 'http_response_body', 'http_response_body']
+        output_variable: 'all_users_data'
+
+    # Template Transform: Generate summary report
+    - id: 'generate_summary'
+      type: 'template-transform'
+      data:
+        title: 'Generate Summary Report'
+        description: 'Create formatted summary of all users'
+        template_source: 'inline'
+        template_content: |
+          # User Data Summary Report
+          Generated: {{now}}
+          Total Users Processed: {{count all_users_data}}
+
+          ## User Details
+          {{#each all_users_data}}
+          - User {{@index}}: {{this}}
+          {{/each}}
+
+          ## Processing Statistics
+          - API Base URL: {{api_base_url}}
+          - Processing Time: {{time_elapsed}}
+          - Success Rate: {{success_rate}}%
+        output_variable: 'summary_report'
+        parameters:
+          all_users_data: '${all_users_data}'
+          api_base_url: '${api_base_url}'
+
+    # HTTP Request: Post aggregated data to analytics endpoint
+    - id: 'post_analytics'
+      type: 'http-request'
+      data:
+        title: 'Post Analytics Data'
+        description: 'Send aggregated user data to analytics service'
+        url: '${api_base_url}/analytics/batch'
+        method: 'POST'
+        auth_type: 'bearer'
+        auth_token: '${auth_token}'
+        headers: |
+          Content-Type: application/json
+          X-Batch-Size: 3
+          X-Source: flowsh-phase2b-demo
+        body: '${all_users_data}'
+        body_type: 'json'
+        timeout: 60
+        retries: 2
+        error_handling: 'fail'
+
+    # Variable Aggregation: Calculate final metrics
+    - id: 'calculate_metrics'
+      type: 'variable-aggregation'
+      data:
+        title: 'Calculate Success Metrics'
+        description: 'Calculate average response time and success rate'
+        aggregation_method: 'avg'
+        input_variables: ['http_response_time', 'http_response_time', 'http_response_time']
+        output_variable: 'avg_response_time'
+
+    # Sub-Workflow: Process results with external workflow
+    - id: 'process_results'
+      type: 'sub-workflow'
+      data:
+        title: 'Process Results'
+        description: 'Run result processing sub-workflow'
+        workflow_file: 'sub-workflows/result-processor.yaml'
+        input_mappings: |
+          summary_report=summary_report
+          avg_response_time=avg_response_time
+          user_count=3
+        output_mappings: |
+          final_report=processed_summary
+          processing_status=sub_workflow_status
+
+    # Template Transform: Generate final output
+    - id: 'generate_final_output'
+      type: 'template-transform'
+      data:
+        title: 'Generate Final Output'
+        description: 'Create final workflow output with all results'
+        template_source: 'inline'
+        template_content: |
+          # Phase 2B Feature Demonstration Complete
+
+          {{processed_summary}}
+
+          ## Performance Metrics
+          - Average Response Time: {{avg_response_time}}s
+          - Sub-workflow Status: {{sub_workflow_status}}
+          - Workflow Completed: {{now}}
+
+          ## Features Demonstrated
+          ✅ HTTP Request Node Generator (with authentication, retries, error handling)
+          ✅ Variable Aggregation Node Generator (collect and avg methods)
+          ✅ Template Transform Node Generator (advanced template processing)
+          ✅ Sub-Workflow Node Generator (nested workflow execution)
+        output_variable: 'final_output'
+        parameters:
+          processed_summary: '${processed_summary}'
+          avg_response_time: '${avg_response_time}'
+          sub_workflow_status: '${sub_workflow_status}'
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'Workflow Complete'
+        description: 'Phase 2B feature demonstration completed successfully'
+
+  edges:
+    # Linear flow through the workflow
+    - id: 'start_to_parse'
+      source: 'start'
+      target: 'parse_user_ids'
+
+    - id: 'parse_to_fetch1'
+      source: 'parse_user_ids'
+      target: 'fetch_user_1'
+
+    - id: 'parse_to_fetch2'
+      source: 'parse_user_ids'
+      target: 'fetch_user_2'
+
+    - id: 'parse_to_fetch3'
+      source: 'parse_user_ids'
+      target: 'fetch_user_3'
+
+    - id: 'fetch1_to_aggregate'
+      source: 'fetch_user_1'
+      target: 'aggregate_user_data'
+
+    - id: 'fetch2_to_aggregate'
+      source: 'fetch_user_2'
+      target: 'aggregate_user_data'
+
+    - id: 'fetch3_to_aggregate'
+      source: 'fetch_user_3'
+      target: 'aggregate_user_data'
+
+    - id: 'aggregate_to_summary'
+      source: 'aggregate_user_data'
+      target: 'generate_summary'
+
+    - id: 'summary_to_analytics'
+      source: 'generate_summary'
+      target: 'post_analytics'
+
+    - id: 'analytics_to_metrics'
+      source: 'post_analytics'
+      target: 'calculate_metrics'
+
+    - id: 'metrics_to_subprocess'
+      source: 'calculate_metrics'
+      target: 'process_results'
+
+    - id: 'subprocess_to_final'
+      source: 'process_results'
+      target: 'generate_final_output'
+
+    - id: 'final_to_end'
+      source: 'generate_final_output'
+      target: 'end'

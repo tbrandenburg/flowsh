@@ -21,6 +21,8 @@ export type NodeType =
   | 'iteration'
   | 'variable-aggregation'
   | 'template-transform'
+  | 'http-request'
+  | 'sub-workflow'
   | 'answer';
 
 export type VariableType =
@@ -32,7 +34,7 @@ export type VariableType =
   | 'array'
   | 'text-input';
 
-export type TemplateSource = 'library' | 'customized' | 'built-in' | 'inline';
+export type TemplateSource = 'library' | 'customized' | 'built-in' | 'inline' | 'file';
 
 export type ModelProvider = 'openai' | 'anthropic' | 'google' | 'local';
 
@@ -100,6 +102,7 @@ export interface PromptTemplate {
   template_id?: string;
   version?: string;
   content?: string; // For inline templates
+  file_path?: string; // For file templates
 }
 
 export interface TemplateParameters {
@@ -267,6 +270,29 @@ export interface TemplateTransformNodeData extends BaseNodeData {
   output_variable: string;
 }
 
+export interface HttpRequestNodeData extends BaseNodeData {
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  headers?: string; // Multi-line string with header: value pairs
+  body?: string;
+  body_type?: 'json' | 'form' | 'xml' | 'text';
+  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
+  auth_token?: string; // For bearer auth
+  auth_credentials?: string; // For basic auth (username:password)
+  auth_api_key?: string; // For API key auth
+  auth_key_header?: string; // Header name for API key (default: X-API-Key)
+  timeout?: number;
+  retries?: number;
+  retry_delay?: number;
+  error_handling?: 'fail' | 'ignore' | 'continue';
+}
+
+export interface SubWorkflowNodeData extends BaseNodeData {
+  workflow_file: string;
+  input_mappings?: string; // Multi-line string with input_name=variable_source pairs
+  output_mappings?: string; // Multi-line string with output_name=parent_variable pairs
+}
+
 export interface AnswerNodeData extends BaseNodeData {
   answer: string; // Can contain variable references
   type?: 'text' | 'json' | 'markdown';
@@ -288,6 +314,8 @@ export type NodeData =
   | IterationNodeData
   | VariableAggregationNodeData
   | TemplateTransformNodeData
+  | HttpRequestNodeData
+  | SubWorkflowNodeData
   | AnswerNodeData;
 
 export interface WorkflowNode {
@@ -436,6 +464,18 @@ export function isTemplateTransformNode(
   node: WorkflowNode
 ): node is WorkflowNode & { type: 'template-transform'; data: TemplateTransformNodeData } {
   return node.type === 'template-transform';
+}
+
+export function isHttpRequestNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'http-request'; data: HttpRequestNodeData } {
+  return node.type === 'http-request';
+}
+
+export function isSubWorkflowNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'sub-workflow'; data: SubWorkflowNodeData } {
+  return node.type === 'sub-workflow';
 }
 
 export function isAnswerNode(
