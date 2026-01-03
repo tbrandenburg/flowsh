@@ -73,7 +73,7 @@ check: lint format test build
 
 # Generate shell script from example workflow
 example: build
-	node dist/cli/index.js generate examples/flowsh-workflow-example.yaml
+	node dist/cli/index.js compile examples/flowsh-workflow-example.yaml
 
 # Validate example workflows
 validate: build
