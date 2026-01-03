@@ -1,485 +1,183 @@
 # flowsh
 
-**A workflow-to-shell generator for AI agent orchestration**
+**The jq of Workflows** - Simple YAML workflow to shell script compiler
 
-flowsh converts visual AI workflows into portable shell-based agent harnesses, transforming complex workflow definitions into dependency-free bash scripts for seamless agent orchestration and automation.
+flowsh converts YAML workflow definitions into clean, readable shell scripts. Think of it as `jq` for workflows - a focused, unix-philosophy tool that does one thing extremely well.
 
-## Vision
-
-flowsh bridges the gap between visual workflow design and shell-based execution. It takes workflow YAML/DSL definitions and generates optimized, self-contained shell scripts that run anywhere with standard bash/zsh.
-
-## Features
-
-- 🔄 **Workflow-to-Shell Generation** - Convert workflows into native shell scripts
-- 🤖 **Agent-First Design** - Optimize for AI agent CLI orchestration and harnesses
-- 🚀 **Zero Dependencies** - Generate scripts that run anywhere with bash/zsh
-- 🔗 **Template System Support** - Support for template references and libraries
-- 📦 **Portable Execution** - Self-contained scripts with embedded workflow logic
-- 🛠️ **Shell Integration** - Seamless integration with existing shell toolchains
-- 🎯 **Workflow Fidelity** - Preserve complex workflow patterns (iterations, loops, conditions)
-
-## Use Cases
-
-### Agent Orchestration
+## What flowsh does
 
 ```bash
-# Generate agent harness from workflow
-flowsh generate agent-workflow.yaml --output agents/customer-support.sh
+# Compile workflow to shell script
+flowsh compile workflow.yaml > script.sh
 
-# Execute generated agent harness
-./agents/customer-support.sh "Customer complaint about billing"
+# Validate workflow syntax
+flowsh validate workflow.yaml
 
-# Or generate and run in one step
-flowsh run agent-workflow.yaml "Customer complaint about billing"
+# Execute the generated script
+bash script.sh
 ```
 
-### Automated Workflows
+## Why flowsh?
 
-```bash
-# Generate complex workflow to portable script
-flowsh generate data-processing-pipeline.yaml --output production.sh
+- **Simple** - Two commands: `compile` and `validate`
+- **Clean Output** - Generates readable shell scripts under 100 lines
+- **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
+- **Unix Philosophy** - Does one thing well, plays nicely with other tools
+- **jq-like UX** - Familiar command-line interface for developers
 
-# Run anywhere without flowsh installation
-./production.sh --input data.csv --output results/
+## Example
 
-# Or run workflow directly without saving script
-flowsh run data-processing-pipeline.yaml --input data.csv --output results/
-```
-
-### Development Integration
-
-```bash
-# Generate multiple scripts from directory
-flowsh generate workflows/ --output-dir dist/scripts/
-
-# Generate from wildcard pattern
-flowsh generate workflows/*.yaml --output-dir dist/scripts/
-
-# Integrate with existing shell toolchain
-./dist/scripts/code-review.sh --pr-url $PR_URL --notify slack
-```
-
-## Development Roadmap
-
-flowsh follows a phased implementation approach to ensure a solid, usable foundation while building toward full workflow specification support.
-
-### Phase 1 (MVP) - Foundation
-
-Essential workflow control elements for basic agent orchestration:
-
-- 📋 **Start/End Nodes** - Variable definitions and workflow boundaries
-- 📋 **LLM Nodes** - AI model integration with prompt templates
-- 📋 **If-Else Nodes** - Conditional workflow branching
-- 📋 **Variable Assignment** - Dynamic variable management
-- 📋 **Code Nodes** - Bash command execution for system operations
-- 📋 **Agent Nodes** - CLI tool orchestration and integration
-- 📋 **Basic Template Substitution** - Variable interpolation in templates
-- 📋 **System Variables** - Environment and runtime context
-
-### Phase 2 (Intermediate) - Enhanced Control
-
-Enhanced workflow control and iteration capabilities:
-
-- 📋 **Loop Nodes** - Conditional repetition with break conditions
-- 📋 **Iteration Nodes** - Array/list processing workflows
-- 📋 **Variable Aggregation** - Collect and merge results across iterations
-- 📋 **Template Transform Nodes** - Advanced template processing
-- 📋 **Sub-Workflows** - Nested workflow execution with proper scoping
-
-### Phase 3+ (Advanced) - Full Specification
-
-Full workflow specification support:
-
-- 📋 **HTTP Request Nodes** - REST API integration
-- 📋 **Tool Nodes** - External service provider integration
-- 📋 **Knowledge Retrieval** - Vector database and search integration
-- 📋 **External Templates** - Remote template library support
-- 📋 **Error Handling** - Comprehensive fallback and retry logic
-
-## Current Status
-
-This project is in early development. No features are currently implemented.
-
-**Initial Capabilities:**
-
-- Basic agent workflows with LLM calls and conditional logic
-- Shell command execution for file operations and system tasks
-- Variable management and template substitution
-- Executable script generation for MVP use cases
-
-**Use Cases:**
-
-- Simple customer support agents with classification logic
-- Data processing workflows with bash operations
-- Basic decision trees with LLM integration
-- Shell-based automation with AI augmentation
-
-## Example Workflow Definition
-
-### Input: flowsh Workflow YAML
+### Input: workflow.yaml
 
 ```yaml
 workflow:
-  name: 'Task Planning Assistant'
+  name: 'Hello World'
+  description: 'Simple greeting workflow'
+
+graph:
   nodes:
     - id: 'start'
       type: 'start'
       data:
-        variables:
-          - variable: 'task_description'
-            type: 'text'
-          - variable: 'plan_file'
-            type: 'text'
-            default: 'task_plan.md'
-          - variable: 'iteration'
-            type: 'number'
-            default: 1
+        title: 'Start'
 
-    - id: 'generate_plan'
-      type: 'agent'
-      data:
-        command: 'opencode'
-        args: ['run']
-        prompt_template:
-          type: 'prompt'
-          source: 'built-in'
-          template_id: 'task-planner'
-        output_file: '${plan_file}'
-
-    - id: 'check_tasks'
+    - id: 'greet'
       type: 'code'
       data:
-        command: 'grep'
-        args: ['-q', "\\[ \\]", '${plan_file}']
-        on_success: 'execute_task'
-        on_failure: 'end'
-
-    - id: 'execute_task'
-      type: 'agent'
-      data:
-        command: 'opencode'
-        args: ['run']
-        prompt_template:
-          type: 'prompt'
-          source: 'built-in'
-          template_id: 'task-executor'
-
-    - id: 'increment_iteration'
-      type: 'variable_assignment'
-      data:
-        variable: 'iteration'
-        value: '${iteration} + 1'
-        next_node: 'check_tasks'
+        title: 'Generate Greeting'
+        command: 'echo "Hello, World!"'
 
     - id: 'end'
       type: 'end'
       data:
-        output_file: '${plan_file}'
+        title: 'Complete'
+
+  edges:
+    - source: 'start'
+      target: 'greet'
+    - source: 'greet'
+      target: 'end'
 ```
 
 ### Output: Generated Shell Script
 
 ```bash
 #!/bin/bash
-# Generated by flowsh v1.0.0
-# Source: Task Planning Assistant workflow
-
 set -euo pipefail
 
-# Workflow variables
-declare -A workflow_vars
+# Hello World - Generated by flowsh
+# Simple workflow execution script
 
-# Initialize workflow
-init_workflow() {
-    workflow_vars["task_description"]="${1:-}"
-    workflow_vars["plan_file"]="task_plan.md"
-    workflow_vars["iteration"]=1
+echo "Starting workflow: Hello World"
 
-    [[ -z "${workflow_vars["task_description"]}" ]] && {
-        echo "Error: task_description is required" >&2
-        exit 1
-    }
+# Workflow Execution
 
-    # Clean up previous plan
-    rm -f "${workflow_vars["plan_file"]}"
-}
+# Node: greet
+echo "Hello, World!"
 
-# Execute agent node: generate_plan
-execute_agent_node_generate_plan() {
-    echo "Running Task Planner..."
-
-    local template_content
-    template_content=$(resolve_builtin_template "task-planner")
-
-    local prompt=$(render_template "$template_content" "${workflow_vars["task_description"]}")
-
-    # Call opencode to generate plan
-    opencode run "$prompt"
-
-    # Verify plan file was created
-    [[ ! -f "${workflow_vars["plan_file"]}" ]] && {
-        echo "ERROR: Plan file '${workflow_vars["plan_file"]}' was not created" >&2
-        exit 1
-    }
-
-    echo "Planner completed: ${workflow_vars["plan_file"]}"
-    echo ""
-}
-
-# Execute code node: check_tasks
-execute_code_node_check_tasks() {
-    # Count tasks for progress tracking
-    local total_tasks=$(grep -c "^- \\[.\\]" "${workflow_vars["plan_file"]}" || echo "0")
-    local completed_tasks=$(grep -c "^- \\[x\\]" "${workflow_vars["plan_file"]}" || echo "0")
-    local remaining_tasks=$(grep -c "^- \\[ \\]" "${workflow_vars["plan_file"]}" || echo "0")
-
-    echo "Iteration ${workflow_vars["iteration"]}: ${completed_tasks}/${total_tasks} completed, ${remaining_tasks} remaining"
-
-    # Check if unchecked tasks remain
-    if grep -q "\\[ \\]" "${workflow_vars["plan_file"]}"; then
-        execute_agent_node_execute_task
-        execute_variable_assignment_increment_iteration
-    else
-        execute_end_node
-    fi
-}
-
-# Execute agent node: execute_task
-execute_agent_node_execute_task() {
-    echo "Running Task Executor..."
-
-    local template_content
-    template_content=$(resolve_builtin_template "task-executor")
-
-    local prompt=$(render_template "$template_content" "${workflow_vars["plan_file"]}")
-
-    # Call opencode to execute next task
-    opencode run "$prompt"
-
-    # Verify plan file still exists
-    [[ ! -f "${workflow_vars["plan_file"]}" ]] && {
-        echo "ERROR: Plan file was not updated properly" >&2
-        exit 1
-    }
-
-    echo "Executor iteration ${workflow_vars["iteration"]} finished"
-    echo ""
-}
-
-# Execute variable assignment: increment_iteration
-execute_variable_assignment_increment_iteration() {
-    local current_iteration="${workflow_vars["iteration"]}"
-    workflow_vars["iteration"]=$((current_iteration + 1))
-
-    # Continue to next iteration
-    execute_code_node_check_tasks
-}
-
-# Execute end node
-execute_end_node() {
-    local final_total=$(grep -c "^- \\[.\\]" "${workflow_vars["plan_file"]}" || echo "0")
-    local final_completed=$(grep -c "^- \\[x\\]" "${workflow_vars["plan_file"]}" || echo "0")
-
-    echo "All tasks completed! (${final_completed}/${final_total} tasks finished)"
-    echo "Final plan: ${workflow_vars["plan_file"]}"
-}
-
-# Built-in template resolver
-resolve_builtin_template() {
-    local template_id="$1"
-
-    case "$template_id" in
-        "task-planner")
-            cat <<'TEMPLATE'
-You are a TASK PLANNER. Break down this high-level task into 3-5 specific, actionable steps:
-
-"{{task_description}}"
-
-Create a markdown file with:
-1. ## Context - summarizing the overall objective
-2. ## Task List - formatted as:
-   - [ ] Step 1 description
-   - [ ] Step 2 description
-   - [ ] Step 3 description
-
-Write the plan to: {{plan_file}}
-TEMPLATE
-            ;;
-        "task-executor")
-            cat <<'TEMPLATE'
-You are a TASK EXECUTOR. Read the plan file: {{plan_file}}
-
-Find the FIRST unchecked task (line with - [ ]) and complete it.
-After completion, update that line to - [x] and add a summary.
-
-Complete only the first open task, then rewrite the updated plan back to the file.
-TEMPLATE
-            ;;
-    esac
-}
-
-# Template rendering helper
-render_template() {
-    local template="$1"
-    local task_description="$2"
-    local plan_file="${workflow_vars["plan_file"]}"
-
-    # Simple variable substitution
-    echo "$template" | sed \
-        -e "s|{{task_description}}|$task_description|g" \
-        -e "s|{{plan_file}}|$plan_file|g"
-}
-
-# Main execution
-main() {
-    init_workflow "$@"
-    execute_agent_node_generate_plan
-    execute_code_node_check_tasks
-}
-
-main "$@"
+echo "Workflow completed successfully"
+exit 0
 ```
 
-## Architecture
-
-### Generation Pipeline
-
-1. **Parse** - Read and validate YAML workflow files
-2. **Transform** - Convert workflow nodes to shell functions
-3. **Generate** - Output executable shell script
-
-### Generated Script Components
-
-- **Variable Management** - Handle workflow variables
-- **Agent Orchestration** - Call agent CLI tools
-- **Error Handling** - Proper exit codes and error messages
-
-## Security & Best Practices
-
-flowsh implements comprehensive security measures to protect against malicious workflows and ensure safe code generation.
-
-### Security Features
-
-#### YAML Validation
-
-- **File Size Limits** - Maximum 10MB files (configurable)
-- **Pattern Detection** - Scans for suspicious patterns and malicious content
-- **Structure Validation** - Prevents malformed YAML exploitation
-- **Nesting Limits** - Prevents recursion attacks and DoS
-
-#### Shell Command Sanitization
-
-- **Command Allowlist** - Only approved commands are permitted
-- **Argument Validation** - Shell metacharacters are escaped or blocked
-- **Path Sanitization** - File paths are validated for safety
-- **Variable Name Validation** - Ensures safe shell variable names
-
-#### Content Security
-
-- **Dangerous Pattern Detection** - Identifies `eval`, `exec`, prototype pollution
-- **Key Validation** - Blocks dangerous object keys (`__proto__`, `constructor`)
-- **Template Safety** - Validates template references and content
-
-### Security Best Practices
-
-#### For Workflow Authors
-
-- **Use Allowlisted Commands** - Stick to approved shell commands
-- **Validate External Input** - Always sanitize user-provided data
-- **Limit File Access** - Use relative paths and avoid sensitive directories
-- **Review Generated Scripts** - Inspect output before execution
-
-#### For System Administrators
-
-- **Run in Sandboxes** - Execute generated scripts in isolated environments
-- **Monitor Resource Usage** - Set timeouts and resource limits
-- **Log Execution** - Track script execution and results
-- **Validate Sources** - Only process workflows from trusted sources
-
-### Error Codes Reference
-
-flowsh uses structured error codes for debugging and security analysis:
-
-#### Parse Errors
-
-- `YAML_PARSE_ERROR` - YAML syntax or structure issues
-- `FILE_READ_ERROR` - Unable to read workflow file
-- `INVALID_YAML_STRUCTURE` - Root-level structure problems
-
-#### Security Errors
-
-- `SECURITY_VALIDATION_FAILED` - Failed security validation
-- `SUSPICIOUS_CONTENT` - Dangerous patterns detected
-- `DANGEROUS_KEY` - Unsafe object keys found
-- `FILE_TOO_LARGE` - Exceeds size limits
-
-#### Validation Errors
-
-- `MISSING_NAME` - Workflow must have a name
-- `MISSING_GRAPH` - No graph definition found
-- `INVALID_NODE_TYPE` - Unsupported node type
-- `MISSING_REQUIRED_FIELD` - Required field not provided
-
-#### Shell Security Errors
-
-- `COMMAND_NOT_ALLOWED` - Command not in allowlist
-- `DANGEROUS_ARGUMENT` - Unsafe argument detected
-- `INVALID_PATH` - Path validation failed
-- `SHELL_INJECTION_RISK` - Potential injection detected
-
-### Security Configuration
-
-Security settings can be customized via CLI options:
+## Installation
 
 ```bash
-# Strict mode - treat warnings as errors
-flowsh validate workflow.yaml --strict
-
-# Custom security limits
-flowsh generate workflow.yaml --max-file-size 5MB --timeout 30s
-
-# Verbose security reporting
-flowsh validate workflow.yaml --verbose
+npm install -g flowsh
 ```
 
-### Reporting Security Issues
+## Commands
 
-If you discover a security vulnerability, please:
+### compile
 
-1. **DO NOT** create a public issue
-2. Email security concerns to [security contact]
-3. Include reproduction steps and impact assessment
-4. Allow time for investigation and patching
+Convert YAML workflow to shell script (outputs to stdout):
 
-We take security seriously and will respond promptly to legitimate concerns.
+```bash
+flowsh compile workflow.yaml > script.sh
+flowsh compile workflow.yaml | bash  # Direct execution
+```
 
-## Integration with shai
+### validate
 
-flowsh is designed as a companion to [shai](https://github.com/tbrandenburg/shai):
+Check workflow YAML for syntax errors:
 
-- **shai**: Manual agent CLI orchestration with shell scripting
-- **flowsh**: Automated generation of agent harnesses from visual workflows
+```bash
+flowsh validate workflow.yaml
+# ✅ workflow.yaml is valid (3 nodes, 2 edges)
+```
 
-Both projects focus on shell-based agent orchestration, with shai providing manual scripting capabilities and flowsh enabling automated workflow-to-shell generation.
+## Supported Node Types
+
+flowsh supports a focused set of node types optimized for shell script generation:
+
+- **start/end** - Workflow boundaries and variable definitions
+- **code** - Shell command execution
+- **agent** - CLI tool orchestration
+- **llm** - AI model integration (via API calls)
+- **variable-assignment** - Dynamic variable management
+- **if-else** - Conditional workflow branching
+
+## Generated Script Features
+
+- **Clean & Readable** - Easy to understand and debug
+- **Self-Contained** - No external dependencies
+- **Error Handling** - Proper exit codes and error messages
+- **Variable Management** - Template substitution and environment variables
+- **Portable** - Runs on any system with bash/zsh
+
+## Design Philosophy
+
+flowsh follows the Unix philosophy:
+
+1. **Do one thing well** - Convert workflows to shell scripts
+2. **Output to stdout** - Like `jq`, pipe-friendly by default
+3. **Simple interface** - Minimal commands and options
+4. **Readable output** - Generated scripts humans can understand
+5. **Zero magic** - No hidden complexity or enterprise features
+
+## Comparison with Other Tools
+
+| Tool           | Purpose       | Output                  | Complexity |
+| -------------- | ------------- | ----------------------- | ---------- |
+| **flowsh**     | YAML → Shell  | Clean bash scripts      | Simple     |
+| Zapier         | Visual → SaaS | Cloud execution         | Complex    |
+| GitHub Actions | YAML → CI/CD  | Container orchestration | Medium     |
+| Ansible        | YAML → Config | System configuration    | Complex    |
+
+flowsh is the `jq` of this space - focused, simple, and extremely good at its one job.
+
+## Examples
+
+See the `examples/` directory for sample workflows:
+
+- `hello-world.yaml` - Basic greeting workflow
+- `simple-workflow.yaml` - Agent orchestration example
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! flowsh is designed to stay simple and focused.
+
+### Development
+
+```bash
+git clone https://github.com/username/flowsh
+cd flowsh
+npm install
+npm run dev    # Development with hot-reload
+npm test       # Run test suite
+npm run build  # Build for production
+```
+
+### Guidelines
+
+- Keep it simple - resist feature creep
+- Generate clean, readable shell scripts
+- Maintain the unix-philosophy approach
+- Add tests for new node types or features
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Related Projects
-
-- [shai](https://github.com/tbrandenburg/shai) - Manual agent CLI orchestration
-
-### dify
-
-The flowsh DSL design was inspired by [Dify](https://github.com/langgenius/dify), an open-source LLM app development platform. Dify's workflow orchestration patterns and node-based architecture provided valuable insights for creating a shell-compatible workflow specification. While flowsh focuses on shell script generation rather than visual workflow execution, we appreciate Dify's contributions to the workflow automation space.
-
-This project does not copy or reproduce Dify's code but rather implements original shell-based solutions inspired by their workflow design concepts.
-
 ---
 
-Transform your visual workflows into portable, executable shell scripts with flowsh. 🚀
+**flowsh** - Transform workflows into shell scripts. Simple, clean, effective. 🚀

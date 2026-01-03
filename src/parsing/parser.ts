@@ -8,10 +8,8 @@
 import { validateWorkflow, ValidationResult, ValidationError } from '../dsl/validation.js';
 import { ValidationErrorInfo, ValidationWarning } from '../errors/types.js';
 import { YamlSecurityValidator } from '../security/yaml-validator.js';
-import { getLogger } from '../logging/logger.js';
 import { FlowshWorkflow } from '../dsl/types.js';
 import { readFile } from 'fs/promises';
-import { v4 as uuidv4 } from 'uuid';
 import * as yaml from 'js-yaml';
 
 // =============================================================================
@@ -229,45 +227,15 @@ export async function parseWorkflowFile(
   filePath: string,
   options: ParserOptions = {}
 ): Promise<ParseResult> {
-  const operationId = uuidv4();
-  const logger = getLogger();
-
-  logger.info('Starting workflow file parsing', {
-    operationId,
-    filePath,
-    options,
-  });
-
   try {
     const content = await readFile(filePath, 'utf-8');
-
-    logger.info('File read successfully, parsing YAML content', {
-      operationId,
-      contentLength: content.length,
-    });
-
-    const result = await parseWorkflowYAML(content, options);
-
-    logger.info('Workflow file parsing completed', {
-      operationId,
-      success: result.success,
-      errorCount: result.errors.length,
-      warningCount: result.warnings.length,
-    });
-
-    return result;
+    return await parseWorkflowYAML(content, options);
   } catch (error) {
-    logger.error('Failed to read workflow file', {
-      operationId,
-      filePath,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
     return {
       errors: [
         {
-          type: 'error',
-          code: 'FILE_READ_ERROR',
+          type: 'error' as const,
+          code: 'PARSE_FILE_READ_ERROR',
           message: `Failed to read file: ${error instanceof Error ? error.message : String(error)}`,
           path: filePath,
         },
