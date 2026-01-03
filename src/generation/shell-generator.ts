@@ -1,21 +1,32 @@
 /**
- * Simple Shell Script Generator for flowsh
+ * Registry-Based Shell Script Generator for flowsh
  *
- * Generates clean, readable shell scripts from workflows.
- * Focus: Simplicity, readability, and scripts under 100 lines.
+ * Uses extensible registry architecture to generate clean, readable shell scripts.
+ * Focus: Extensibility, security, and production-readiness.
  */
 
+import {
+  createDefaultRegistry,
+  NodeGeneratorRegistry,
+  type GenerationOptions as RegistryGenerationOptions,
+  type GenerationContext,
+} from './generators/index.js';
+import {
+  CompilationMonitor,
+  type CompilationMetrics,
+  type CompilationLimits,
+} from './performance/compilation-monitor.js';
+import { ProgressTracker, type ProgressCallback } from './performance/progress-tracker.js';
 import { FlowshWorkflow, WorkflowNode, WorkflowEdge } from '../dsl/types.js';
 
-export interface GenerationOptions {
-  /** Include mock implementations for testing */
-  includeMocks?: boolean;
-  /** Shell type to target */
-  shell?: 'bash' | 'zsh';
-  /** Include verbose debugging output */
-  verbose?: boolean;
-  /** Default timeout for agent calls */
-  defaultTimeout?: number;
+// Re-export types but extend with backwards compatibility
+export interface GenerationOptions extends RegistryGenerationOptions {
+  /** Custom registry to use (optional) */
+  registry?: NodeGeneratorRegistry;
+  /** Performance limits and timeout configuration */
+  performanceLimits?: Partial<CompilationLimits>;
+  /** Progress tracking callback for large workflows */
+  progressCallback?: ProgressCallback;
 }
 
 export interface GenerationResult {
@@ -32,11 +43,15 @@ export interface GenerationResult {
     hasAgentNodes: boolean;
     hasLLMNodes: boolean;
     estimatedComplexity: 'low' | 'medium' | 'high';
+    supportedNodeTypes: string[];
+    unsupportedNodeTypes: string[];
   };
+  /** Performance metrics from compilation */
+  performance?: CompilationMetrics;
 }
 
 /**
- * Generate a simple, clean shell script from workflow
+ * Generate a clean shell script from workflow using registry architecture
  */
 export function generateShellScript(
   workflow: FlowshWorkflow,
@@ -44,73 +59,236 @@ export function generateShellScript(
 ): GenerationResult {
   const warnings: string[] = [];
 
-  // Get workflow graph
-  const graph = workflow.graph ?? workflow.spec?.graph;
-  if (!graph || !graph.nodes || graph.nodes.length === 0) {
-    return {
+  // Initialize performance monitoring only for complex workflows
+  const shouldMonitor = (workflow.graph?.nodes?.length ?? 0) > 10;
+  let monitor: CompilationMonitor | undefined;
+  let progressTracker: ProgressTracker | undefined;
+
+  if (shouldMonitor) {
+    monitor = new CompilationMonitor(options.performanceLimits || {});
+    progressTracker = new ProgressTracker(options.progressCallback);
+  }
+
+  try {
+    // Start performance monitoring if enabled
+    if (monitor) {
+      monitor.start();
+    }
+
+    // Use provided registry or create default one
+    const registry = options.registry || createDefaultRegistry();
+
+    // Get workflow graph
+    const graph = workflow.graph ?? workflow.spec?.graph;
+    if (!graph || !graph.nodes || graph.nodes.length === 0) {
+      if (monitor) {
+        monitor.finish(false, 'No workflow graph found or graph is empty');
+      }
+
+      const result: GenerationResult = {
+        script: '',
+        success: false,
+        warnings: ['No workflow graph found or graph is empty'],
+        metadata: {
+          nodeCount: 0,
+          edgeCount: 0,
+          hasAgentNodes: false,
+          hasLLMNodes: false,
+          estimatedComplexity: 'low',
+          supportedNodeTypes: [],
+          unsupportedNodeTypes: [],
+        },
+      };
+
+      if (monitor) {
+        result.performance = monitor.getMetrics();
+      }
+
+      return result;
+    }
+
+    const nodes = graph.nodes;
+    const edges = graph.edges || [];
+
+    // Start progress tracking if enabled
+    if (progressTracker) {
+      progressTracker.start(nodes.length + 4);
+    }
+
+    // Check resource limits if monitoring enabled
+    if (monitor) {
+      monitor.checkNodeCount(nodes.length);
+      if (progressTracker) {
+        progressTracker.setPhase('validation', 2);
+        progressTracker.increment('Checking resource limits');
+      }
+    }
+
+    // Analyze node type support using registry
+    const supportedTypes: string[] = [];
+    const unsupportedTypes: string[] = [];
+
+    for (const node of nodes) {
+      if (registry.has(node.type)) {
+        if (!supportedTypes.includes(node.type)) {
+          supportedTypes.push(node.type);
+        }
+      } else {
+        if (!unsupportedTypes.includes(node.type)) {
+          unsupportedTypes.push(node.type);
+          warnings.push(`No generator found for node type '${node.type}' (node: ${node.id})`);
+        }
+      }
+    }
+
+    if (progressTracker) {
+      progressTracker.increment('Analyzing node types');
+    }
+
+    // Stop if we have unsupported node types
+    if (unsupportedTypes.length > 0) {
+      if (monitor) {
+        monitor.finish(false, `Unsupported node types: ${unsupportedTypes.join(', ')}`);
+      }
+
+      const result: GenerationResult = {
+        script: '',
+        success: false,
+        warnings,
+        metadata: {
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+          hasAgentNodes: nodes.some(n => n.type === 'agent'),
+          hasLLMNodes: nodes.some(n => n.type === 'llm'),
+          estimatedComplexity: nodes.length > 10 ? 'high' : nodes.length > 5 ? 'medium' : 'low',
+          supportedNodeTypes: supportedTypes,
+          unsupportedNodeTypes: unsupportedTypes,
+        },
+      };
+
+      if (monitor) {
+        result.performance = monitor.getMetrics();
+      }
+
+      return result;
+    }
+
+    // Collect all variables from nodes using registry
+    if (progressTracker) {
+      progressTracker.setPhase('generation', nodes.length + 2);
+    }
+
+    const allVariables = new Map<string, string>();
+    for (const node of nodes) {
+      const nodeVars = registry.getNodeVariables(node);
+      for (const varName of nodeVars) {
+        allVariables.set(varName, ''); // Default empty value
+      }
+    }
+
+    // Generate script parts
+    const scriptParts: string[] = [];
+
+    // Header
+    scriptParts.push(generateHeader(workflow, options));
+    if (monitor) {
+      monitor.updateProgress(0);
+    }
+    if (progressTracker) {
+      progressTracker.increment('Generating header');
+    }
+
+    // Variable setup
+    scriptParts.push(generateVariableSetup(allVariables));
+    if (monitor) {
+      monitor.updateProgress(1);
+    }
+    if (progressTracker) {
+      progressTracker.increment('Setting up variables');
+    }
+
+    // Main execution using registry
+    scriptParts.push(
+      generateMainExecution(nodes, edges, registry, options, allVariables, monitor, progressTracker)
+    );
+
+    // Footer
+    scriptParts.push(generateFooter());
+    if (monitor) {
+      monitor.updateProgress(nodes.length);
+    }
+    if (progressTracker) {
+      progressTracker.complete();
+    }
+
+    const script = scriptParts.filter(part => part.trim() !== '').join('\n\n');
+
+    if (monitor) {
+      monitor.finish(true);
+    }
+
+    const result: GenerationResult = {
+      script,
+      success: true,
+      warnings,
+      metadata: {
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        hasAgentNodes: nodes.some(n => n.type === 'agent'),
+        hasLLMNodes: nodes.some(n => n.type === 'llm'),
+        estimatedComplexity: nodes.length > 10 ? 'high' : nodes.length > 5 ? 'medium' : 'low',
+        supportedNodeTypes: supportedTypes,
+        unsupportedNodeTypes: unsupportedTypes,
+      },
+    };
+
+    if (monitor) {
+      result.performance = monitor.getMetrics();
+    }
+
+    return result;
+  } catch (error) {
+    // Handle performance-related errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (monitor) {
+      monitor.finish(false, errorMessage);
+    }
+
+    const result: GenerationResult = {
       script: '',
       success: false,
-      warnings: ['No workflow graph found or graph is empty'],
+      warnings: [`Compilation failed: ${errorMessage}`],
       metadata: {
         nodeCount: 0,
         edgeCount: 0,
         hasAgentNodes: false,
         hasLLMNodes: false,
         estimatedComplexity: 'low',
+        supportedNodeTypes: [],
+        unsupportedNodeTypes: [],
       },
     };
+
+    if (monitor) {
+      result.performance = monitor.getMetrics();
+    }
+
+    return result;
   }
-
-  const nodes = graph.nodes;
-  const edges = graph.edges || [];
-
-  // Analyze workflow
-  const hasAgentNodes = nodes.some(n => n.type === 'agent');
-  const hasLLMNodes = nodes.some(n => n.type === 'llm');
-
-  // Generate script parts
-  const scriptParts: string[] = [];
-
-  // Header
-  scriptParts.push(generateHeader(workflow, options));
-
-  // Variable setup
-  scriptParts.push(generateVariableSetup(nodes));
-
-  // Main execution
-  scriptParts.push(generateMainExecution(nodes, edges, options));
-
-  // Footer
-  scriptParts.push(generateFooter());
-
-  const script = scriptParts.join('\n\n');
-
-  return {
-    script,
-    success: true,
-    warnings,
-    metadata: {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      hasAgentNodes,
-      hasLLMNodes,
-      estimatedComplexity: nodes.length > 10 ? 'high' : nodes.length > 5 ? 'medium' : 'low',
-    },
-  };
 }
 
 /**
  * Generate clean script header
  */
 function generateHeader(workflow: FlowshWorkflow, options: GenerationOptions): string {
-  const name = workflow.metadata?.name || 'workflow';
+  const name = workflow.metadata?.name || workflow.workflow?.name || 'workflow';
   const shell = options.shell === 'zsh' ? 'zsh' : 'bash';
 
   return `#!/bin/${shell}
 set -euo pipefail
 
 # ${name} - Generated by flowsh
-# Simple workflow execution script
+# Registry-based workflow execution script
 
 echo "Starting workflow: ${name}"`;
 }
@@ -118,45 +296,30 @@ echo "Starting workflow: ${name}"`;
 /**
  * Generate variable setup section
  */
-function generateVariableSetup(nodes: WorkflowNode[]): string {
-  const variables: string[] = [];
-
-  // Extract variables from nodes
-  for (const node of nodes) {
-    if (node.type === 'variable-assignment' && 'variable' in node.data) {
-      const varName = node.data.variable.toUpperCase();
-      const defaultValue = 'value' in node.data ? String(node.data.value) || '' : '';
-      variables.push(`${varName}=\${${varName}:-"${defaultValue}"}`);
-    }
-
-    // Extract template variables from command strings
-    if ('command' in node.data && node.data.command) {
-      const matches = node.data.command.match(/\{\{(\w+)\}\}/g);
-      if (matches) {
-        for (const match of matches) {
-          const varName = match.replace(/\{\{|\}\}/g, '').toUpperCase();
-          if (!variables.some(v => v.startsWith(varName))) {
-            variables.push(`${varName}=\${${varName}:-""}`);
-          }
-        }
-      }
-    }
-  }
-
-  if (variables.length === 0) {
+function generateVariableSetup(variables: Map<string, string>): string {
+  if (variables.size === 0) {
     return '';
   }
 
-  return `# Environment Variables\n${variables.join('\n')}`;
+  const varLines: string[] = [];
+  for (const [varName] of variables) {
+    varLines.push(`${varName}=\${${varName}:-""}`);
+  }
+
+  return `# Environment Variables\n${varLines.join('\n')}`;
 }
 
 /**
- * Generate main execution logic
+ * Generate main execution logic using registry
  */
 function generateMainExecution(
   nodes: WorkflowNode[],
   _edges: WorkflowEdge[],
-  options: GenerationOptions
+  registry: NodeGeneratorRegistry,
+  options: GenerationOptions,
+  variables: Map<string, string>,
+  monitor?: CompilationMonitor,
+  progressTracker?: ProgressTracker
 ): string {
   const executionSteps: string[] = [];
 
@@ -165,108 +328,58 @@ function generateMainExecution(
 
   executionSteps.push('# Workflow Execution');
 
-  for (const node of executableNodes) {
-    const step = generateNodeExecution(node, options);
-    if (step) {
+  for (let i = 0; i < executableNodes.length; i++) {
+    const node = executableNodes[i]!; // We know this exists because we're iterating over the array
+
+    // Check if we should continue (timeout check)
+    if (monitor && !monitor.shouldContinue()) {
       executionSteps.push('');
-      executionSteps.push(`# Node: ${node.id}`);
-      executionSteps.push(step);
+      executionSteps.push('# Compilation timeout - stopping execution');
+      break;
+    }
+
+    // Create generation context
+    const context: GenerationContext = {
+      options,
+      variables,
+      nodeCount: nodes.length,
+      currentNodeIndex: i,
+      workflowName: options.registry?.toString() || 'workflow',
+    };
+
+    try {
+      const nodeCode = registry.generateNodeCode(node, context);
+      if (nodeCode && nodeCode.trim() !== '') {
+        executionSteps.push('');
+        executionSteps.push(`# Node: ${node.id}`);
+        executionSteps.push(nodeCode);
+      }
+
+      // Update progress after processing each node
+      if (monitor) {
+        monitor.updateProgress(i + 2); // +2 because we already did header and variables
+      }
+      if (progressTracker) {
+        progressTracker.increment(`Processing node: ${node.id}`);
+      }
+    } catch (error) {
+      executionSteps.push('');
+      executionSteps.push(`# Node: ${node.id} (ERROR)`);
+      executionSteps.push(
+        `echo "Error generating node ${node.id}: ${error instanceof Error ? error.message : String(error)}"`
+      );
+
+      // Still update progress even on error
+      if (monitor) {
+        monitor.updateProgress(i + 2);
+      }
+      if (progressTracker) {
+        progressTracker.increment(`Error processing node: ${node.id}`);
+      }
     }
   }
 
   return executionSteps.join('\n');
-}
-
-/**
- * Generate execution for a single node
- */
-function generateNodeExecution(node: WorkflowNode, _options: GenerationOptions): string {
-  switch (node.type) {
-    case 'code':
-      return generateCodeNode(node);
-    case 'agent':
-      return generateAgentNode(node, _options);
-    case 'llm':
-      return generateLLMNode(node, _options);
-    case 'variable-assignment':
-      return generateVariableNode(node);
-    case 'if-else':
-      return generateIfElseNode(node);
-    default:
-      return `echo "Executing ${node.type} node: ${node.id}"`;
-  }
-}
-
-/**
- * Generate code node execution
- */
-function generateCodeNode(node: WorkflowNode): string {
-  const command =
-    'command' in node.data && node.data.command ? node.data.command : 'echo "No command specified"';
-
-  // Replace template variables
-  const processedCommand = command.replace(/\{\{(\w+)\}\}/g, (_: string, varName: string) => {
-    return `$${varName.toUpperCase()}`;
-  });
-
-  return processedCommand;
-}
-
-/**
- * Generate agent node execution
- */
-function generateAgentNode(node: WorkflowNode, options: GenerationOptions): string {
-  const command =
-    'command' in node.data && node.data.command ? node.data.command : 'echo "No command"';
-
-  if (options.includeMocks) {
-    return `echo "Mock agent: ${command}"`;
-  }
-
-  // Simple agent execution
-  return command;
-}
-
-/**
- * Generate LLM node execution
- */
-function generateLLMNode(node: WorkflowNode, options: GenerationOptions): string {
-  const model = 'model' in node.data && node.data.model ? String(node.data.model) : 'gpt-4';
-  const prompt = 'prompt' in node.data && node.data.prompt ? String(node.data.prompt) : 'Hello';
-
-  if (options.includeMocks) {
-    return `echo "Mock LLM Response for: ${prompt}"`;
-  }
-
-  // Simple curl-based LLM call
-  return `curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
-  -H "Authorization: Bearer $OPENAI_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model": "${model}", "messages": [{"role": "user", "content": "${prompt}"}]}'`;
-}
-
-/**
- * Generate variable assignment
- */
-function generateVariableNode(node: WorkflowNode): string {
-  const variable = 'variable' in node.data && node.data.variable ? node.data.variable : 'TEMP_VAR';
-  const value = 'value' in node.data && node.data.value ? String(node.data.value) : '';
-
-  return `${variable.toUpperCase()}="${value}"`;
-}
-
-/**
- * Generate if-else logic
- */
-function generateIfElseNode(_node: WorkflowNode): string {
-  // Simple condition for now
-  const condition = 'true';
-
-  return `if ${condition}; then
-  echo "Condition passed"
-else
-  echo "Condition failed"
-fi`;
 }
 
 /**

@@ -1,0 +1,114 @@
+workflow:
+  name: 'Large Test Workflow'
+  description: 'Test workflow with many nodes to trigger performance monitoring'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data: {}
+
+    - id: 'step1'
+      type: 'code'
+      data:
+        command: "echo 'Step 1'"
+
+    - id: 'step2'
+      type: 'code'
+      data:
+        command: "echo 'Step 2'"
+
+    - id: 'step3'
+      type: 'code'
+      data:
+        command: "echo 'Step 3'"
+
+    - id: 'step4'
+      type: 'code'
+      data:
+        command: "echo 'Step 4'"
+
+    - id: 'step5'
+      type: 'code'
+      data:
+        command: "echo 'Step 5'"
+
+    - id: 'step6'
+      type: 'code'
+      data:
+        command: "echo 'Step 6'"
+
+    - id: 'step7'
+      type: 'code'
+      data:
+        command: "echo 'Step 7'"
+
+    - id: 'step8'
+      type: 'code'
+      data:
+        command: "echo 'Step 8'"
+
+    - id: 'step9'
+      type: 'code'
+      data:
+        command: "echo 'Step 9'"
+
+    - id: 'step10'
+      type: 'code'
+      data:
+        command: "echo 'Step 10'"
+
+    - id: 'step11'
+      type: 'code'
+      data:
+        command: "echo 'Step 11'"
+
+    - id: 'step12'
+      type: 'agent'
+      data:
+        command: 'opencode'
+
+    - id: 'end'
+      type: 'end'
+      data: {}
+
+  edges:
+    - id: 'e1'
+      source: 'start'
+      target: 'step1'
+    - id: 'e2'
+      source: 'step1'
+      target: 'step2'
+    - id: 'e3'
+      source: 'step2'
+      target: 'step3'
+    - id: 'e4'
+      source: 'step3'
+      target: 'step4'
+    - id: 'e5'
+      source: 'step4'
+      target: 'step5'
+    - id: 'e6'
+      source: 'step5'
+      target: 'step6'
+    - id: 'e7'
+      source: 'step6'
+      target: 'step7'
+    - id: 'e8'
+      source: 'step7'
+      target: 'step8'
+    - id: 'e9'
+      source: 'step8'
+      target: 'step9'
+    - id: 'e10'
+      source: 'step9'
+      target: 'step10'
+    - id: 'e11'
+      source: 'step10'
+      target: 'step11'
+    - id: 'e12'
+      source: 'step11'
+      target: 'step12'
+    - id: 'e13'
+      source: 'step12'
+      target: 'end'
