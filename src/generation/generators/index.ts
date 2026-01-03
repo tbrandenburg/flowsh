@@ -18,17 +18,23 @@ export { VariableAggregationNodeGenerator } from './variable-aggregation-node.js
 export { TemplateTransformNodeGenerator } from './template-transform-node.js';
 export { HttpRequestNodeGenerator } from './http-request-node.js';
 export { SubWorkflowNodeGenerator } from './sub-workflow-node.js';
+export { ParallelIterationNodeGenerator } from './parallel-iteration-node.js';
+export { RetryNodeGenerator, FallbackNodeGenerator } from './retry-fallback-node.js';
+export { CircuitBreakerNodeGenerator } from './circuit-breaker-node.js';
 
 // Re-export registry types for convenience
 export type { NodeGenerator, GenerationContext, GenerationOptions } from '../registry/types.js';
 export { NodeGeneratorRegistry, defaultRegistry } from '../registry/node-generator-registry.js';
 
 // Import generators for registration functions
+import { RetryNodeGenerator, FallbackNodeGenerator } from './retry-fallback-node.js';
 import { VariableAggregationNodeGenerator } from './variable-aggregation-node.js';
 import { VariableAssignmentNodeGenerator } from './variable-assignment-node.js';
 import { NodeGeneratorRegistry } from '../registry/node-generator-registry.js';
 import { TemplateTransformNodeGenerator } from './template-transform-node.js';
+import { ParallelIterationNodeGenerator } from './parallel-iteration-node.js';
 import { AnswerNodeGenerator, EndNodeGenerator } from './answer-node.js';
+import { CircuitBreakerNodeGenerator } from './circuit-breaker-node.js';
 import { SubWorkflowNodeGenerator } from './sub-workflow-node.js';
 import { HttpRequestNodeGenerator } from './http-request-node.js';
 import { IterationNodeGenerator } from './iteration-node.js';
@@ -58,6 +64,10 @@ export function registerDefaultGenerators(registry: NodeGeneratorRegistry): void
   registry.register(new TemplateTransformNodeGenerator());
   registry.register(new HttpRequestNodeGenerator());
   registry.register(new SubWorkflowNodeGenerator());
+  registry.register(new ParallelIterationNodeGenerator());
+  registry.register(new RetryNodeGenerator());
+  registry.register(new FallbackNodeGenerator());
+  registry.register(new CircuitBreakerNodeGenerator());
 }
 
 /**

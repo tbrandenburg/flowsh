@@ -23,6 +23,10 @@ export type NodeType =
   | 'template-transform'
   | 'http-request'
   | 'sub-workflow'
+  | 'parallel-iteration'
+  | 'retry'
+  | 'fallback'
+  | 'circuit-breaker'
   | 'answer';
 
 export type VariableType =
@@ -299,6 +303,41 @@ export interface AnswerNodeData extends BaseNodeData {
 }
 
 // =============================================================================
+// Phase 2C: Advanced Node Data Interfaces
+// =============================================================================
+
+export interface ParallelIterationNodeData extends BaseNodeData {
+  input_variable: string;
+  output_variable?: string;
+  max_parallel?: number; // Maximum concurrent executions (default: 4)
+  chunk_size?: number; // Process items in chunks (optional optimization)
+  progress_tracking?: boolean; // Enable progress reporting (default: true)
+  error_handling?: 'fail' | 'ignore' | 'continue'; // How to handle individual item failures
+}
+
+export interface RetryNodeData extends BaseNodeData {
+  max_attempts?: number; // Maximum retry attempts (default: 3)
+  retry_delay?: number; // Base delay between retries in seconds (default: 2)
+  backoff_multiplier?: number; // Exponential backoff multiplier (default: 1.5)
+  retry_condition?: 'any_failure' | 'timeout_only' | 'network_only'; // When to retry
+  timeout?: number; // Overall timeout for the retry operation
+}
+
+export interface FallbackNodeData extends BaseNodeData {
+  strategy?: 'sequential' | 'parallel'; // Fallback execution strategy
+  fallback_paths: string[]; // Array of fallback node IDs or workflow paths
+  max_fallback_time?: number; // Maximum time to spend on fallbacks
+  continue_on_success?: boolean; // Whether to continue after first successful fallback
+}
+
+export interface CircuitBreakerNodeData extends BaseNodeData {
+  failure_threshold?: number; // Number of failures before opening circuit (default: 5)
+  timeout_duration?: number; // How long circuit stays open in seconds (default: 60)
+  success_threshold?: number; // Successes needed to close circuit (default: 3)
+  monitor_window?: number; // Time window for failure counting in seconds (default: 300)
+}
+
+// =============================================================================
 // Node Interface
 // =============================================================================
 
@@ -316,6 +355,10 @@ export type NodeData =
   | TemplateTransformNodeData
   | HttpRequestNodeData
   | SubWorkflowNodeData
+  | ParallelIterationNodeData
+  | RetryNodeData
+  | FallbackNodeData
+  | CircuitBreakerNodeData
   | AnswerNodeData;
 
 export interface WorkflowNode {
