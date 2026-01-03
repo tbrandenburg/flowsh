@@ -21,8 +21,15 @@ function handleError(error: unknown, operation: string): never {
 /**
  * Compile command: Convert YAML workflow to shell script
  */
-async function compileCommand(workflowFile: string): Promise<void> {
+async function compileCommand(
+  workflowFile: string,
+  options: { verbose?: boolean } = {}
+): Promise<void> {
   try {
+    if (options.verbose) {
+      console.error('🔨 Parsing workflow...');
+    }
+
     // Parse workflow
     const parseResult = await parseWorkflowFile(workflowFile, {
       validate: true,
@@ -35,6 +42,11 @@ async function compileCommand(workflowFile: string): Promise<void> {
         console.error(`   → ${error.message}`);
       });
       process.exit(1);
+    }
+
+    if (options.verbose) {
+      const nodeCount = parseResult.workflow.graph?.nodes?.length || 0;
+      console.error(`🔨 Generating shell script for ${nodeCount} nodes...`);
     }
 
     // Generate shell script
@@ -51,6 +63,14 @@ async function compileCommand(workflowFile: string): Promise<void> {
         console.error(`   → ${warning}`);
       });
       process.exit(1);
+    }
+
+    if (options.verbose) {
+      console.error(
+        `✅ Generated ${generateResult.script.split('\n').length} lines of shell script`
+      );
+      console.error(`📊 Complexity: ${generateResult.metadata.estimatedComplexity}`);
+      console.error('');
     }
 
     // Output to stdout (jq-like behavior)
@@ -109,8 +129,9 @@ program
   .command('compile')
   .description('Convert YAML workflow to shell script (outputs to stdout)')
   .argument('<workflow-file>', 'Path to workflow YAML file')
-  .action(async (workflowFile: string) => {
-    await compileCommand(workflowFile);
+  .option('-v, --verbose', 'Show detailed progress and performance information')
+  .action(async (workflowFile: string, options: { verbose?: boolean }) => {
+    await compileCommand(workflowFile, options);
   });
 
 // Validate command - check for errors only
