@@ -6,6 +6,10 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.{test,spec}.ts'],
     exclude: ['node_modules/', 'dist/'],
+    testTimeout: 10000, // 10 second timeout for individual tests
+    hookTimeout: 5000, // 5 second timeout for hooks
+    teardownTimeout: 3000, // 3 second timeout for teardown
+    isolate: true, // Run tests in isolation
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],

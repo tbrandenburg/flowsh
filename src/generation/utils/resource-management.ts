@@ -44,7 +44,9 @@ export class ResourceManager {
   private tempFiles = new Set<string>();
   private cleanupHandlers = new Set<() => void>();
   private startTime: number;
-  private resourceCheckInterval?: NodeJS.Timeout;
+  private resourceCheckInterval?: NodeJS.Timeout | undefined;
+  private eventListeners = new Map<string, (...args: any[]) => void>();
+  private isCleanedUp = false;
 
   constructor(limits: ResourceLimits = {}) {
     this.limits = {
@@ -509,10 +511,22 @@ init_resource_management`;
    * Perform comprehensive cleanup
    */
   async cleanup(): Promise<void> {
+    if (this.isCleanedUp) {
+      return; // Already cleaned up
+    }
+    this.isCleanedUp = true;
+
     // Stop resource monitoring
     if (this.resourceCheckInterval) {
       clearInterval(this.resourceCheckInterval);
+      this.resourceCheckInterval = undefined;
     }
+
+    // Remove event listeners
+    for (const [event, listener] of this.eventListeners.entries()) {
+      process.removeListener(event as any, listener);
+    }
+    this.eventListeners.clear();
 
     // Run custom cleanup handlers
     for (const handler of this.cleanupHandlers) {
@@ -540,25 +554,34 @@ init_resource_management`;
    * Setup automatic cleanup handlers
    */
   private setupCleanupHandlers(): void {
-    // Cleanup on process exit
-    process.on('exit', () => {
+    // Create listeners and track them for cleanup
+    const exitListener = () => {
       this.cleanup().catch(console.error);
-    });
+    };
 
-    // Cleanup on interrupt signals
-    process.on('SIGINT', () => {
+    const sigintListener = () => {
       console.log('\nReceived SIGINT, cleaning up resources...');
       this.cleanup()
         .then(() => process.exit(0))
         .catch(() => process.exit(1));
-    });
+    };
 
-    process.on('SIGTERM', () => {
+    const sigtermListener = () => {
       console.log('Received SIGTERM, cleaning up resources...');
       this.cleanup()
         .then(() => process.exit(0))
         .catch(() => process.exit(1));
-    });
+    };
+
+    // Store listeners for later removal
+    this.eventListeners.set('exit', exitListener);
+    this.eventListeners.set('SIGINT', sigintListener);
+    this.eventListeners.set('SIGTERM', sigtermListener);
+
+    // Add listeners to process
+    process.on('exit', exitListener);
+    process.on('SIGINT', sigintListener);
+    process.on('SIGTERM', sigtermListener);
 
     // Periodic resource monitoring
     this.resourceCheckInterval = setInterval(() => {

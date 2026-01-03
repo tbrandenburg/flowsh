@@ -11,23 +11,44 @@ import {
 } from './resource-management';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+// Global test configuration to prevent memory leaks
+let testResourceManagers: ResourceManager[] = [];
+
 describe('ResourceManager', () => {
   let resourceManager: ResourceManager;
 
   beforeEach(() => {
     // Clear any existing global instance
     vi.clearAllMocks();
+    resetGlobalResourceManager();
+    testResourceManagers = [];
   });
 
-  afterEach(() => {
-    if (resourceManager) {
-      resourceManager.cleanup();
+  afterEach(async () => {
+    // Clean up all resource managers created in tests
+    for (const manager of testResourceManagers) {
+      await manager.cleanup();
     }
+    testResourceManagers = [];
+
+    if (resourceManager) {
+      await resourceManager.cleanup();
+    }
+
+    // Reset global instance after each test
+    resetGlobalResourceManager();
   });
+
+  // Helper function to create and track resource managers
+  const createTrackedResourceManager = (limits?: ResourceLimits): ResourceManager => {
+    const manager = new ResourceManager(limits);
+    testResourceManagers.push(manager);
+    return manager;
+  };
 
   describe('initialization', () => {
     it('should initialize with default limits', () => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
 
       const usage = resourceManager.getCurrentUsage();
       expect(usage.activeProcesses).toBe(0);
@@ -44,7 +65,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 60000,
       };
 
-      resourceManager = new ResourceManager(customLimits);
+      resourceManager = createTrackedResourceManager(customLimits);
 
       // Test that limits are applied (through generated code)
       const shellCode = resourceManager.generateResourceMonitoringCode();
@@ -56,7 +77,7 @@ describe('ResourceManager', () => {
 
   describe('resource monitoring code generation', () => {
     beforeEach(() => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
     });
 
     it('should generate comprehensive shell monitoring functions', () => {
@@ -150,7 +171,7 @@ describe('ResourceManager', () => {
 
   describe('process tracking', () => {
     beforeEach(() => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
     });
 
     it('should register and track processes', () => {
@@ -187,7 +208,7 @@ describe('ResourceManager', () => {
 
   describe('temporary file tracking', () => {
     beforeEach(() => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
     });
 
     it('should register temporary files', () => {
@@ -227,7 +248,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 60000,
       };
 
-      resourceManager = new ResourceManager(limits);
+      resourceManager = createTrackedResourceManager(limits);
 
       const { withinLimits, violations } = resourceManager.checkLimits();
 
@@ -245,7 +266,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 60000,
       };
 
-      resourceManager = new ResourceManager(limits);
+      resourceManager = createTrackedResourceManager(limits);
 
       // Register multiple processes to exceed limit
       resourceManager.registerProcess(1001, 'process-1');
@@ -265,7 +286,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 60000,
       };
 
-      resourceManager = new ResourceManager(limits);
+      resourceManager = createTrackedResourceManager(limits);
 
       // Register multiple temp files to exceed limit
       resourceManager.registerTempFile('/tmp/file-1');
@@ -286,7 +307,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 10, // Very short time
       };
 
-      resourceManager = new ResourceManager(limits);
+      resourceManager = createTrackedResourceManager(limits);
 
       // Wait for time limit to be exceeded
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -305,7 +326,7 @@ describe('ResourceManager', () => {
         maxExecutionTimeMs: 600000,
       };
 
-      resourceManager = new ResourceManager(limits);
+      resourceManager = createTrackedResourceManager(limits);
 
       const { withinLimits, violations } = resourceManager.checkLimits();
 
@@ -316,34 +337,34 @@ describe('ResourceManager', () => {
 
   describe('cleanup handlers', () => {
     beforeEach(() => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
     });
 
-    it('should add and execute cleanup handlers', () => {
+    it('should add and execute cleanup handlers', async () => {
       let cleanupCalled = false;
 
       resourceManager.addCleanupHandler(() => {
         cleanupCalled = true;
       });
 
-      resourceManager.cleanup();
+      await resourceManager.cleanup();
 
       expect(cleanupCalled).toBe(true);
     });
 
-    it('should handle multiple cleanup handlers', () => {
+    it('should handle multiple cleanup handlers', async () => {
       const results: string[] = [];
 
       resourceManager.addCleanupHandler(() => results.push('handler-1'));
       resourceManager.addCleanupHandler(() => results.push('handler-2'));
       resourceManager.addCleanupHandler(() => results.push('handler-3'));
 
-      resourceManager.cleanup();
+      await resourceManager.cleanup();
 
       expect(results).toEqual(['handler-1', 'handler-2', 'handler-3']);
     });
 
-    it('should continue with other handlers if one fails', () => {
+    it('should continue with other handlers if one fails', async () => {
       const results: string[] = [];
 
       resourceManager.addCleanupHandler(() => results.push('handler-1'));
@@ -352,7 +373,7 @@ describe('ResourceManager', () => {
       });
       resourceManager.addCleanupHandler(() => results.push('handler-3'));
 
-      resourceManager.cleanup();
+      await resourceManager.cleanup();
 
       expect(results).toEqual(['handler-1', 'handler-3']);
     });
@@ -360,7 +381,7 @@ describe('ResourceManager', () => {
 
   describe('resource usage tracking', () => {
     beforeEach(() => {
-      resourceManager = new ResourceManager();
+      resourceManager = createTrackedResourceManager();
     });
 
     it('should provide current resource usage', () => {
@@ -401,12 +422,21 @@ describe('ResourceManager', () => {
 });
 
 describe('Resource Manager Factory Functions', () => {
+  let testManagers: ResourceManager[] = [];
+
   beforeEach(() => {
     // Reset global instance before each test
     resetGlobalResourceManager();
+    testManagers = [];
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Clean up any managers created in tests
+    for (const manager of testManagers) {
+      await manager.cleanup();
+    }
+    testManagers = [];
+
     // Clean up any global instances
     resetGlobalResourceManager();
   });
@@ -434,7 +464,7 @@ describe('Resource Manager Factory Functions', () => {
   });
 
   describe('createResourceManager', () => {
-    it('should create new instance with specified limits', () => {
+    it('should create new instance with specified limits', async () => {
       const limits: ResourceLimits = {
         maxMemoryMB: 256,
         maxProcesses: 10,
@@ -443,18 +473,19 @@ describe('Resource Manager Factory Functions', () => {
       };
 
       const manager = createResourceManager(limits);
+      testManagers.push(manager); // Track for cleanup
+
       const shellCode = manager.generateResourceMonitoringCode();
 
       expect(shellCode).toContain('FLOWSH_MAX_MEMORY_MB=256');
       expect(shellCode).toContain('FLOWSH_MAX_PROCESSES=10');
       expect(shellCode).toContain('FLOWSH_MAX_EXECUTION_TIME_SEC=30');
-
-      manager.cleanup();
     });
 
-    it('should create independent instances', () => {
+    it('should create independent instances', async () => {
       const manager1 = createResourceManager({ maxMemoryMB: 100 });
       const manager2 = createResourceManager({ maxMemoryMB: 200 });
+      testManagers.push(manager1, manager2); // Track for cleanup
 
       expect(manager1).not.toBe(manager2);
 
@@ -463,25 +494,37 @@ describe('Resource Manager Factory Functions', () => {
 
       expect(code1).toContain('FLOWSH_MAX_MEMORY_MB=100');
       expect(code2).toContain('FLOWSH_MAX_MEMORY_MB=200');
-
-      manager1.cleanup();
-      manager2.cleanup();
     });
   });
 });
 
 describe('Resource Manager Shell Code Edge Cases', () => {
   let resourceManager: ResourceManager;
+  let testManagers: ResourceManager[] = [];
 
   beforeEach(() => {
-    resourceManager = new ResourceManager();
+    testManagers = [];
   });
 
-  afterEach(() => {
-    resourceManager.cleanup();
+  afterEach(async () => {
+    for (const manager of testManagers) {
+      await manager.cleanup();
+    }
+    testManagers = [];
+
+    if (resourceManager) {
+      await resourceManager.cleanup();
+    }
   });
+
+  const createTrackedManager = (limits?: ResourceLimits): ResourceManager => {
+    const manager = new ResourceManager(limits);
+    testManagers.push(manager);
+    return manager;
+  };
 
   it('should handle missing system commands gracefully', () => {
+    resourceManager = createTrackedManager();
     const shellCode = resourceManager.generateResourceMonitoringCode();
 
     expect(shellCode).toContain('check_system_commands()');
@@ -490,6 +533,7 @@ describe('Resource Manager Shell Code Edge Cases', () => {
   });
 
   it('should include ulimit protection', () => {
+    resourceManager = createTrackedManager();
     const shellCode = resourceManager.generateResourceMonitoringCode();
 
     expect(shellCode).toContain('ulimit -v'); // Memory limit
@@ -498,6 +542,7 @@ describe('Resource Manager Shell Code Edge Cases', () => {
   });
 
   it('should include comprehensive error handling', () => {
+    resourceManager = createTrackedManager();
     const shellCode = resourceManager.generateResourceMonitoringCode();
 
     expect(shellCode).toContain('|| true'); // Continue on errors
@@ -507,6 +552,7 @@ describe('Resource Manager Shell Code Edge Cases', () => {
   });
 
   it('should include robust cleanup procedures', () => {
+    resourceManager = createTrackedManager();
     const shellCode = resourceManager.generateResourceMonitoringCode();
 
     expect(shellCode).toContain('rm -rf'); // File cleanup
