@@ -89,10 +89,10 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
   }
 
   /**
-   * Replace template variables in command with sanitized variable references
+   * Replace template variables in command with getter function calls
    * Supports both {{variable}} and {{#variable.path#}} syntax
    */
-  protected processTemplateVariables(command: string): string {
+  protected processTemplateVariables(command: string, nodeId: string = 'template_node'): string {
     // Defensive programming: ensure command is a string
     if (typeof command !== 'string') {
       command = String(command || '');
@@ -104,7 +104,7 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
       const parts = varPath.split('.');
       if (parts.length === 1) {
         const sanitizedVar = this.sanitizeVariableName(parts[0] || '');
-        return `\${${sanitizedVar.toUpperCase()}}`;
+        return `$(get_var "${sanitizedVar.toUpperCase()}" "${nodeId}")`;
       } else {
         // For complex paths, create a shell variable lookup
         // This will be processed by the substitute_variables function in the generated script
@@ -115,7 +115,7 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
     // Handle traditional {{variable}} syntax
     result = result.replace(/\{\{(\w+)\}\}/g, (_, varName: string) => {
       const sanitizedVar = this.sanitizeVariableName(varName || '');
-      return `\${${sanitizedVar.toUpperCase()}}`;
+      return `$(get_var "${sanitizedVar.toUpperCase()}" "${nodeId}")`;
     });
 
     return result;

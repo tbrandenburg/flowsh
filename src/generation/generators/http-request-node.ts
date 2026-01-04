@@ -28,16 +28,16 @@ export class HttpRequestNodeGenerator extends BaseNodeGenerator {
     const title = data.title || node.id;
 
     // Process headers into curl-friendly format
-    const headersCode = this.generateHeadersCode(data.headers);
-    const authCode = this.generateAuthCode(data);
-    const bodyCode = this.generateBodyCode(data);
+    const headersCode = this.generateHeadersCode(data.headers, node.id);
+    const authCode = this.generateAuthCode(data, node.id);
+    const bodyCode = this.generateBodyCode(data, node.id);
 
     return `
 ${this.generateNodeComment(node)}
 ${functionName}() {
     log_step "🌐 HTTP Request: ${this.escapeShellValue(title)}"
 
-    local url="${this.processTemplateVariables(url)}"
+    local url="${this.processTemplateVariables(url, node.id)}"
     local method="${method}"
     local timeout=${timeout}
     local max_retries=${maxRetries}
@@ -167,14 +167,14 @@ ${bodyCode}
 }`;
   }
 
-  private generateAuthCode(data: HttpRequestNodeData): string {
+  private generateAuthCode(data: HttpRequestNodeData, nodeId: string): string {
     const authType = data.auth_type || 'none';
 
     switch (authType) {
       case 'bearer':
         return `    # Bearer token authentication
     if [[ -n "${data.auth_token || ''}" ]]; then
-        local token="${this.processTemplateVariables(data.auth_token || '')}"
+        local token="${this.processTemplateVariables(data.auth_token || '', nodeId)}"
         if [[ -n "$token" ]]; then
             curl_opts+=(-H "Authorization: Bearer $token")
             log_debug "Added Bearer authorization header"
@@ -186,7 +186,7 @@ ${bodyCode}
       case 'basic':
         return `    # Basic authentication
     if [[ -n "${data.auth_credentials || ''}" ]]; then
-        local credentials="${this.processTemplateVariables(data.auth_credentials || '')}"
+        local credentials="${this.processTemplateVariables(data.auth_credentials || '', nodeId)}"
         if [[ -n "$credentials" ]]; then
             curl_opts+=(-u "$credentials")
             log_debug "Added Basic authentication credentials"
@@ -199,7 +199,7 @@ ${bodyCode}
         const keyHeader = data.auth_key_header || 'X-API-Key';
         return `    # API Key authentication
     if [[ -n "${data.auth_api_key || ''}" ]]; then
-        local api_key="${this.processTemplateVariables(data.auth_api_key || '')}"
+        local api_key="${this.processTemplateVariables(data.auth_api_key || '', nodeId)}"
         local key_header="${keyHeader}"
         if [[ -n "$api_key" ]]; then
             curl_opts+=(-H "$key_header: $api_key")
@@ -214,7 +214,7 @@ ${bodyCode}
     }
   }
 
-  private generateHeadersCode(headers?: string): string {
+  private generateHeadersCode(headers?: string, nodeId?: string): string {
     if (!headers || headers.trim() === '') {
       return '    # No custom headers configured';
     }
@@ -225,7 +225,7 @@ ${bodyCode}
         [[ -z "$header_name" || "$header_name" =~ ^[[:space:]]*# ]] && continue
         
         # Process template variables in header value
-        local processed_value="${this.processTemplateVariables('$header_value')}"
+        local processed_value="${this.processTemplateVariables('$header_value', nodeId || 'template_node')}"
         curl_opts+=(-H "$header_name: $processed_value")
         log_debug "Added header: $header_name"
     done <<'EOF'
@@ -233,7 +233,7 @@ ${headers}
 EOF`;
   }
 
-  private generateBodyCode(data: HttpRequestNodeData): string {
+  private generateBodyCode(data: HttpRequestNodeData, nodeId: string): string {
     if (!data.body || data.body.trim() === '') {
       return '    # No request body configured';
     }
@@ -242,7 +242,7 @@ EOF`;
     const contentType = this.getContentType(bodyType);
 
     return `    # Add request body
-    local body_content="${this.processTemplateVariables(data.body)}"
+    local body_content="${this.processTemplateVariables(data.body, nodeId)}"
     
     if [[ -n "$body_content" ]]; then
         curl_opts+=(-d "$body_content")

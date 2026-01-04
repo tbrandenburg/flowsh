@@ -20,7 +20,7 @@ export class AgentNodeGenerator extends BaseNodeGenerator {
     }
 
     // Process template variables and return simple agent execution
-    return this.processTemplateVariables(String(command));
+    return this.processTemplateVariables(String(command), node.id);
   }
 
   override validate(node: WorkflowNode): ValidationResult {

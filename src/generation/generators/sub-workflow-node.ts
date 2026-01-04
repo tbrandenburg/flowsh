@@ -35,7 +35,7 @@ ${this.generateNodeComment(node)}
 ${functionName}() {
     log_step "🏗️ Sub-Workflow: ${this.escapeShellValue(title)}"
 
-    local subworkflow_file="${this.processTemplateVariables(workflowFile)}"
+    local subworkflow_file="${this.processTemplateVariables(workflowFile, node.id)}"
     local subworkflow_temp_dir="/tmp/flowsh_subworkflow_$$_${nodeId}"
     local subworkflow_outputs_file="\$subworkflow_temp_dir/outputs"
     local subworkflow_script="\$subworkflow_temp_dir/workflow.sh"

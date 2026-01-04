@@ -16,7 +16,7 @@ export class CodeNodeGenerator extends BaseNodeGenerator {
     const command = this.getNodeData(node, 'command', 'echo "No command specified"');
 
     // Process template variables with sanitization
-    const processedCommand = this.processTemplateVariables(String(command));
+    const processedCommand = this.processTemplateVariables(String(command), node.id);
 
     return processedCommand;
   }

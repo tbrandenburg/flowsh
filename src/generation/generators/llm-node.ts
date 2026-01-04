@@ -34,7 +34,7 @@ export class LLMNodeGenerator extends BaseNodeGenerator {
 
     // Generate curl-based LLM call - ensure prompt is a string and handle undefined
     const promptStr = String(prompt || 'Hello');
-    const processedPrompt = this.processTemplateVariables(promptStr);
+    const processedPrompt = this.processTemplateVariables(promptStr, node.id);
 
     return `curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
   -H "Authorization: Bearer $OPENAI_API_KEY" \\

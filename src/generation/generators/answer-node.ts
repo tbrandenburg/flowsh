@@ -13,7 +13,7 @@ export class AnswerNodeGenerator extends BaseNodeGenerator {
 
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const answer = this.getNodeData(node, 'answer', 'Workflow completed');
-    const processedAnswer = this.processTemplateVariables(String(answer));
+    const processedAnswer = this.processTemplateVariables(String(answer), node.id);
     return `echo "${processedAnswer}"`;
   }
 

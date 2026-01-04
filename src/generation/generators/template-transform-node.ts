@@ -25,10 +25,10 @@ export class TemplateTransformNodeGenerator extends BaseNodeGenerator {
     const parameters = data.template_parameters || {};
 
     // Generate template resolution code
-    const templateResolutionCode = this.generateTemplateResolution(template);
+    const templateResolutionCode = this.generateTemplateResolution(template, node.id);
 
     // Generate parameter processing code
-    const parametersCode = this.generateParametersCode(parameters);
+    const parametersCode = this.generateParametersCode(parameters, node.id);
 
     return `
 ${this.generateNodeComment(node)}
@@ -195,7 +195,7 @@ process_template_functions() {
 }`;
   }
 
-  private generateTemplateResolution(template: any): string {
+  private generateTemplateResolution(template: any, nodeId: string): string {
     // Defensive programming: ensure template is an object
     if (!template || typeof template !== 'object') {
       template = { source: 'inline', content: '' };
@@ -231,7 +231,7 @@ process_template_functions() {
 
       case 'file':
         return `    # Load template from file
-    local template_file="${this.processTemplateVariables(filePath)}"
+    local template_file="${this.processTemplateVariables(filePath, nodeId)}"
     
     log_debug "Loading template from file: \$template_file"
     
@@ -254,7 +254,7 @@ process_template_functions() {
     }
   }
 
-  private generateParametersCode(parameters: Record<string, any>): string {
+  private generateParametersCode(parameters: Record<string, any>, nodeId: string): string {
     if (!parameters || Object.keys(parameters).length === 0) {
       return '    # No template parameters configured\n    log_debug "No template parameters to process"';
     }
@@ -263,7 +263,7 @@ process_template_functions() {
 
     for (const [paramName, paramValue] of Object.entries(parameters)) {
       const escapedParamName = this.escapeShellValue(paramName);
-      const processedValue = this.processTemplateVariables(String(paramValue));
+      const processedValue = this.processTemplateVariables(String(paramValue), nodeId);
 
       code += `    local param_value="${processedValue}"
     log_debug "Processing parameter: ${escapedParamName} = \$param_value"

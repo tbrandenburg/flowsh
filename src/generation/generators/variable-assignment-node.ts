@@ -20,7 +20,8 @@ export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
     // Escape value to prevent injection
     const value = this.escapeShellValue(String(rawValue));
 
-    return `${variable.toUpperCase()}="${value}"`;
+    // Use the new variable management function with debug logging
+    return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
   }
 
   override validate(node: WorkflowNode): ValidationResult {

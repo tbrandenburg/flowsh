@@ -18,9 +18,9 @@ export class IfElseNodeGenerator extends BaseNodeGenerator {
     const elseAction = this.getNodeData(node, 'else', 'echo "Condition failed"');
 
     // Process template variables in all parts
-    const processedCondition = this.processTemplateVariables(String(condition));
-    const processedThen = this.processTemplateVariables(String(thenAction));
-    const processedElse = this.processTemplateVariables(String(elseAction));
+    const processedCondition = this.processTemplateVariables(String(condition), node.id);
+    const processedThen = this.processTemplateVariables(String(thenAction), node.id);
+    const processedElse = this.processTemplateVariables(String(elseAction), node.id);
 
     return `if ${processedCondition}; then
   ${processedThen}

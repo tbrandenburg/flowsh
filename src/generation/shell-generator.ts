@@ -285,6 +285,49 @@ export function generateShellScript(
 }
 
 /**
+ * Generate variable management functions with debug logging
+ */
+function generateVariableFunctions(): string {
+  return `# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="\${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "\${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="\${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="\${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "\${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}`;
+}
+
+/**
  * Generate clean script header
  */
 function generateHeader(workflow: FlowshWorkflow, options: GenerationOptions): string {
@@ -313,7 +356,9 @@ NC='\\033[0m'
 
 # Configuration
 VERBOSE=\${VERBOSE:-false}
-AGENT_TIMEOUT=\${AGENT_TIMEOUT:-60}`;
+AGENT_TIMEOUT=\${AGENT_TIMEOUT:-60}
+
+${generateVariableFunctions()}`;
 }
 
 /**
