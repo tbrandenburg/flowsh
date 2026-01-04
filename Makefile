@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run
+.PHONY: help install build dev test lint format clean run examples-all examples-workflows
 
 # Default target
 help:
@@ -25,8 +25,10 @@ help:
 	@echo "  make check        Run all quality checks (lint + format + test + build)"
 	@echo
 	@echo "🌊 Workflow Operations:"
-	@echo "  make example      Generate shell script from example workflow"
-	@echo "  make validate     Validate example workflows"
+	@echo "  make example          Generate shell script from main example workflow"
+	@echo "  make examples-all     Generate scripts from all 18 node examples"
+	@echo "  make examples-workflows  Generate scripts from key workflow examples"
+	@echo "  make validate         Validate example workflows"
 	@echo
 	@echo "🧪 Testing Generated Scripts:"
 	@echo "  make test-generated   Test generated shell scripts"
@@ -78,7 +80,36 @@ check: lint format test build
 
 # Generate shell script from example workflow
 example: build
+	@echo "Generating shell script from main example..."
 	node dist/cli/index.js compile examples/flowsh-workflow-example.yaml
+
+# Generate shell scripts from all node examples
+examples-all: build
+	@echo "Generating shell scripts from all node examples..."
+	@mkdir -p scripts/generated-outputs/nodes/
+	@for example in examples/nodes/*-example.yaml; do \
+		if [ -f "$$example" ]; then \
+			echo "Generating: $$example"; \
+			basename=$$(basename "$$example" .yaml); \
+			node dist/cli/index.js compile "$$example" > "scripts/generated-outputs/nodes/$$basename.sh" 2>/dev/null || \
+			echo "  ❌ Failed to compile $$example"; \
+		fi; \
+	done
+	@echo "✅ Generated $(shell find examples/nodes -name '*-example.yaml' | wc -l) node example scripts in scripts/generated-outputs/nodes/"
+
+# Generate shell scripts from key workflow examples  
+examples-workflows: build
+	@echo "Generating shell scripts from key workflow examples..."
+	@mkdir -p scripts/generated-outputs/workflows/
+	@for example in examples/hello-world.yaml examples/simple-workflow.yaml examples/counting-loop.yaml examples/api-data-aggregation.yaml; do \
+		if [ -f "$$example" ]; then \
+			echo "Generating: $$example"; \
+			basename=$$(basename "$$example" .yaml); \
+			node dist/cli/index.js compile "$$example" > "scripts/generated-outputs/workflows/$$basename.sh" 2>/dev/null || \
+			echo "  ❌ Failed to compile $$example"; \
+		fi; \
+	done
+	@echo "✅ Generated workflow example scripts in scripts/generated-outputs/workflows/"
 
 # Validate example workflows
 validate: build
