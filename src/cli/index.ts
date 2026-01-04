@@ -10,6 +10,8 @@
 import { generateShellScript } from '../generation/shell-generator.js';
 import { parseWorkflowFile } from '../parsing/parser.js';
 import { Command } from 'commander';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // Simple error handling - no fancy logging or correlation IDs
 function handleError(error: unknown, operation: string): never {
@@ -19,11 +21,40 @@ function handleError(error: unknown, operation: string): never {
 }
 
 /**
+ * Write shell script to file with comprehensive error handling
+ */
+async function writeScriptToFile(script: string, outputFile: string): Promise<void> {
+  try {
+    const resolvedPath = path.resolve(outputFile);
+    const outputDir = path.dirname(resolvedPath);
+
+    // Create directory structure if it doesn't exist
+    if (outputDir !== '.' && !fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Write file
+    fs.writeFileSync(resolvedPath, script, 'utf8');
+    console.log(`✅ Generated script saved to: ${resolvedPath}`);
+  } catch (error: any) {
+    if (error.code === 'EACCES') {
+      throw new Error(`Permission denied writing to: ${outputFile}`);
+    } else if (error.code === 'ENOSPC') {
+      throw new Error(`No space left on device for: ${outputFile}`);
+    } else if (error.code === 'ENOENT') {
+      throw new Error(`Invalid path: ${outputFile}`);
+    } else {
+      throw new Error(`Failed to write file: ${error.message}`);
+    }
+  }
+}
+
+/**
  * Compile command: Convert YAML workflow to shell script
  */
 async function compileCommand(
   workflowFile: string,
-  options: { verbose?: boolean } = {}
+  options: { verbose?: boolean; output?: string } = {}
 ): Promise<void> {
   try {
     if (options.verbose) {
@@ -73,8 +104,13 @@ async function compileCommand(
       console.error('');
     }
 
-    // Output to stdout (jq-like behavior)
-    console.log(generateResult.script);
+    // Output to file or stdout
+    if (options.output) {
+      await writeScriptToFile(generateResult.script, options.output);
+    } else {
+      // Output to stdout (jq-like behavior)
+      console.log(generateResult.script);
+    }
   } catch (error) {
     handleError(error, 'Compilation');
   }
@@ -130,7 +166,8 @@ program
   .description('Convert YAML workflow to shell script (outputs to stdout)')
   .argument('<workflow-file>', 'Path to workflow YAML file')
   .option('-v, --verbose', 'Show detailed progress and performance information')
-  .action(async (workflowFile: string, options: { verbose?: boolean }) => {
+  .option('-o, --output <file>', 'output generated script to file')
+  .action(async (workflowFile: string, options: { verbose?: boolean; output?: string }) => {
     await compileCommand(workflowFile, options);
   });
 
@@ -149,6 +186,7 @@ if (process.argv.length <= 2) {
   console.log('');
   console.log('Usage:');
   console.log('  flowsh compile workflow.yaml > script.sh');
+  console.log('  flowsh compile workflow.yaml -o script.sh');
   console.log('  flowsh validate workflow.yaml');
   console.log('');
   console.log('Run --help for more options');
