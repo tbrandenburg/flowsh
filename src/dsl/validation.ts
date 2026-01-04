@@ -184,6 +184,7 @@ export function validateNode(node: WorkflowNode): ValidationResult {
         'retry',
         'fallback',
         'circuit-breaker',
+        'telegram',
         'answer',
       ],
     });
@@ -404,6 +405,7 @@ export function isValidNodeType(type: string): type is NodeType {
     'retry',
     'fallback',
     'circuit-breaker',
+    'telegram',
     'answer',
   ];
   return validTypes.includes(type as NodeType);

@@ -1,0 +1,338 @@
+/**
+ * Telegram Node Generator
+ *
+ * Generates shell script code for sending messages to Telegram chats
+ * with support for HTML/Markdown formatting and retry logic
+ */
+
+import { WorkflowNode, TelegramNodeData } from '../../dsl/types.js';
+import { ValidationResult } from '../../dsl/validation.js';
+import { GenerationContext } from '../registry/types.js';
+import { BaseNodeGenerator } from './base-generator.js';
+
+export class TelegramNodeGenerator extends BaseNodeGenerator {
+  readonly nodeType = 'telegram';
+
+  generate(node: WorkflowNode, _context: GenerationContext): string {
+    const data = node.data as TelegramNodeData;
+    const nodeId = this.sanitizeVariableName(node.id);
+    const functionName = `send_telegram_${nodeId}`;
+
+    // Extract configuration with defaults
+    const message = data.message || '';
+    const parseMode = data.parse_mode || 'HTML';
+    const maxRetries = data.max_retries || 3;
+    const disableNotification = data.disable_notification || false;
+    const replyToMessageId = data.reply_to_message_id;
+    const title = data.title || node.id;
+
+    // Handle chat_id and bot_token - can come from node data or environment variables
+    const chatIdCode = this.generateChatIdCode(data, node.id);
+    const botTokenCode = this.generateBotTokenCode(data, node.id);
+    const escapingCode = this.generateEscapingCode(parseMode);
+
+    return `
+${this.generateNodeComment(node)}
+${functionName}() {
+    log_step "📱 Sending Telegram message: ${this.escapeShellValue(title)}"
+
+    local message="${this.processTemplateVariables(message, node.id)}"
+    local parse_mode="${parseMode}"
+    local max_retries=${maxRetries}
+    local disable_notification=${disableNotification}
+    ${replyToMessageId ? `local reply_to_message_id=${replyToMessageId}` : ''}
+
+    # Validate message is not empty
+    if [[ -z "$message" ]]; then
+        log_error "Telegram message content is empty"
+        return 1
+    fi
+
+${chatIdCode}
+
+${botTokenCode}
+
+${escapingCode}
+
+    # Escape message content based on parse mode
+    local escaped_message
+    case "$parse_mode" in
+        "HTML")
+            escaped_message=$(escape_html "$message")
+            ;;
+        "Markdown"|"MarkdownV2")
+            escaped_message=$(escape_markdown "$message")
+            ;;
+        *)
+            escaped_message="$message"
+            ;;
+    esac
+
+    # Prepare API request payload
+    local api_url="https://api.telegram.org/bot\$bot_token/sendMessage"
+    local payload
+    payload=$(cat <<EOF
+{
+    "chat_id": "\$chat_id",
+    "text": "\$escaped_message",
+    "parse_mode": "\$parse_mode"${disableNotification ? ',\n    "disable_notification": true' : ''}${replyToMessageId ? ',\n    "reply_to_message_id": ' + replyToMessageId : ''}
+}
+EOF
+)
+
+    log_debug "Sending message to Telegram API: \$api_url"
+    log_debug "Payload length: \${#payload} characters"
+
+    # Retry logic with exponential backoff
+    local attempt=1
+    local delay=1
+    
+    while [[ \$attempt -le \$max_retries ]]; do
+        log_debug "Telegram API attempt \$attempt of \$max_retries"
+        
+        # Make API request
+        local response_file=\$(mktemp)
+        local http_code
+        
+        http_code=\$(curl -s -w "%{http_code}" \\
+            -X POST \\
+            -H "Content-Type: application/json" \\
+            -d "\$payload" \\
+            --connect-timeout 10 \\
+            --max-time 30 \\
+            "\$api_url" \\
+            -o "\$response_file" 2>/dev/null)
+        
+        local curl_exit_code=\$?
+        local response_body=\$(cat "\$response_file" 2>/dev/null)
+        
+        # Clean up temp file
+        rm -f "\$response_file" 2>/dev/null
+        
+        # Check if request was successful
+        if [[ \$curl_exit_code -eq 0 && "\$http_code" =~ ^2[0-9][0-9]\$ ]]; then
+            log_success "Telegram message sent successfully (HTTP \$http_code)"
+            
+            # Set success variables
+            set_workflow_var "telegram_success" "true"
+            set_workflow_var "telegram_http_code" "\$http_code"
+            set_workflow_var "telegram_response" "\$response_body"
+            set_workflow_var "telegram_message_sent" "true"
+            
+            log_debug "Telegram API response: \$response_body"
+            return 0
+        else
+            # Log the failure
+            if [[ \$curl_exit_code -ne 0 ]]; then
+                log_warning "Telegram API request failed (curl exit code: \$curl_exit_code) - attempt \$attempt/\$max_retries"
+            else
+                log_warning "Telegram API returned HTTP \$http_code - attempt \$attempt/\$max_retries"
+                if [[ -n "\$response_body" ]]; then
+                    log_warning "API error response: \$response_body"
+                fi
+            fi
+            
+            # Check if we should retry
+            if [[ \$attempt -lt \$max_retries ]]; then
+                log_info "Retrying in \${delay}s..."
+                sleep \$delay
+                delay=\$((delay * 2))  # Exponential backoff
+                attempt=\$((attempt + 1))
+            else
+                # Final failure
+                log_error "Telegram message failed after \$max_retries attempts"
+                
+                # Set failure variables
+                set_workflow_var "telegram_success" "false"
+                set_workflow_var "telegram_http_code" "\${http_code:-0}"
+                set_workflow_var "telegram_response" "\$response_body"
+                set_workflow_var "telegram_message_sent" "false"
+                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                
+                return 1
+            fi
+        fi
+    done
+}`;
+  }
+
+  private generateChatIdCode(data: TelegramNodeData, nodeId: string): string {
+    if (data.chat_id) {
+      // Use chat_id from node configuration
+      return `    # Use chat_id from node configuration
+    local chat_id="${this.processTemplateVariables(data.chat_id, nodeId)}"`;
+    } else {
+      // Use chat_id from environment variable
+      return `    # Use chat_id from environment variable
+    local chat_id="\${TELEGRAM_CHAT_ID:-}"
+    
+    if [[ -z "\$chat_id" ]]; then
+        log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
+        return 1
+    fi`;
+    }
+  }
+
+  private generateBotTokenCode(data: TelegramNodeData, nodeId: string): string {
+    if (data.bot_token) {
+      // Use bot_token from node configuration
+      return `    # Use bot_token from node configuration
+    local bot_token="${this.processTemplateVariables(data.bot_token, nodeId)}"`;
+    } else {
+      // Use bot_token from environment variable
+      return `    # Use bot_token from environment variable
+    local bot_token="\${TELEGRAM_BOT_TOKEN:-}"
+    
+    if [[ -z "\$bot_token" ]]; then
+        log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
+        return 1
+    fi`;
+    }
+  }
+
+  private generateEscapingCode(_parseMode: string): string {
+    return `    # Character escaping functions for Telegram
+    escape_html() {
+        local text="\$1"
+        text="\${text//&/&amp;}"
+        text="\${text//</&lt;}"
+        text="\${text//>/&gt;}"
+        echo "\$text"
+    }
+
+    escape_markdown() {
+        local text="\$1"
+        # Escape special MarkdownV2 characters
+        text="\${text//_/\\_}"
+        text="\${text//*/\\*}"
+        text="\${text//[/\\[}"
+        text="\${text//]/\\]}"
+        text="\${text//(/\\(}"
+        text="\${text//)/\\)}"
+        text="\${text//~/\\~}"
+        text="\${text//\\\`/\\\\\\\`}"
+        text="\${text//>/\\>}"
+        text="\${text//#/\\#}"
+        text="\${text//+/\\+}"
+        text="\${text//-/\\-}"
+        text="\${text//=/\\=}"
+        text="\${text//|/\\|}"
+        text="\${text//\\{/\\\\{}"
+        text="\${text//\\}/\\\\}}"
+        text="\${text//./\\.}"
+        text="\${text//!/\\!}"
+        echo "\$text"
+    }`;
+  }
+
+  override validate(node: WorkflowNode): ValidationResult {
+    const result = super.validate(node);
+    const data = node.data as TelegramNodeData;
+
+    // Telegram specific validation
+    if (!data.message) {
+      result.errors.push({
+        type: 'error',
+        code: 'MISSING_MESSAGE',
+        message: 'Telegram node must specify a message',
+        nodeId: node.id,
+      });
+    }
+
+    // Validate parse_mode
+    if (data.parse_mode) {
+      const validParseModes = ['HTML', 'Markdown', 'MarkdownV2'];
+      if (!validParseModes.includes(data.parse_mode)) {
+        result.errors.push({
+          type: 'error',
+          code: 'INVALID_PARSE_MODE',
+          message: `Invalid parse mode "${data.parse_mode}". Must be one of: ${validParseModes.join(', ')}`,
+          nodeId: node.id,
+        });
+      }
+    }
+
+    // Validate max_retries
+    if (data.max_retries !== undefined) {
+      if (data.max_retries < 0) {
+        result.errors.push({
+          type: 'error',
+          code: 'INVALID_MAX_RETRIES',
+          message: 'max_retries must be a non-negative number',
+          nodeId: node.id,
+        });
+      } else if (data.max_retries > 10) {
+        result.warnings.push({
+          type: 'warning',
+          code: 'HIGH_MAX_RETRIES',
+          message: 'max_retries is very high (>10), consider if this is intentional',
+          nodeId: node.id,
+        });
+      }
+    }
+
+    // Validate reply_to_message_id
+    if (data.reply_to_message_id !== undefined && data.reply_to_message_id < 1) {
+      result.errors.push({
+        type: 'error',
+        code: 'INVALID_REPLY_MESSAGE_ID',
+        message: 'reply_to_message_id must be a positive number',
+        nodeId: node.id,
+      });
+    }
+
+    // Warning if neither chat_id nor environment variable pattern is used
+    if (!data.chat_id) {
+      result.warnings.push({
+        type: 'warning',
+        code: 'MISSING_CHAT_ID_CONFIG',
+        message:
+          'No chat_id specified in node configuration - ensure TELEGRAM_CHAT_ID environment variable is set',
+        nodeId: node.id,
+      });
+    }
+
+    // Warning if neither bot_token nor environment variable pattern is used
+    if (!data.bot_token) {
+      result.warnings.push({
+        type: 'warning',
+        code: 'MISSING_BOT_TOKEN_CONFIG',
+        message:
+          'No bot_token specified in node configuration - ensure TELEGRAM_BOT_TOKEN environment variable is set',
+        nodeId: node.id,
+      });
+    }
+
+    // Update valid field based on errors
+    result.valid = result.errors.length === 0;
+
+    return result;
+  }
+
+  getVariables(node: WorkflowNode): string[] {
+    const variables: string[] = [];
+    const data = node.data as TelegramNodeData;
+
+    // Extract variables from template fields
+    if (data.message) {
+      variables.push(...this.extractTemplateVariables(data.message));
+    }
+
+    if (data.chat_id) {
+      variables.push(...this.extractTemplateVariables(data.chat_id));
+    }
+
+    if (data.bot_token) {
+      variables.push(...this.extractTemplateVariables(data.bot_token));
+    }
+
+    // Add Telegram response variables that this node provides
+    variables.push('TELEGRAM_SUCCESS');
+    variables.push('TELEGRAM_HTTP_CODE');
+    variables.push('TELEGRAM_RESPONSE');
+    variables.push('TELEGRAM_MESSAGE_SENT');
+    variables.push('TELEGRAM_ERROR');
+
+    return [...new Set(variables)];
+  }
+}

@@ -27,6 +27,7 @@ export type NodeType =
   | 'retry'
   | 'fallback'
   | 'circuit-breaker'
+  | 'telegram'
   | 'answer';
 
 export type VariableType =
@@ -337,6 +338,16 @@ export interface CircuitBreakerNodeData extends BaseNodeData {
   monitor_window?: number; // Time window for failure counting in seconds (default: 300)
 }
 
+export interface TelegramNodeData extends BaseNodeData {
+  chat_id?: string; // Optional - can use env var TELEGRAM_CHAT_ID
+  message: string; // Required - message content
+  bot_token?: string; // Optional - can use env var TELEGRAM_BOT_TOKEN
+  parse_mode?: 'HTML' | 'Markdown' | 'MarkdownV2'; // Default: HTML
+  max_retries?: number; // Default: 3
+  disable_notification?: boolean; // Optional
+  reply_to_message_id?: number; // Optional
+}
+
 // =============================================================================
 // Node Interface
 // =============================================================================
@@ -359,6 +370,7 @@ export type NodeData =
   | RetryNodeData
   | FallbackNodeData
   | CircuitBreakerNodeData
+  | TelegramNodeData
   | AnswerNodeData;
 
 export interface WorkflowNode {
@@ -525,4 +537,10 @@ export function isAnswerNode(
   node: WorkflowNode
 ): node is WorkflowNode & { type: 'answer'; data: AnswerNodeData } {
   return node.type === 'answer';
+}
+
+export function isTelegramNode(
+  node: WorkflowNode
+): node is WorkflowNode & { type: 'telegram'; data: TelegramNodeData } {
+  return node.type === 'telegram';
 }
