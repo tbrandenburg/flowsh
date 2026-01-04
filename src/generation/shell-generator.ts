@@ -421,6 +421,15 @@ function generateMainExecution(
         executionSteps.push('');
         executionSteps.push(`# Node: ${node.id}`);
         executionSteps.push(nodeCode);
+
+        // For function-based nodes, also generate the function call
+        if (nodeCode.includes('() {')) {
+          // This is a function definition, we need to call it
+          const functionCall = generateFunctionCall(node, nodeCode);
+          if (functionCall) {
+            executionSteps.push(functionCall);
+          }
+        }
       }
 
       // Update progress after processing each node
@@ -448,6 +457,19 @@ function generateMainExecution(
   }
 
   return executionSteps.join('\n');
+}
+
+/**
+ * Generate a function call for nodes that define functions
+ */
+function generateFunctionCall(_node: WorkflowNode, nodeCode: string): string | null {
+  // Extract function name from the generated code
+  const functionMatch = nodeCode.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\(\)\s*\{/m);
+  if (functionMatch) {
+    const functionName = functionMatch[1];
+    return `${functionName}`;
+  }
+  return null;
 }
 
 /**
