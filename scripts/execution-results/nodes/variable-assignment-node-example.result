@@ -1,4 +1,5 @@
 Starting workflow: variable-assignment-node-example
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 415: [: "$(get_workflow_var "NUMBER_INPUT" "default")": integer expression expected
 # 📝 Variable Assignment Node Example Results
 
 ## Original Inputs
@@ -16,19 +17,19 @@ Starting workflow: variable-assignment-node-example
 - **Calculation Base**: 
 
 ## Expression Results
-- **Personalized Greeting**: Hello $(get_workflow_var "USER_NAME" "0")! $(get_workflow_var "WELCOME_MESSAGE" "0")
+- **Personalized Greeting**: Hello User! Welcome to the flowsh variable assignment demonstration!
 - **Mathematical Result**: 94
-- **Current Timestamp**: 2026-01-05 11:12:36
+- **Current Timestamp**: 2026-01-05 12:51:28
 - **System Information**: System: Linux, User: tom, Directory: /home/tom/workspace/ai/made/workspace/flowsh
 - **Status Message**: Low value
 
 ## Advanced Operations
-- **Processed Text**: $(GET_WORKFLOW_VAR "BASE_VALUE" "0")
-- **JSON Data**: {"user": "$(get_workflow_var "USER_NAME" "0")", "value": $(get_workflow_var "NUMBER_INPUT" "0"), "timestamp": "$(get_workflow_var "CURRENT_TIMESTAMP" "0")", "status": "$(get_workflow_var "STATUS_MESSAGE" "0")"}
+- **Processed Text**: HELLO UNIVERSE
+- **JSON Data**: {"user": "User", "value": 42, "timestamp": "2026-01-05 12:51:28", "status": "Low value"}
 - **Environment Summary**: Environment Summary: OS=GNU/Linux, Hostname=tom-nuc7, Shell=/bin/bash, Path=/home/tom/workspace/ai/made/workspace/flowsh
 
 ## Write Mode Operations
-- **Activity Log**:  | Entry 3: Calculation result - $(get_workflow_var "CALCULATED_RESULT" "0")
+- **Activity Log**:  | Entry 3: Calculation result - 94
 - **Temp Data (after clear)**:  (should be empty)
 
 ## Variable Assignment Features Demonstrated

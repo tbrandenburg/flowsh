@@ -1,2 +1,101 @@
 Starting workflow: loop-node-example
 [0;36m🚀 🔄 Starting Loop: Main Processing Loop[0m
+[0;36mℹ️  Loop will execute 10 iterations[0m
+[0;36mℹ️  Loop iteration 1/10[0m
+[0;36mℹ️  Loop iteration 2/10[0m
+[0;36mℹ️  Loop iteration 3/10[0m
+[0;36mℹ️  Loop iteration 4/10[0m
+[0;36mℹ️  Loop iteration 5/10[0m
+[0;36mℹ️  Loop iteration 6/10[0m
+[0;36mℹ️  Loop iteration 7/10[0m
+[0;36mℹ️  Loop iteration 8/10[0m
+[0;36mℹ️  Loop iteration 9/10[0m
+[0;36mℹ️  Loop iteration 10/10[0m
+[0;32m✅ Loop completed after 10 iterations[0m
+Iteration 1: current_value=5, target=50
+Condition passed
+# ⚠️ Loop Terminated - Maximum Iterations Reached
+
+The loop was stopped because it reached the maximum iteration limit.
+
+**Final Results:**
+- Current value: 5
+- Target value: 50
+- Iterations completed: 1
+- Maximum allowed: 10
+- Increment step: 5
+
+**Status**: Target not reached within iteration limit.
+
+**Suggestions:**
+- Increase maximum iterations
+- Increase increment step
+- Reduce target value
+
+# 🎯 Loop Completed Successfully!
+
+The target value was reached within the iteration limit.
+
+**Final Results:**
+- Final value: 5
+- Target value: 50
+- Total iterations: 1
+- Maximum allowed: 10
+- Increment step: 5
+
+**Performance:**
+- Efficiency: 1/10 iterations used
+- Average increment: 5 per iteration
+
+**Status**: ✅ Target reached successfully!
+
+[0;36m🚀 🔄 Starting Loop: Countdown Loop[0m
+[0;36mℹ️  Loop will execute 20 iterations[0m
+[0;36mℹ️  Loop iteration 1/20[0m
+[0;36mℹ️  Loop iteration 2/20[0m
+[0;36mℹ️  Loop iteration 3/20[0m
+[0;36mℹ️  Loop iteration 4/20[0m
+[0;36mℹ️  Loop iteration 5/20[0m
+[0;36mℹ️  Loop iteration 6/20[0m
+[0;36mℹ️  Loop iteration 7/20[0m
+[0;36mℹ️  Loop iteration 8/20[0m
+[0;36mℹ️  Loop iteration 9/20[0m
+[0;36mℹ️  Loop iteration 10/20[0m
+[0;36mℹ️  Loop iteration 11/20[0m
+[0;36mℹ️  Loop iteration 12/20[0m
+[0;36mℹ️  Loop iteration 13/20[0m
+[0;36mℹ️  Loop iteration 14/20[0m
+[0;36mℹ️  Loop iteration 15/20[0m
+[0;36mℹ️  Loop iteration 16/20[0m
+[0;36mℹ️  Loop iteration 17/20[0m
+[0;36mℹ️  Loop iteration 18/20[0m
+[0;36mℹ️  Loop iteration 19/20[0m
+[0;36mℹ️  Loop iteration 20/20[0m
+[0;32m✅ Loop completed after 20 iterations[0m
+# 🔄 Both Loop Examples Completed!
+
+## Loop Example Summary
+
+### 1. Incrementing Loop (Count Up)
+- **Objective**: Count from 0 to 50
+- **Method**: Increment by 5 each iteration
+- **Final value**: 5
+- **Iterations**: 1
+
+### 2. Decrementing Loop (Count Down)  
+- **Objective**: Count from 50 to 0
+- **Method**: Decrement by 5 each iteration
+- **Final value**: -5
+
+## Loop Node Features Demonstrated
+
+- **Condition-based termination**: Loop stops when condition becomes false
+- **Maximum iteration safety**: Prevents infinite loops
+- **Flexible break conditions**: Can break on condition or max iterations
+- **Variable integration**: Loop conditions can use dynamic variables
+- **Multiple loop patterns**: Both increment and decrement patterns
+- **Progress tracking**: Monitor loop progress and performance
+
+This example shows how loop nodes provide controlled, safe iteration with multiple termination mechanisms.
+
+Workflow completed successfully

@@ -2523,7 +2523,7 @@ send_telegram_simple_completion
 
 # Node: workflow_summary
 # Node: workflow_summary
-TELEGRAM_SUMMARY=$(echo 'Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: $(get_workflow_var "USER_NAME" "0") | Level: $(get_workflow_var "NOTIFICATION_LEVEL" "0")')
+TELEGRAM_SUMMARY=$(echo 'Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: '"$(get_workflow_var "USER_NAME" "default")"' | Level: '"$(get_workflow_var "NOTIFICATION_LEVEL" "default")"'')
 set_var "TELEGRAM_SUMMARY" "$TELEGRAM_SUMMARY" "workflow_summary"
 
 # Node: final_results

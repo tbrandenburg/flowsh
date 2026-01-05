@@ -365,7 +365,7 @@ execute_fallback_path() {
 
 # Node: prepare_context
 # Node: prepare_context
-CONTEXT_INFO=$(echo "Current workflow: LLM Node Example. User preferences: Style=$(get_workflow_var "RESPONSE_STYLE" "0"), Length=$(get_workflow_var "MAX_LENGTH" "0"), Examples=$(get_workflow_var "INCLUDE_EXAMPLES" "0")")
+CONTEXT_INFO=$(echo "Current workflow: LLM Node Example. User preferences: Style='"$(get_workflow_var "RESPONSE_STYLE" "default")"', Length='"$(get_workflow_var "MAX_LENGTH" "default")"', Examples='"$(get_workflow_var "INCLUDE_EXAMPLES" "default")"'")
 set_var "CONTEXT_INFO" "$CONTEXT_INFO" "prepare_context"
 
 # Node: basic_llm_chat

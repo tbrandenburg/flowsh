@@ -372,7 +372,7 @@ set_var "FALLBACK_ATTEMPT_COUNT" "0" "initialize_tracking"
 
 # Node: setup_fallback_context
 # Node: setup_fallback_context
-FALLBACK_CONTEXT=$(echo 'Fallback context: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "0"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "0")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "0"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "0")')
+FALLBACK_CONTEXT=$(echo 'Fallback context: Strategy='"$(get_workflow_var "FALLBACK_STRATEGY" "default")"', Max time='"$(get_workflow_var "MAX_FALLBACK_TIME" "default")"'s, Continue='"$(get_workflow_var "CONTINUE_ON_SUCCESS" "default")"', Simulation='"$(get_workflow_var "FAILURE_SIMULATION" "default")"'')
 set_var "FALLBACK_CONTEXT" "$FALLBACK_CONTEXT" "setup_fallback_context"
 
 # Node: primary_service_fallback
@@ -507,7 +507,7 @@ sh -c "echo 'Using default response fallback...' && echo 'Default response: LIMI
 
 # Node: record_primary_fallback_result
 # Node: record_primary_fallback_result
-PRIMARY_FALLBACK_RESULT=$(echo 'Primary fallback completed with strategy: $(get_workflow_var "FALLBACK_STRATEGY" "0")')
+PRIMARY_FALLBACK_RESULT=$(echo 'Primary fallback completed with strategy: '"$(get_workflow_var "FALLBACK_STRATEGY" "default")"'')
 set_var "PRIMARY_FALLBACK_RESULT" "$PRIMARY_FALLBACK_RESULT" "record_primary_fallback_result"
 
 # Node: database_fallback_example
@@ -800,7 +800,7 @@ execute_aggregation_aggregate_fallback_results
 
 # Node: generate_fallback_statistics
 # Node: generate_fallback_statistics
-FALLBACK_STATISTICS=$(echo 'Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "0"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "0")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "0"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "0"), Completion='$(date))
+FALLBACK_STATISTICS=$(echo 'Fallback Statistics: Strategy='"$(get_workflow_var "FALLBACK_STRATEGY" "default")"', Max time='"$(get_workflow_var "MAX_FALLBACK_TIME" "default")"'s, Continue='"$(get_workflow_var "CONTINUE_ON_SUCCESS" "default")"', Simulation='"$(get_workflow_var "FAILURE_SIMULATION" "default")"', Completion='$(date))
 set_var "FALLBACK_STATISTICS" "$FALLBACK_STATISTICS" "generate_fallback_statistics"
 
 # Node: final_report

@@ -1,4 +1,5 @@
 Starting workflow: start-node-example
+scripts/generated-outputs/nodes/start-node-example.sh: line 368: [: '10': integer expression expected
 Condition passed
 ✅ Start Node Example Completed Successfully!
 

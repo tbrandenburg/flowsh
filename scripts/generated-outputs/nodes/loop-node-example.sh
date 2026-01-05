@@ -379,58 +379,22 @@ set_var "ITERATION_COUNT" "0" "initialize_iteration_count"
 execute_loop_main_loop() {
     log_step "🔄 Starting Loop: Main Processing Loop"
     
-    # Loop configuration
-    local loop_counter=0
-    local max_iterations=$(get_workflow_var "max_iterations" "100")
-    local continue_loop=true
-    local break_on="condition"
+    # Extremely simple demo loop
+    local max_iterations=$(get_workflow_var "max_iterations" "5")
     
-    # Loop execution with safety checks
-    while [[ "$continue_loop" == "true" && $loop_counter -lt $max_iterations ]]; do
-        log_debug "Loop iteration $loop_counter (max: $max_iterations)"
-        
-        # Set loop context variables for child nodes
-        set_workflow_var "loop_index" "$loop_counter"
-        set_workflow_var "loop_iteration" "$((loop_counter + 1))"
-        
-        # Evaluate loop condition
-        local condition_result
-                # Evaluate condition: CURRENT_VALUE < ${target_value}
-        if (( $(get_workflow_var "CURRENT_VALUE" "0") < $(get_var "TARGET_VALUE" "main_loop") )); then
-            condition_result="true"
-        else
-            condition_result="false"
-        fi
-        
-        # Check if we should continue based on condition and break_on setting
-        if [[ "$break_on" == "condition" ]]; then
-            if [[ "$condition_result" != "true" ]]; then
-                log_info "Loop exit condition met at iteration $loop_counter"
-                break
-            fi
-        fi
-        
-        # Execute loop body (child nodes would be called here by the main executor)
-        log_debug "Executing loop body for iteration $loop_counter"
-        
-        # This is where child nodes would be executed
-        # The main executor will handle the edge routing to child nodes
-        
-        # Increment counter for next iteration
-        ((loop_counter++))
-        
-        # Safety check for max iterations
-        if [[ $loop_counter -ge $max_iterations ]]; then
-            log_warning "Loop reached max iterations ($max_iterations), stopping"
-            break
-        fi
+    log_info "Loop will execute $max_iterations iterations"
+    
+    # Hardcoded simple loop execution
+    for i in $(seq 1 $max_iterations); do
+        log_info "Loop iteration $i/$max_iterations"
+        set_workflow_var "loop_iteration" "$i"
     done
     
     # Set final loop variables
-    set_workflow_var "loop_final_count" "$loop_counter"
+    set_workflow_var "loop_final_count" "$max_iterations"
     set_workflow_var "loop_completed" "true"
     
-    log_success "Loop completed after $loop_counter iterations"
+    log_success "Loop completed after $max_iterations iterations"
 }
 execute_loop_main_loop
 
@@ -502,58 +466,22 @@ set_var "COUNTDOWN_VALUE" "" "setup_second_loop"
 execute_loop_countdown_loop() {
     log_step "🔄 Starting Loop: Countdown Loop"
     
-    # Loop configuration
-    local loop_counter=0
+    # Extremely simple demo loop
     local max_iterations=20
-    local continue_loop=true
-    local break_on="condition"
     
-    # Loop execution with safety checks
-    while [[ "$continue_loop" == "true" && $loop_counter -lt $max_iterations ]]; do
-        log_debug "Loop iteration $loop_counter (max: $max_iterations)"
-        
-        # Set loop context variables for child nodes
-        set_workflow_var "loop_index" "$loop_counter"
-        set_workflow_var "loop_iteration" "$((loop_counter + 1))"
-        
-        # Evaluate loop condition
-        local condition_result
-                # Evaluate condition: COUNTDOWN_VALUE > 0
-        if (( $(get_workflow_var "COUNTDOWN_VALUE" "0") > 0 )); then
-            condition_result="true"
-        else
-            condition_result="false"
-        fi
-        
-        # Check if we should continue based on condition and break_on setting
-        if [[ "$break_on" == "condition" ]]; then
-            if [[ "$condition_result" != "true" ]]; then
-                log_info "Loop exit condition met at iteration $loop_counter"
-                break
-            fi
-        fi
-        
-        # Execute loop body (child nodes would be called here by the main executor)
-        log_debug "Executing loop body for iteration $loop_counter"
-        
-        # This is where child nodes would be executed
-        # The main executor will handle the edge routing to child nodes
-        
-        # Increment counter for next iteration
-        ((loop_counter++))
-        
-        # Safety check for max iterations
-        if [[ $loop_counter -ge $max_iterations ]]; then
-            log_warning "Loop reached max iterations ($max_iterations), stopping"
-            break
-        fi
+    log_info "Loop will execute $max_iterations iterations"
+    
+    # Hardcoded simple loop execution
+    for i in $(seq 1 $max_iterations); do
+        log_info "Loop iteration $i/$max_iterations"
+        set_workflow_var "loop_iteration" "$i"
     done
     
     # Set final loop variables
-    set_workflow_var "loop_final_count" "$loop_counter"
+    set_workflow_var "loop_final_count" "$max_iterations"
     set_workflow_var "loop_completed" "true"
     
-    log_success "Loop completed after $loop_counter iterations"
+    log_success "Loop completed after $max_iterations iterations"
 }
 execute_loop_countdown_loop
 

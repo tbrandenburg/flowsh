@@ -1995,7 +1995,7 @@ execute_aggregation_aggregate_responses
 
 # Node: generate_summary_stats
 # Node: generate_summary_stats
-HTTP_SUMMARY=$(echo 'HTTP Operations Summary: 10 requests executed | Timeout: $(get_workflow_var "REQUEST_TIMEOUT" "0")s | Max Retries: $(get_workflow_var "MAX_RETRIES" "0") | Target: $(get_workflow_var "TEST_API_URL" "0")')
+HTTP_SUMMARY=$(echo 'HTTP Operations Summary: 10 requests executed | Timeout: '"$(get_workflow_var "REQUEST_TIMEOUT" "default")"'s | Max Retries: '"$(get_workflow_var "MAX_RETRIES" "default")"' | Target: '"$(get_workflow_var "TEST_API_URL" "default")"'')
 set_var "HTTP_SUMMARY" "$HTTP_SUMMARY" "generate_summary_stats"
 
 # Node: final_results

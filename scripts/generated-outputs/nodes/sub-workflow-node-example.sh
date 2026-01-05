@@ -376,7 +376,7 @@ execute_fallback_path() {
 
 # Node: prepare_processing_config
 # Node: prepare_processing_config
-PROCESSING_CONFIG=$(echo 'Main workflow config: Priority=$(get_workflow_var "PROCESSING_PRIORITY" "0"), Timestamp='$(date))
+PROCESSING_CONFIG=$(echo 'Main workflow config: Priority='"$(get_workflow_var "PROCESSING_PRIORITY" "default")"', Timestamp='$(date))
 set_var "PROCESSING_CONFIG" "$PROCESSING_CONFIG" "prepare_processing_config"
 
 # Node: validate_dataset_1
@@ -1160,12 +1160,12 @@ execute_subworkflow_high_priority_processing
 
 # Node: prepare_parallel_data
 # Node: prepare_parallel_data
-PARALLEL_DATA_CHUNK_1=$(echo '$(get_workflow_var "DATASET_1" "0")' | cut -d',' -f1-3)
+PARALLEL_DATA_CHUNK_1=$(echo ''"$(get_workflow_var "DATASET_1" "default")"'' | cut -d',' -f1-3)
 set_var "PARALLEL_DATA_CHUNK_1" "$PARALLEL_DATA_CHUNK_1" "prepare_parallel_data"
 
 # Node: prepare_parallel_data_2
 # Node: prepare_parallel_data_2
-PARALLEL_DATA_CHUNK_2=$(echo '$(get_workflow_var "DATASET_2" "0")' | cut -d',' -f1-3)
+PARALLEL_DATA_CHUNK_2=$(echo ''"$(get_workflow_var "DATASET_2" "default")"'' | cut -d',' -f1-3)
 set_var "PARALLEL_DATA_CHUNK_2" "$PARALLEL_DATA_CHUNK_2" "prepare_parallel_data_2"
 
 # Node: parallel_processing_1
@@ -1626,7 +1626,7 @@ fi
 
 # Node: include_priority_results
 # Node: include_priority_results
-FINAL_RESULTS_WITH_PRIORITY=$(echo '$(get_workflow_var "COMBINED_RESULTS" "0")' && echo && echo 'Priority Processing:' && echo '$(get_workflow_var "PRIORITY_RESULT" "0")')
+FINAL_RESULTS_WITH_PRIORITY=$(echo ''"$(get_workflow_var "COMBINED_RESULTS" "default")"'' && echo && echo 'Priority Processing:' && echo ''"$(get_workflow_var "PRIORITY_RESULT" "default")"'')
 set_var "FINAL_RESULTS_WITH_PRIORITY" "$FINAL_RESULTS_WITH_PRIORITY" "include_priority_results"
 
 # Node: standard_results
@@ -1634,7 +1634,7 @@ set_var "FINAL_RESULTS_WITH_PRIORITY" "" "standard_results"
 
 # Node: generate_execution_summary
 # Node: generate_execution_summary
-EXECUTION_SUMMARY=$(echo 'Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: $(get_workflow_var "PROCESSING_PRIORITY" "0") | Completion: '$(date))
+EXECUTION_SUMMARY=$(echo 'Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: '"$(get_workflow_var "PROCESSING_PRIORITY" "default")"' | Completion: '$(date))
 set_var "EXECUTION_SUMMARY" "$EXECUTION_SUMMARY" "generate_execution_summary"
 
 # Node: final_report

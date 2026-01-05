@@ -378,7 +378,7 @@ execute_fallback_path() {
 
 # Node: prepare_file_array
 # Node: prepare_file_array
-FILES_ARRAY=$(echo '$(get_workflow_var "FILE_LIST" "0")' | tr ',' '
+FILES_ARRAY=$(echo ''"$(get_workflow_var "FILE_LIST" "default")"'' | tr ',' '
 ')
 set_var "FILES_ARRAY" "$FILES_ARRAY" "prepare_file_array"
 
@@ -486,7 +486,7 @@ set_var "CURRENT_FILE" "" "get_current_file"
 
 # Node: analyze_file_type
 # Node: analyze_file_type
-FILE_EXTENSION=$(echo '$(get_workflow_var "CURRENT_FILE" "0")' | sed 's/.*\.//' | tr '[:upper:]' '[:lower:]')
+FILE_EXTENSION=$(echo ''"$(get_workflow_var "CURRENT_FILE" "default")"'' | sed 's/.*\.//' | tr '[:upper:]' '[:lower:]')
 set_var "FILE_EXTENSION" "$FILE_EXTENSION" "analyze_file_type"
 
 # Node: process_by_type
@@ -524,7 +524,7 @@ sh -c "echo 'Processing OTHER: $(get_var "CURRENT_FILE" "process_other_file") ($
 
 # Node: create_file_report
 # Node: create_file_report
-CURRENT_FILE_RESULT=$(echo 'File: $(get_workflow_var "CURRENT_FILE" "0") | Type: $(get_workflow_var "FILE_EXTENSION" "0") | Mode: $(get_workflow_var "PROCESSING_MODE" "0") | Status: Processed | Timestamp: $(date)')
+CURRENT_FILE_RESULT=$(echo 'File: '"$(get_workflow_var "CURRENT_FILE" "default")"' | Type: '"$(get_workflow_var "FILE_EXTENSION" "default")"' | Mode: '"$(get_workflow_var "PROCESSING_MODE" "default")"' | Status: Processed | Timestamp: $(date)')
 set_var "CURRENT_FILE_RESULT" "$CURRENT_FILE_RESULT" "create_file_report"
 
 # Node: collect_iteration_results
@@ -562,13 +562,13 @@ execute_aggregation_collect_iteration_results
 
 # Node: calculate_statistics
 # Node: calculate_statistics
-TOTAL_FILES_PROCESSED=$(echo '$(get_workflow_var "FILE_LIST" "0")' | tr ',' '
+TOTAL_FILES_PROCESSED=$(echo ''"$(get_workflow_var "FILE_LIST" "default")"'' | tr ',' '
 ' | wc -l)
 set_var "TOTAL_FILES_PROCESSED" "$TOTAL_FILES_PROCESSED" "calculate_statistics"
 
 # Node: create_summary_report
 # Node: create_summary_report
-PROCESSING_SUMMARY=$(echo 'Iteration Summary: $(get_workflow_var "TOTAL_FILES_PROCESSED" "0") files processed in $(get_workflow_var "PROCESSING_MODE" "0") mode. Parallel: $(get_workflow_var "ENABLE_PARALLEL" "0")')
+PROCESSING_SUMMARY=$(echo 'Iteration Summary: '"$(get_workflow_var "TOTAL_FILES_PROCESSED" "default")"' files processed in '"$(get_workflow_var "PROCESSING_MODE" "default")"' mode. Parallel: '"$(get_workflow_var "ENABLE_PARALLEL" "default")"'')
 set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary_report"
 
 # Node: final_results

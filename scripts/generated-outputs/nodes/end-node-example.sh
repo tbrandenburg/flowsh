@@ -366,12 +366,12 @@ execute_fallback_path() {
 
 # Node: process_data
 # Node: process_data
-PROCESSED_RESULT=$(echo "Processed: $(get_workflow_var "INPUT_DATA" "0")" | tr '[:lower:]' '[:upper:]')
+PROCESSED_RESULT=$(echo "Processed: '"$(get_workflow_var "INPUT_DATA" "default")"'" | tr '[:lower:]' '[:upper:]')
 set_var "PROCESSED_RESULT" "$PROCESSED_RESULT" "process_data"
 
 # Node: calculate_stats
 # Node: calculate_stats
-DATA_LENGTH=$(echo "$(get_workflow_var "PROCESSED_RESULT" "0")" | wc -c)
+DATA_LENGTH=$(echo "'"$(get_workflow_var "PROCESSED_RESULT" "default")"'" | wc -c)
 set_var "DATA_LENGTH" "$DATA_LENGTH" "calculate_stats"
 
 # Node: generate_timestamp
@@ -381,12 +381,12 @@ set_var "COMPLETION_TIME" "$COMPLETION_TIME" "generate_timestamp"
 
 # Node: create_summary
 # Node: create_summary
-PROCESSING_SUMMARY=$(echo "Processing completed at $(get_workflow_var "COMPLETION_TIME" "0"). Input length: $(get_workflow_var "DATA_LENGTH" "0") characters.")
+PROCESSING_SUMMARY=$(echo "Processing completed at '"$(get_workflow_var "COMPLETION_TIME" "default")"'. Input length: '"$(get_workflow_var "DATA_LENGTH" "default")"' characters.")
 set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary"
 
 # Node: prepare_metadata
 # Node: prepare_metadata
-METADATA=$(echo '{"workflow": "end-node-example", "version": "1.0", "status": "completed", "input_length": '"$(get_workflow_var "DATA_LENGTH" "0")"'}')
+METADATA=$(echo '{"workflow": "end-node-example", "version": "1.0", "status": "completed", "input_length": '"'"$(get_workflow_var "DATA_LENGTH" "default")"'"'}')
 set_var "METADATA" "$METADATA" "prepare_metadata"
 
 # Node: preserve_input

@@ -48,10 +48,19 @@ set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
 
     // Handle template variables like ${variable_name}
     if (stringValue.includes('${')) {
-      // Replace all ${var_name} with $(get_workflow_var "VAR_NAME" "0")
+      // Check if we're in an arithmetic context $((...)
+      const hasArithmeticContext = /\$\(\(.*\$\{[^}]+\}.*\)\)/.test(stringValue);
+
       let result = stringValue.replace(/\$\{([^}]+)\}/g, (_match: string, varName: string) => {
         const sanitizedVar = this.sanitizeVariableName(varName).toUpperCase();
-        return `$(get_workflow_var "${sanitizedVar}" "0")`;
+
+        if (hasArithmeticContext) {
+          // For arithmetic expressions, use unquoted variable substitution
+          return `$(get_workflow_var "${sanitizedVar}" "0")`;
+        } else {
+          // For string expressions, break out of quotes and return to quoted context
+          return `'"$(get_workflow_var "${sanitizedVar}" "default")"'`;
+        }
       });
       return result;
     }

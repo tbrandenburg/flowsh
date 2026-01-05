@@ -1,25 +1,25 @@
 Starting workflow: http-request-node-example
 [0;36m🚀 🌐 HTTP Request: Simple GET Request[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.779062s, size: 255 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.538441s, size: 255 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: GET Request with Custom Headers[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.163523s, size: 264 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.612908s, size: 264 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with JSON Body[0m
 scripts/generated-outputs/nodes/http-request-node-example.sh: line 52: "TEST_DATA": invalid variable name
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.685597s, size: 367 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.530128s, size: 367 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with Form Data[0m
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.592717s, size: 453 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 1.081770s, size: 453 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with Bearer Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.977310s, size: 76 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.669224s, size: 76 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with Basic Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.977098s, size: 51 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.872306s, size: 51 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with API Key Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.643155s, size: 308 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.587161s, size: 308 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: PUT Request for Data Update[0m
-[0;32m✅ HTTP PUT completed successfully (status: 200, time: 0.702007s, size: 629 bytes)[0m
+[0;32m✅ HTTP PUT completed successfully (status: 200, time: 0.483371s, size: 629 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: DELETE Request[0m
-[0;32m✅ HTTP DELETE completed successfully (status: 200, time: 1.189697s, size: 370 bytes)[0m
+[0;32m✅ HTTP DELETE completed successfully (status: 200, time: 0.663125s, size: 370 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with XML Body[0m
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 1.087446s, size: 637 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.606385s, size: 637 bytes)[0m
 [0;36m🚀 📊 Variable Aggregation: Aggregate All HTTP Responses[0m
 [1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 10 inputs -> all_http_responses[0m
@@ -91,7 +91,7 @@ scripts/generated-outputs/nodes/http-request-node-example.sh: line 2115: /post: 
 - **Features**: XML document transmission
 
 ## Response Summary
-HTTP Operations Summary: 10 requests executed | Timeout: $(get_workflow_var "REQUEST_TIMEOUT" "0")s | Max Retries: $(get_workflow_var "MAX_RETRIES" "0") | Target: $(get_workflow_var "TEST_API_URL" "0")
+HTTP Operations Summary: 10 requests executed | Timeout: 30s | Max Retries: 3 | Target: https://httpbin.org
 
 ## Detailed Responses
 

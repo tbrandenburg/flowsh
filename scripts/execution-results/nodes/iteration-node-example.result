@@ -12,7 +12,7 @@ Condition passed
 Processing JSON:  - Mode: analyze - Schema validation and formatting
 Condition passed
 Processing SCRIPT:  - Mode: analyze - Syntax check and permissions
-Processing OTHER:  ($(get_workflow_var "current_file" "0")) - Mode: analyze - Basic file analysis
+Processing OTHER:  (default) - Mode: analyze - Basic file analysis
 [0;36m🚀 📊 Variable Aggregation: Collect All File Results[0m
 [1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 1 inputs -> final_results[0m
@@ -22,14 +22,14 @@ Processing OTHER:  ($(get_workflow_var "current_file" "0")) - Mode: analyze - Ba
 - **Input Files**: config.yaml,data.json,script.sh,README.md,package.json
 - **Processing Mode**: analyze
 - **Parallel Processing**: false
-- **Total Files**: 1
+- **Total Files**: 5
 
 ## Processing Results
 
 
 
 ## Summary Statistics
-Iteration Summary: $(get_workflow_var "TOTAL_FILES_PROCESSED" "0") files processed in $(get_workflow_var "PROCESSING_MODE" "0") mode. Parallel: $(get_workflow_var "ENABLE_PARALLEL" "0")
+Iteration Summary: 5 files processed in analyze mode. Parallel: false
 
 ## File Type Breakdown
 The iteration processed different file types with specialized handling:

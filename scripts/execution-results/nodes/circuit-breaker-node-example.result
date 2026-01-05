@@ -7,7 +7,7 @@ Starting workflow: circuit-breaker-node-example
 Calling protected service: https://api.example.com/health
 Service response: SUCCESS
 [0;36m🚀 ⚡ Circuit Breaker: High-Frequency Operations Circuit Breaker[0m
-[0;36mℹ️  Circuit breaker state: CLOSED (failures: 0, successes: 0)[0m
+[0;36mℹ️  Circuit breaker state: CLOSED (failures: 1, successes: 0)[0m
 [0;36mℹ️  Mock circuit breaker operation (timeout: 30s, threshold: 3)[0m
 [1;33m⚠️  Mock circuit breaker: operation failed (simulated failure)[0m
 [1;33m⚠️  Circuit breaker operation failed (failure 1/10)[0m

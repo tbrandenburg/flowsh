@@ -363,7 +363,7 @@ execute_fallback_path() {
 
 # Node: prepare_agent_prompt
 # Node: prepare_agent_prompt
-AGENT_INSTRUCTIONS=$(echo 'Task: $(get_workflow_var "TASK_DESCRIPTION" "0"). Format: $(get_workflow_var "OUTPUT_FORMAT" "0"). Safety: $(get_workflow_var "SAFETY_MODE" "0"). Generate safe shell commands only.')
+AGENT_INSTRUCTIONS=$(echo 'Task: '"$(get_workflow_var "TASK_DESCRIPTION" "default")"'. Format: '"$(get_workflow_var "OUTPUT_FORMAT" "default")"'. Safety: '"$(get_workflow_var "SAFETY_MODE" "default")"'. Generate safe shell commands only.')
 set_var "AGENT_INSTRUCTIONS" "$AGENT_INSTRUCTIONS" "prepare_agent_prompt"
 
 # Node: system_info_agent

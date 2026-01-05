@@ -365,7 +365,7 @@ execute_fallback_path() {
 
 # Node: validate_inputs
 # Node: validate_inputs
-VALIDATION_STATUS=$(if [ ! -z "$(get_workflow_var "USER_NAME" "0")" ] && [ "$(get_workflow_var "MAX_ITEMS" "0")" -gt 0 ]; then echo "valid"; else echo "invalid"; fi)
+VALIDATION_STATUS=$(if [ ! -z "'"$(get_workflow_var "USER_NAME" "default")"'" ] && [ "'"$(get_workflow_var "MAX_ITEMS" "default")"'" -gt 0 ]; then echo "valid"; else echo "invalid"; fi)
 set_var "VALIDATION_STATUS" "$VALIDATION_STATUS" "validate_inputs"
 
 # Node: process_inputs

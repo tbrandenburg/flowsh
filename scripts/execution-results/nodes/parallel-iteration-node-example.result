@@ -1,4 +1,78 @@
 Starting workflow: parallel-iteration-node-example
 [0;36m🚀 🔁 Parallel Iteration: Parallel Task Processing Engine[0m
-[0;36mℹ️  Starting parallel processing of 1 items (max parallel: 4)[0m
-[0;36mℹ️  Waiting for remaining parallel iterations to complete...[0m
+[0;36mℹ️  Starting parallel processing of 5 items (max parallel: 4)[0m
+[0;36mℹ️  Completed 1/5 items[0m
+[0;36mℹ️  Completed 2/5 items[0m
+[0;36mℹ️  Completed 3/5 items[0m
+[0;36mℹ️  Completed 4/5 items[0m
+[0;36mℹ️  Completed 5/5 items[0m
+[0;32m✅ Parallel iteration completed: processed 5 items[0m
+[0;36mℹ️  Results stored in variable: parallel_results[0m
+[0;36m🚀 🔁 Parallel Iteration: Parallel Task Processing Engine[0m
+[0;36mℹ️  Starting parallel processing of 5 items (max parallel: 4)[0m
+[0;36mℹ️  Completed 1/5 items[0m
+[0;36mℹ️  Completed 2/5 items[0m
+[0;36mℹ️  Completed 3/5 items[0m
+[0;36mℹ️  Completed 4/5 items[0m
+[0;36mℹ️  Completed 5/5 items[0m
+[0;32m✅ Parallel iteration completed: processed 5 items[0m
+[0;36mℹ️  Results stored in variable: parallel_results[0m
+Starting ...
+Completed  at Mon Jan  5 12:51:12 PM CET 2026
+Condition passed
+Complex processing for ...
+Complex task  completed with advanced algorithms
+Standard processing for ...
+Standard task  completed
+[0;36m🚀 📊 Variable Aggregation: Aggregate Parallel Results[0m
+[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Variable aggregation completed: 1 inputs -> combined_results[0m
+scripts/generated-outputs/nodes/parallel-iteration-node-example.sh: line 488: [: "$(get_workflow_var "EXECUTION_DURATION" "default")": integer expression expected
+# 🚀 Parallel Iteration Node Example Results
+
+## Configuration Summary
+- **Total Tasks**: 10
+- **Max Concurrent**: 4
+- **Chunk Size**: 3
+- **Error Handling**: continue
+- **Progress Tracking**: true
+
+## Performance Metrics
+- **Execution Time**: 5 seconds
+- **Throughput**: 10 tasks/second
+- **Concurrency Efficiency**: 4 parallel workers
+- **Chunk Processing**: 3 tasks per batch
+
+## Processing Results
+
+
+
+## Parallel Processing Analysis
+
+### Concurrency Benefits
+- **Scalability**: Processing 10 tasks across 4 parallel workers
+- **Resource Optimization**: Chunked processing with 3 items per batch
+- **Error Resilience**: continue strategy for handling individual failures
+- **Progress Monitoring**: Real-time tracking of true execution progress
+
+### Performance Characteristics
+- **Parallel Speedup**: Theoretical max 4x improvement over sequential processing
+- **Actual Throughput**: 10 tasks/second with current configuration
+- **Resource Utilization**: Balanced load across available parallel workers
+- **Fault Tolerance**: Robust error handling ensures workflow continuation
+
+## Parallel Iteration Node Features Demonstrated
+
+- **Concurrent Execution**: Multiple tasks running simultaneously
+- **Configurable Parallelism**: Adjustable concurrent worker limits
+- **Chunked Processing**: Batch processing for memory efficiency
+- **Progress Tracking**: Real-time monitoring of execution progress
+- **Error Handling Strategies**: Multiple approaches to handle failures
+- **Performance Optimization**: Automatic load balancing and resource management
+- **Worker Management**: Intelligent worker allocation and task distribution
+- **Result Aggregation**: Efficient collection and combination of parallel results
+- **Scalability Controls**: Fine-tuned performance parameters
+
+This example showcases how parallel iteration nodes enable high-performance processing of large datasets with intelligent concurrency management and robust error handling.
+
+Workflow completed successfully
