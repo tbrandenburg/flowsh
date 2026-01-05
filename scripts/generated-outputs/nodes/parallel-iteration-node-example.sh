@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 TASK_LIST=${TASK_LIST:-""}
 MAX_CONCURRENT=${MAX_CONCURRENT:-""}
@@ -161,10 +199,10 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: prepare_task_array
-TASKS_ARRAY=""
+set_var "TASKS_ARRAY" "" "prepare_task_array"
 
 # Node: setup_performance_monitoring
-START_TIME=""
+set_var "START_TIME" "" "setup_performance_monitoring"
 
 # Node: parallel_task_processor
 # Node: parallel_task_processor (Parallel Task Processing Engine)
@@ -320,15 +358,16 @@ execute_parallel_iteration_parallel_task_processor() {
     rm -rf "$temp_dir"
     return 0
 }
+execute_parallel_iteration_parallel_task_processor
 
 # Node: process_individual_task
-CURRENT_TASK=""
+set_var "CURRENT_TASK" "" "process_individual_task"
 
 # Node: simulate_task_work
 sh
 
 # Node: generate_task_result
-TASK_RESULT=""
+set_var "TASK_RESULT" "" "generate_task_result"
 
 # Node: task_complexity_check
 if true; then
@@ -505,18 +544,19 @@ execute_aggregation_aggregate_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_results
 
 # Node: calculate_performance_metrics
-END_TIME=""
+set_var "END_TIME" "" "calculate_performance_metrics"
 
 # Node: compute_execution_stats
-EXECUTION_DURATION=""
+set_var "EXECUTION_DURATION" "" "compute_execution_stats"
 
 # Node: count_processed_tasks
-TOTAL_TASKS=""
+set_var "TOTAL_TASKS" "" "count_processed_tasks"
 
 # Node: calculate_throughput
-THROUGHPUT=""
+set_var "THROUGHPUT" "" "calculate_throughput"
 
 # Node: final_report
 echo "# 🚀 Parallel Iteration Node Example Results

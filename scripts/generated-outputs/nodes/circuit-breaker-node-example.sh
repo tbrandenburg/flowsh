@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 FAILURE_THRESHOLD=${FAILURE_THRESHOLD:-""}
 TIMEOUT_DURATION=${TIMEOUT_DURATION:-""}
@@ -164,13 +202,13 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: initialize_circuit_state
-CIRCUIT_STATE="CLOSED"
+set_var "CIRCUIT_STATE" "CLOSED" "initialize_circuit_state"
 
 # Node: initialize_failure_count
-FAILURE_COUNT="0"
+set_var "FAILURE_COUNT" "0" "initialize_failure_count"
 
 # Node: setup_monitoring_context
-MONITORING_CONTEXT=""
+set_var "MONITORING_CONTEXT" "" "setup_monitoring_context"
 
 # Node: basic_circuit_breaker
 # Node: basic_circuit_breaker (basic_circuit_breaker)
@@ -343,12 +381,13 @@ EOF
         echo "Circuit breaker not initialized"
     fi
 }
+execute_circuit_breaker_basic_circuit_breaker
 
 # Node: protected_service_call
 sh
 
 # Node: record_basic_result
-BASIC_CIRCUIT_RESULT=""
+set_var "BASIC_CIRCUIT_RESULT" "" "record_basic_result"
 
 # Node: high_frequency_circuit_breaker
 # Node: high_frequency_circuit_breaker (high_frequency_circuit_breaker)
@@ -521,6 +560,7 @@ EOF
         echo "Circuit breaker not initialized"
     fi
 }
+execute_circuit_breaker_high_frequency_circuit_breaker
 
 # Node: high_frequency_operation
 sh
@@ -696,6 +736,7 @@ EOF
         echo "Circuit breaker not initialized"
     fi
 }
+execute_circuit_breaker_database_circuit_breaker
 
 # Node: database_operation
 sh
@@ -871,15 +912,16 @@ EOF
         echo "Circuit breaker not initialized"
     fi
 }
+execute_circuit_breaker_external_api_circuit_breaker
 
 # Node: external_api_call
 sh
 
 # Node: monitor_circuit_states
-CIRCUIT_STATES_SUMMARY=""
+set_var "CIRCUIT_STATES_SUMMARY" "" "monitor_circuit_states"
 
 # Node: generate_health_metrics
-HEALTH_METRICS=""
+set_var "HEALTH_METRICS" "" "generate_health_metrics"
 
 # Node: aggregate_circuit_results
 
@@ -1044,9 +1086,10 @@ execute_aggregation_aggregate_circuit_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_circuit_results
 
 # Node: generate_circuit_summary
-CIRCUIT_SUMMARY=""
+set_var "CIRCUIT_SUMMARY" "" "generate_circuit_summary"
 
 # Node: final_report
 echo "# ⚡ Circuit Breaker Node Example Results

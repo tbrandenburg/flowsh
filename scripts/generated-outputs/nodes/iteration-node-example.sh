@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 FILE_LIST=${FILE_LIST:-""}
 PROCESSING_MODE=${PROCESSING_MODE:-""}
@@ -165,10 +203,10 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: prepare_file_array
-FILES_ARRAY=""
+set_var "FILES_ARRAY" "" "prepare_file_array"
 
 # Node: initialize_results
-PROCESSING_RESULTS=""
+set_var "PROCESSING_RESULTS" "" "initialize_results"
 
 # Node: iterate_files
 
@@ -264,12 +302,13 @@ execute_iteration_iterate_files_sequential_sequential() {
     # Call sequential implementation
     execute_iteration_iterate_files_sequential
 }
+execute_iteration_iterate_files
 
 # Node: get_current_file
-CURRENT_FILE=""
+set_var "CURRENT_FILE" "" "get_current_file"
 
 # Node: analyze_file_type
-FILE_EXTENSION=""
+set_var "FILE_EXTENSION" "" "analyze_file_type"
 
 # Node: process_by_type
 if true; then
@@ -305,7 +344,7 @@ sh
 sh
 
 # Node: create_file_report
-CURRENT_FILE_RESULT=""
+set_var "CURRENT_FILE_RESULT" "" "create_file_report"
 
 # Node: collect_iteration_results
 
@@ -469,12 +508,13 @@ execute_aggregation_collect_iteration_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_collect_iteration_results
 
 # Node: calculate_statistics
-TOTAL_FILES_PROCESSED=""
+set_var "TOTAL_FILES_PROCESSED" "" "calculate_statistics"
 
 # Node: create_summary_report
-PROCESSING_SUMMARY=""
+set_var "PROCESSING_SUMMARY" "" "create_summary_report"
 
 # Node: final_results
 echo "# 🔄 Iteration Node Example Results

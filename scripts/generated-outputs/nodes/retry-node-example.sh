@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 MAX_RETRY_ATTEMPTS=${MAX_RETRY_ATTEMPTS:-""}
 BASE_DELAY=${BASE_DELAY:-""}
@@ -159,10 +197,10 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: initialize_retry_tracking
-RETRY_ATTEMPT_COUNT="0"
+set_var "RETRY_ATTEMPT_COUNT" "0" "initialize_retry_tracking"
 
 # Node: initialize_success_tracking
-OPERATION_SUCCESS_COUNT="0"
+set_var "OPERATION_SUCCESS_COUNT" "0" "initialize_success_tracking"
 
 # Node: retry_network_operation
 # Node: retry_network_operation (retry_network_operation)
@@ -213,12 +251,13 @@ execute_retry_retry_network_operation() {
     log_error "All $max_attempts retry attempts failed"
     return $exit_code
 }
+execute_retry_retry_network_operation
 
 # Node: simulate_network_call
 sh
 
 # Node: record_network_success
-NETWORK_OPERATION_RESULT="Network operation completed successfully after retries"
+set_var "NETWORK_OPERATION_RESULT" "Network operation completed successfully after retries" "record_network_success"
 
 # Node: retry_timeout_operation
 # Node: retry_timeout_operation (retry_timeout_operation)
@@ -274,12 +313,13 @@ execute_retry_retry_timeout_operation() {
     log_error "All $max_attempts retry attempts failed"
     return $exit_code
 }
+execute_retry_retry_timeout_operation
 
 # Node: simulate_timeout_operation
 sh
 
 # Node: record_timeout_success
-TIMEOUT_OPERATION_RESULT="Timeout operation completed successfully"
+set_var "TIMEOUT_OPERATION_RESULT" "Timeout operation completed successfully" "record_timeout_success"
 
 # Node: retry_network_only
 # Node: retry_network_only (retry_network_only)
@@ -338,12 +378,13 @@ execute_retry_retry_network_only() {
     log_error "All $max_attempts retry attempts failed"
     return $exit_code
 }
+execute_retry_retry_network_only
 
 # Node: simulate_network_specific
 sh
 
 # Node: record_network_specific_success
-NETWORK_SPECIFIC_RESULT="Network-specific operation completed after appropriate retries"
+set_var "NETWORK_SPECIFIC_RESULT" "Network-specific operation completed after appropriate retries" "record_network_specific_success"
 
 # Node: advanced_retry_operation
 # Node: advanced_retry_operation (advanced_retry_operation)
@@ -394,15 +435,16 @@ execute_retry_advanced_retry_operation() {
     log_error "All $max_attempts retry attempts failed"
     return $exit_code
 }
+execute_retry_advanced_retry_operation
 
 # Node: complex_operation_simulation
 sh
 
 # Node: record_complex_success
-COMPLEX_OPERATION_RESULT=""
+set_var "COMPLEX_OPERATION_RESULT" "" "record_complex_success"
 
 # Node: calculate_retry_statistics
-RETRY_STATISTICS=""
+set_var "RETRY_STATISTICS" "" "calculate_retry_statistics"
 
 # Node: aggregate_all_results
 
@@ -566,6 +608,7 @@ execute_aggregation_aggregate_all_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_all_results
 
 # Node: final_report
 echo "# 🔄 Retry Node Example Results

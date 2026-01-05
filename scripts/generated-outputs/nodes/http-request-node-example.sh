@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 TEST_API_URL=${TEST_API_URL:-""}
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-""}
@@ -303,6 +341,7 @@ execute_http_simple_get_request() {
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_simple_get_request
 
 # Node: get_with_headers
 
@@ -453,6 +492,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_get_with_headers
 
 # Node: post_json_request
 
@@ -622,6 +662,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_post_json_request
 
 # Node: post_form_request
 
@@ -791,6 +832,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_post_form_request
 
 # Node: authenticated_request
 
@@ -947,6 +989,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_authenticated_request
 
 # Node: basic_auth_request
 
@@ -1103,6 +1146,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_basic_auth_request
 
 # Node: api_key_request
 
@@ -1260,6 +1304,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_api_key_request
 
 # Node: put_update_request
 
@@ -1429,6 +1474,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_put_update_request
 
 # Node: delete_request
 
@@ -1577,6 +1623,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_delete_request
 
 # Node: post_xml_request
 
@@ -1753,6 +1800,7 @@ EOF
     
     log_debug "HTTP request completed, check http_success variable for result"
 }
+execute_http_post_xml_request
 
 # Node: aggregate_responses
 
@@ -1917,9 +1965,10 @@ execute_aggregation_aggregate_responses() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_responses
 
 # Node: generate_summary_stats
-HTTP_SUMMARY=""
+set_var "HTTP_SUMMARY" "" "generate_summary_stats"
 
 # Node: final_results
 echo "# 🌐 HTTP Request Node Example Results

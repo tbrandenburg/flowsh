@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 PRIMARY_SERVICE_URL=${PRIMARY_SERVICE_URL:-""}
 FALLBACK_STRATEGY=${FALLBACK_STRATEGY:-""}
@@ -159,10 +197,10 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: initialize_tracking
-FALLBACK_ATTEMPT_COUNT="0"
+set_var "FALLBACK_ATTEMPT_COUNT" "0" "initialize_tracking"
 
 # Node: setup_fallback_context
-FALLBACK_CONTEXT=""
+set_var "FALLBACK_CONTEXT" "" "setup_fallback_context"
 
 # Node: primary_service_fallback
 # Node: primary_service_fallback (primary_service_fallback)
@@ -280,6 +318,7 @@ execute_fallback_primary_service_fallback() {
             ;;
     esac
 }
+execute_fallback_primary_service_fallback
 
 # Node: primary_service_call
 sh
@@ -294,7 +333,7 @@ sh
 sh
 
 # Node: record_primary_fallback_result
-PRIMARY_FALLBACK_RESULT=""
+set_var "PRIMARY_FALLBACK_RESULT" "" "record_primary_fallback_result"
 
 # Node: database_fallback_example
 # Node: database_fallback_example (database_fallback_example)
@@ -412,6 +451,7 @@ execute_fallback_database_fallback_example() {
             ;;
     esac
 }
+execute_fallback_database_fallback_example
 
 # Node: primary_database_call
 sh
@@ -538,6 +578,7 @@ execute_fallback_parallel_fallback_example() {
             ;;
     esac
 }
+execute_fallback_parallel_fallback_example
 
 # Node: fast_service_call
 sh
@@ -711,9 +752,10 @@ execute_aggregation_aggregate_fallback_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_fallback_results
 
 # Node: generate_fallback_statistics
-FALLBACK_STATISTICS=""
+set_var "FALLBACK_STATISTICS" "" "generate_fallback_statistics"
 
 # Node: final_report
 echo "# 🛡️ Fallback Node Example Results

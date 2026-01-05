@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 BASE_VALUE=${BASE_VALUE:-""}
 NUMBER_INPUT=${NUMBER_INPUT:-""}
@@ -164,61 +202,61 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: assign_constant_string
-WELCOME_MESSAGE="Welcome to the flowsh variable assignment demonstration!"
+set_var "WELCOME_MESSAGE" "Welcome to the flowsh variable assignment demonstration!" "assign_constant_string"
 
 # Node: assign_constant_number
-MAX_ATTEMPTS="3"
+set_var "MAX_ATTEMPTS" "3" "assign_constant_number"
 
 # Node: assign_constant_boolean
-DEBUG_ENABLED="true"
+set_var "DEBUG_ENABLED" "true" "assign_constant_boolean"
 
 # Node: copy_variable
-ORIGINAL_INPUT=""
+set_var "ORIGINAL_INPUT" "" "copy_variable"
 
 # Node: copy_number_variable
-CALCULATION_BASE=""
+set_var "CALCULATION_BASE" "" "copy_number_variable"
 
 # Node: string_concatenation
-PERSONALIZED_GREETING=""
+set_var "PERSONALIZED_GREETING" "" "string_concatenation"
 
 # Node: mathematical_calculation
-CALCULATED_RESULT=""
+set_var "CALCULATED_RESULT" "" "mathematical_calculation"
 
 # Node: date_timestamp
-CURRENT_TIMESTAMP=""
+set_var "CURRENT_TIMESTAMP" "" "date_timestamp"
 
 # Node: file_operation
-SYSTEM_INFO=""
+set_var "SYSTEM_INFO" "" "file_operation"
 
 # Node: conditional_expression
-STATUS_MESSAGE=""
+set_var "STATUS_MESSAGE" "" "conditional_expression"
 
 # Node: initialize_log
-ACTIVITY_LOG="Log initialized"
+set_var "ACTIVITY_LOG" "Log initialized" "initialize_log"
 
 # Node: append_to_log_1
-ACTIVITY_LOG=""
+set_var "ACTIVITY_LOG" "" "append_to_log_1"
 
 # Node: append_to_log_2
-ACTIVITY_LOG=""
+set_var "ACTIVITY_LOG" "" "append_to_log_2"
 
 # Node: append_calculation
-ACTIVITY_LOG=""
+set_var "ACTIVITY_LOG" "" "append_calculation"
 
 # Node: complex_string_manipulation
-PROCESSED_TEXT=""
+set_var "PROCESSED_TEXT" "" "complex_string_manipulation"
 
 # Node: json_creation
-JSON_DATA=""
+set_var "JSON_DATA" "" "json_creation"
 
 # Node: environment_info
-ENV_SUMMARY=""
+set_var "ENV_SUMMARY" "" "environment_info"
 
 # Node: create_temp_variable
-TEMP_DATA="This is temporary data that will be cleared"
+set_var "TEMP_DATA" "This is temporary data that will be cleared" "create_temp_variable"
 
 # Node: clear_temp_variable
-TEMP_DATA=""
+set_var "TEMP_DATA" "" "clear_temp_variable"
 
 # Node: final_summary
 echo "# 📝 Variable Assignment Node Example Results

@@ -22,6 +22,44 @@ NC='\033[0m'
 VERBOSE=${VERBOSE:-false}
 AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
 
+# =============================================================================
+# VARIABLE MANAGEMENT FUNCTIONS
+# =============================================================================
+
+# Set variable with debug logging
+# Usage: set_var "variable_name" "value" "node_id"
+set_var() {
+    local var_name="$1"
+    local value="$2" 
+    local node_id="${3:-root}"
+    
+    # Set the variable globally
+    declare -g "$var_name"="$value"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+    fi
+}
+
+# Get variable value with debug logging  
+# Usage: get_var "variable_name" "node_id"
+get_var() {
+    local var_name="$1"
+    local node_id="${2:-root}"
+    
+    # Get the variable value using indirect expansion
+    local value="${!var_name:-}"
+    
+    # Debug logging when FLOWSH_DEBUG=true
+    if [[ "${FLOWSH_DEBUG:-false}" == "true" ]]; then
+        echo "[DEBUG] $node_id: GET $var_name = '$value'" >&2
+    fi
+    
+    # Return the value
+    echo "$value"
+}
+
 # Environment Variables
 DATASET_1=${DATASET_1:-""}
 DATASET_2=${DATASET_2:-""}
@@ -173,7 +211,7 @@ substitute_variables() {
 # Workflow Execution
 
 # Node: prepare_processing_config
-PROCESSING_CONFIG=""
+set_var "PROCESSING_CONFIG" "" "prepare_processing_config"
 
 # Node: validate_dataset_1
 
@@ -366,6 +404,7 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_validate_dataset_1
 
 # Node: transform_dataset_2
 
@@ -558,6 +597,7 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_transform_dataset_2
 
 # Node: analyze_dataset_3
 
@@ -750,6 +790,7 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_analyze_dataset_3
 
 # Node: check_priority_processing
 if true; then
@@ -949,12 +990,13 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_high_priority_processing
 
 # Node: prepare_parallel_data
-PARALLEL_DATA_CHUNK_1=""
+set_var "PARALLEL_DATA_CHUNK_1" "" "prepare_parallel_data"
 
 # Node: prepare_parallel_data_2
-PARALLEL_DATA_CHUNK_2=""
+set_var "PARALLEL_DATA_CHUNK_2" "" "prepare_parallel_data_2"
 
 # Node: parallel_processing_1
 
@@ -1146,6 +1188,7 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_parallel_processing_1
 
 # Node: parallel_processing_2
 
@@ -1337,6 +1380,7 @@ EOF
 
     log_success "Sub-workflow completed successfully"
 }
+execute_subworkflow_parallel_processing_2
 
 # Node: aggregate_subworkflow_results
 
@@ -1500,6 +1544,7 @@ execute_aggregation_aggregate_subworkflow_results() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_subworkflow_results
 
 # Node: aggregate_metadata
 
@@ -1662,6 +1707,7 @@ execute_aggregation_aggregate_metadata() {
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
+execute_aggregation_aggregate_metadata
 
 # Node: check_priority_results
 if true; then
@@ -1671,13 +1717,13 @@ else
 fi
 
 # Node: include_priority_results
-FINAL_RESULTS_WITH_PRIORITY=""
+set_var "FINAL_RESULTS_WITH_PRIORITY" "" "include_priority_results"
 
 # Node: standard_results
-FINAL_RESULTS_WITH_PRIORITY=""
+set_var "FINAL_RESULTS_WITH_PRIORITY" "" "standard_results"
 
 # Node: generate_execution_summary
-EXECUTION_SUMMARY=""
+set_var "EXECUTION_SUMMARY" "" "generate_execution_summary"
 
 # Node: final_report
 echo "# 🔄 Sub-workflow Node Example Results
