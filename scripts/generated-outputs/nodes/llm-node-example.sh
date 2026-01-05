@@ -369,52 +369,244 @@ CONTEXT_INFO=$(echo "Current workflow: LLM Node Example. User preferences: Style
 set_var "CONTEXT_INFO" "$CONTEXT_INFO" "prepare_context"
 
 # Node: basic_llm_chat
-# Check if API key is available
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    log_warning "OPENAI_API_KEY not set, using mock LLM response"
-    echo "Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello"
-else
-    curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+# Function to validate and extract content from API response
+extract_llm_content() {
+    local response="$1"
+    if [[ -n "$response" ]] && echo "$response" | jq -e '.choices[0].message.content' >/dev/null 2>&1; then
+        echo "$response" | jq -r '.choices[0].message.content'
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo
+llm_response=""
+llm_content=""
+
+# Stage 1: Try OpenAI if API key is available
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    log_info "Using OpenAI API..."
+    llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello"}]}'
+      -d '{"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "OpenAI API successful"
+    else
+        log_warning "OpenAI API failed, trying LLMv7..."
+    fi
 fi
+
+# Stage 2: Try LLMv7 if OpenAI failed or no key available
+if [[ -z "$llm_content" ]]; then
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+        log_info "OPENAI_API_KEY not set, using LLMv7..."
+    fi
+    
+    llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
+      -H "Content-Type: application/json" \
+      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "LLMv7 API successful"
+    else
+        log_warning "LLMv7 API also failed, using mock response"
+    fi
+fi
+
+# Stage 3: Final fallback to demo response
+if [[ -z "$llm_content" ]]; then
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    log_warning "Using mock response as final fallback"
+fi
+
+# Output the final content
+echo "$llm_content"
+extract_llm_content
 
 # Node: advanced_llm_template
-# Check if API key is available
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    log_warning "OPENAI_API_KEY not set, using mock LLM response"
-    echo "Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello"
-else
-    curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+# Function to validate and extract content from API response
+extract_llm_content() {
+    local response="$1"
+    if [[ -n "$response" ]] && echo "$response" | jq -e '.choices[0].message.content' >/dev/null 2>&1; then
+        echo "$response" | jq -r '.choices[0].message.content'
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo
+llm_response=""
+llm_content=""
+
+# Stage 1: Try OpenAI if API key is available
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    log_info "Using OpenAI API..."
+    llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'
+      -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "OpenAI API successful"
+    else
+        log_warning "OpenAI API failed, trying LLMv7..."
+    fi
 fi
+
+# Stage 2: Try LLMv7 if OpenAI failed or no key available
+if [[ -z "$llm_content" ]]; then
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+        log_info "OPENAI_API_KEY not set, using LLMv7..."
+    fi
+    
+    llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
+      -H "Content-Type: application/json" \
+      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "LLMv7 API successful"
+    else
+        log_warning "LLMv7 API also failed, using mock response"
+    fi
+fi
+
+# Stage 3: Final fallback to demo response
+if [[ -z "$llm_content" ]]; then
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    log_warning "Using mock response as final fallback"
+fi
+
+# Output the final content
+echo "$llm_content"
+extract_llm_content
 
 # Node: llm_with_vision
-# Check if API key is available
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    log_warning "OPENAI_API_KEY not set, using mock LLM response"
-    echo "Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello"
-else
-    curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+# Function to validate and extract content from API response
+extract_llm_content() {
+    local response="$1"
+    if [[ -n "$response" ]] && echo "$response" | jq -e '.choices[0].message.content' >/dev/null 2>&1; then
+        echo "$response" | jq -r '.choices[0].message.content'
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo
+llm_response=""
+llm_content=""
+
+# Stage 1: Try OpenAI if API key is available
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    log_info "Using OpenAI API..."
+    llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-4-vision-preview", "messages": [{"role": "user", "content": "Hello"}]}'
+      -d '{"model": "gpt-4-vision-preview", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "OpenAI API successful"
+    else
+        log_warning "OpenAI API failed, trying LLMv7..."
+    fi
 fi
 
+# Stage 2: Try LLMv7 if OpenAI failed or no key available
+if [[ -z "$llm_content" ]]; then
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+        log_info "OPENAI_API_KEY not set, using LLMv7..."
+    fi
+    
+    llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
+      -H "Content-Type: application/json" \
+      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "LLMv7 API successful"
+    else
+        log_warning "LLMv7 API also failed, using mock response"
+    fi
+fi
+
+# Stage 3: Final fallback to demo response
+if [[ -z "$llm_content" ]]; then
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    log_warning "Using mock response as final fallback"
+fi
+
+# Output the final content
+echo "$llm_content"
+extract_llm_content
+
 # Node: completion_mode_llm
-# Check if API key is available
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    log_warning "OPENAI_API_KEY not set, using mock LLM response"
-    echo "Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello"
-else
-    curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+# Function to validate and extract content from API response
+extract_llm_content() {
+    local response="$1"
+    if [[ -n "$response" ]] && echo "$response" | jq -e '.choices[0].message.content' >/dev/null 2>&1; then
+        echo "$response" | jq -r '.choices[0].message.content'
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo
+llm_response=""
+llm_content=""
+
+# Stage 1: Try OpenAI if API key is available
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    log_info "Using OpenAI API..."
+    llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-3.5-turbo-instruct", "messages": [{"role": "user", "content": "Hello"}]}'
+      -d '{"model": "gpt-3.5-turbo-instruct", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "OpenAI API successful"
+    else
+        log_warning "OpenAI API failed, trying LLMv7..."
+    fi
 fi
+
+# Stage 2: Try LLMv7 if OpenAI failed or no key available
+if [[ -z "$llm_content" ]]; then
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+        log_info "OPENAI_API_KEY not set, using LLMv7..."
+    fi
+    
+    llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
+      -H "Content-Type: application/json" \
+      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      --connect-timeout 30 --max-time 60)
+    if extract_llm_content "$llm_response" >/dev/null 2>&1; then
+        llm_content=$(extract_llm_content "$llm_response")
+        log_info "LLMv7 API successful"
+    else
+        log_warning "LLMv7 API also failed, using mock response"
+    fi
+fi
+
+# Stage 3: Final fallback to demo response
+if [[ -z "$llm_content" ]]; then
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    log_warning "Using mock response as final fallback"
+fi
+
+# Output the final content
+echo "$llm_content"
+extract_llm_content
 
 # Node: aggregate_responses
 

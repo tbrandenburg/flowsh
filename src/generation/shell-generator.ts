@@ -492,7 +492,8 @@ function generateMainExecution(
  */
 function generateFunctionCall(_node: WorkflowNode, nodeCode: string): string | null {
   // Extract function name from the generated code
-  const functionMatch = nodeCode.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\(\)\s*\{/m);
+  // Only generate calls for functions that follow the execute_ pattern
+  const functionMatch = nodeCode.match(/^(execute_[a-zA-Z_][a-zA-Z0-9_]*)\(\)\s*\{/m);
   if (functionMatch) {
     const functionName = functionMatch[1];
     return `${functionName}`;
