@@ -95,21 +95,18 @@ graph:
         title: 'Markdown Formatted Message'
         description: 'Message using Markdown parse mode'
         message: |
-          ## 📄 Markdown Example
+          📄 <b>Formatting Features Example</b>
 
-          **Workflow:** `${workflow_name}`
-          **User:** `${user_name}`
+          <i>Workflow:</i> <code>${workflow_name}</code>
+          <i>User:</i> <code>${user_name}</code>
 
-          ### Features Demonstrated:
-          - *Italic text*
-          - **Bold text**
-          - `Code blocks`
-          - [Links](https://telegram.org)
+          <b>HTML Features Demonstrated:</b>
+          • <b>Bold text</b>
+          • <i>Italic text</i>  
+          • <code>Code formatting</code>
 
-          > This is a quote block
-
-          ### Status: ✅ Success
-        parse_mode: 'Markdown'
+          <b>Status:</b> ✅ All formatting working correctly
+        parse_mode: 'HTML'
         max_retries: 3
 
     # Progress notification with variables

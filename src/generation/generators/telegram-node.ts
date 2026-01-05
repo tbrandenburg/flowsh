@@ -76,7 +76,10 @@ ${escapingCode}
             escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
-            escaped_message=$(escape_markdown "$message")
+            # For Markdown modes, escape markdown then JSON
+            local markdown_escaped
+            markdown_escaped=$(escape_markdown "$message")
+            escaped_message=$(escape_json "$markdown_escaped")
             ;;
         *)
             escaped_message=$(escape_json "$message")
