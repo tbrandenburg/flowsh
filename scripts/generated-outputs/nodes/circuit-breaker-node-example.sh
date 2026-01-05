@@ -61,12 +61,12 @@ get_var() {
 }
 
 # Environment Variables
-FAILURE_THRESHOLD=${FAILURE_THRESHOLD:-""}
-TIMEOUT_DURATION=${TIMEOUT_DURATION:-""}
-SUCCESS_THRESHOLD=${SUCCESS_THRESHOLD:-""}
-MONITOR_WINDOW=${MONITOR_WINDOW:-""}
-SERVICE_ENDPOINT=${SERVICE_ENDPOINT:-""}
-FAILURE_SIMULATION_MODE=${FAILURE_SIMULATION_MODE:-""}
+FAILURE_THRESHOLD=${FAILURE_THRESHOLD:-"5"}
+TIMEOUT_DURATION=${TIMEOUT_DURATION:-"60"}
+SUCCESS_THRESHOLD=${SUCCESS_THRESHOLD:-"3"}
+MONITOR_WINDOW=${MONITOR_WINDOW:-"300"}
+SERVICE_ENDPOINT=${SERVICE_ENDPOINT:-"https://api.example.com/health"}
+FAILURE_SIMULATION_MODE=${FAILURE_SIMULATION_MODE:-"intermittent"}
 CIRCUIT_STATE=${CIRCUIT_STATE:-""}
 FAILURE_COUNT=${FAILURE_COUNT:-""}
 MONITORING_CONTEXT=${MONITORING_CONTEXT:-""}
@@ -177,6 +177,45 @@ get_workflow_state() {
     echo "${workflow_state[$state_key]:-$default_value}"
 }
 
+# Temporary file management
+declare -a FLOWSH_TEMP_FILES=()
+
+register_temp_file() {
+    local temp_path="$1"
+    FLOWSH_TEMP_FILES+=("$temp_path")
+    log_debug "Registered temp file: $temp_path"
+}
+
+cleanup_temp_files() {
+    local cleaned_count=0
+    local failed_count=0
+    
+    for temp_file in "${FLOWSH_TEMP_FILES[@]}"; do
+        if [[ -e "$temp_file" ]]; then
+            if rm -rf "$temp_file" 2>/dev/null; then
+                ((cleaned_count++))
+                log_debug "Cleaned up temp file: $temp_file"
+            else
+                ((failed_count++))
+                log_warning "Failed to clean up temp file: $temp_file"
+            fi
+        fi
+    done
+    
+    # Clear the temp files array
+    FLOWSH_TEMP_FILES=()
+    
+    if [[ $cleaned_count -gt 0 ]]; then
+        log_info "Cleaned up $cleaned_count temporary files"
+    fi
+    
+    if [[ $failed_count -gt 0 ]]; then
+        log_warning "Failed to clean up $failed_count temporary files"
+    fi
+    
+    return 0
+}
+
 # Variable substitution in templates
 substitute_variables() {
     local template="$1"
@@ -199,6 +238,122 @@ substitute_variables() {
     echo "$result"
 }
 
+# Process tracking for parallel execution
+declare -a FLOWSH_ACTIVE_PIDS=()
+
+register_process() {
+    local pid="$1"
+    local description="${2:-unknown}"
+    
+    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+        FLOWSH_ACTIVE_PIDS+=("$pid")
+        log_debug "Registered process $pid: $description"
+    else
+        log_warning "Invalid PID for registration: $pid"
+    fi
+}
+
+unregister_process() {
+    local pid="$1"
+    local new_pids=()
+    
+    for active_pid in "${FLOWSH_ACTIVE_PIDS[@]}"; do
+        if [[ "$active_pid" != "$pid" ]]; then
+            new_pids+=("$active_pid")
+        fi
+    done
+    
+    FLOWSH_ACTIVE_PIDS=("${new_pids[@]}")
+    log_debug "Unregistered process $pid"
+}
+
+# Mock circuit breaker operation for testing
+execute_circuit_breaker_operation() {
+    local timeout_seconds="${1:-30}"
+    local failure_threshold="${2:-3}"
+    log_info "Mock circuit breaker operation (timeout: ${timeout_seconds}s, threshold: ${failure_threshold})"
+    
+    # Simulate circuit breaker with 25% failure rate
+    if [[ $((RANDOM % 4)) -eq 0 ]]; then
+        log_warning "Mock circuit breaker: operation failed (simulated failure)"
+        return 1
+    else
+        sleep 2
+        log_success "Mock circuit breaker: operation succeeded"
+        return 0
+    fi
+}
+
+# Mock retry command execution
+execute_retry_command() {
+    local attempt_number="${1:-1}"
+    local max_attempts="${2:-3}"
+    log_info "Mock retry command execution (attempt $attempt_number/$max_attempts)"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success after 2 attempts for realistic retry testing
+    if [[ $attempt_number -ge 2 ]]; then
+        log_success "Mock retry command: succeeded after $attempt_number attempts"
+        return 0
+    else
+        log_warning "Mock retry command: failed on attempt $attempt_number"
+        return 1
+    fi
+}
+
+# Mock sequential iteration processing
+execute_iteration_iterate_files_sequential() {
+    local pattern="${1:-*}"
+    log_info "Mock sequential iteration: processing files matching '$pattern'"
+    
+    # Simulate file processing
+    sleep 0.5
+    local files=("file1.txt" "file2.txt" "file3.txt")
+    
+    for file in "${files[@]}"; do
+        log_info "Processing file: $file"
+        sleep 0.5
+    done
+    
+    log_success "Sequential iteration completed: processed ${#files[@]} files"
+    return 0
+}
+
+# Mock fallback path execution for testing
+execute_fallback_path() {
+    local path_id="${1}"
+    log_info "Mock fallback path execution: $path_id"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success for primary_service_call, failure for others to test fallback behavior
+    case "$path_id" in
+        "primary_service_call")
+            log_success "Primary service call succeeded"
+            return 0
+            ;;
+        "secondary_service_call") 
+            log_warning "Secondary service call failed"
+            return 1
+            ;;
+        "cache_fallback_call")
+            log_warning "Cache fallback failed"
+            return 1
+            ;;
+        "default_response_call")
+            log_success "Default response call succeeded"
+            return 0
+            ;;
+        *)
+            log_info "Unknown fallback path succeeded: $path_id"
+            return 0
+            ;;
+    esac
+}
+
 # Workflow Execution
 
 # Node: initialize_circuit_state
@@ -214,10 +369,10 @@ set_var "MONITORING_CONTEXT" "" "setup_monitoring_context"
 # Node: basic_circuit_breaker (basic_circuit_breaker)
 execute_circuit_breaker_basic_circuit_breaker() {
     log_step "⚡ Circuit Breaker: Basic Service Protection Circuit Breaker"
-    local failure_threshold=${failure_threshold}
-    local timeout_duration=${timeout_duration}
-    local success_threshold=${success_threshold}
-    local monitor_window=${monitor_window}
+    local failure_threshold=$(echo "$(get_var "FAILURE_THRESHOLD" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "5")
+    local timeout_duration=$(echo "$(get_var "TIMEOUT_DURATION" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "60")
+    local success_threshold=$(echo "$(get_var "SUCCESS_THRESHOLD" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "3")
+    local monitor_window=$(echo "$(get_var "MONITOR_WINDOW" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "300")
     
     # Circuit breaker state files
     local state_dir="${FLOWSH_TEMP_DIR:-/tmp}/circuit_breaker_basic_circuit_breaker"
@@ -371,10 +526,10 @@ get_circuit_breaker_stats_basic_circuit_breaker() {
         cat << EOF
 === Circuit Breaker Stats (basic_circuit_breaker) ===
 State: $current_state
-Failures: $failure_count/${failure_threshold}
-Successes: $success_count/${success_threshold}
-Timeout: ${timeout_duration}s
-Monitor Window: ${monitor_window}s
+Failures: $failure_count/$(echo "$(get_var "FAILURE_THRESHOLD" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "5")
+Successes: $success_count/$(echo "$(get_var "SUCCESS_THRESHOLD" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "3")
+Timeout: $(echo "$(get_var "TIMEOUT_DURATION" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "60")s
+Monitor Window: $(echo "$(get_var "MONITOR_WINDOW" "basic_circuit_breaker")" | bc -l 2>/dev/null || echo "300")s
 =====================================
 EOF
     else
@@ -384,7 +539,7 @@ EOF
 execute_circuit_breaker_basic_circuit_breaker
 
 # Node: protected_service_call
-sh
+sh -c "echo 'Calling protected service: $(get_var "SERVICE_ENDPOINT" "protected_service_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "protected_service_call")' in 'stable') echo 'Service response: SUCCESS' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Service response: SUCCESS' && exit 0; else echo 'Service temporarily unavailable' && exit 1; fi ;; 'degraded') if [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Service response: DEGRADED SUCCESS' && exit 0; else echo 'Service degraded response failure' && exit 1; fi ;; 'failing') echo 'Service completely down' && exit 1 ;; 'recovering') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Service response: RECOVERY SUCCESS' && exit 0; else echo 'Service still recovering' && exit 1; fi ;; esac"
 
 # Node: record_basic_result
 set_var "BASIC_CIRCUIT_RESULT" "" "record_basic_result"
@@ -563,7 +718,7 @@ EOF
 execute_circuit_breaker_high_frequency_circuit_breaker
 
 # Node: high_frequency_operation
-sh
+sh -c "echo 'High-frequency operation batch processing...' && for i in 1 2 3 4 5; do echo \"Processing batch \$i\"; if [ '$(get_var "FAILURE_SIMULATION_MODE" "high_frequency_operation")' = 'failing' ] && [ \$i -gt 2 ]; then echo \"Batch \$i failed\" && exit 1; elif [ '$(get_var "FAILURE_SIMULATION_MODE" "high_frequency_operation")' = 'degraded' ] && [ $(( RANDOM % 2 )) -eq 0 ]; then echo \"Batch \$i degraded\" && exit 1; else echo \"Batch \$i success\"; fi; done && echo 'All batches completed successfully' && exit 0"
 
 # Node: database_circuit_breaker
 # Node: database_circuit_breaker (database_circuit_breaker)
@@ -739,15 +894,15 @@ EOF
 execute_circuit_breaker_database_circuit_breaker
 
 # Node: database_operation
-sh
+sh -c "echo 'Executing database query...' && case '$(get_var "FAILURE_SIMULATION_MODE" "database_operation")' in 'stable') echo 'DB Query: SELECT * FROM users - SUCCESS (150 rows returned)' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'DB Query: Connection timeout' && exit 1; else echo 'DB Query: SUCCESS (data retrieved)' && exit 0; fi ;; 'degraded') sleep 2 && echo 'DB Query: SLOW SUCCESS (degraded performance)' && exit 0 ;; 'failing') echo 'DB Query: Connection refused' && exit 1 ;; 'recovering') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'DB Query: RECOVERY SUCCESS' && exit 0; else echo 'DB Query: Still unstable' && exit 1; fi ;; esac"
 
 # Node: external_api_circuit_breaker
 # Node: external_api_circuit_breaker (external_api_circuit_breaker)
 execute_circuit_breaker_external_api_circuit_breaker() {
     log_step "⚡ Circuit Breaker: External API Circuit Breaker"
-    local failure_threshold=${failure_threshold}
+    local failure_threshold=$(echo "$(get_var "FAILURE_THRESHOLD" "external_api_circuit_breaker")" | bc -l 2>/dev/null || echo "5")
     local timeout_duration=90
-    local success_threshold=${success_threshold}
+    local success_threshold=$(echo "$(get_var "SUCCESS_THRESHOLD" "external_api_circuit_breaker")" | bc -l 2>/dev/null || echo "3")
     local monitor_window=240
     
     # Circuit breaker state files
@@ -902,8 +1057,8 @@ get_circuit_breaker_stats_external_api_circuit_breaker() {
         cat << EOF
 === Circuit Breaker Stats (external_api_circuit_breaker) ===
 State: $current_state
-Failures: $failure_count/${failure_threshold}
-Successes: $success_count/${success_threshold}
+Failures: $failure_count/$(echo "$(get_var "FAILURE_THRESHOLD" "external_api_circuit_breaker")" | bc -l 2>/dev/null || echo "5")
+Successes: $success_count/$(echo "$(get_var "SUCCESS_THRESHOLD" "external_api_circuit_breaker")" | bc -l 2>/dev/null || echo "3")
 Timeout: 90s
 Monitor Window: 240s
 =====================================
@@ -915,7 +1070,7 @@ EOF
 execute_circuit_breaker_external_api_circuit_breaker
 
 # Node: external_api_call
-sh
+sh -c "echo 'Calling external API: $(get_var "SERVICE_ENDPOINT" "external_api_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "external_api_call")' in 'stable') echo 'API Response: {\"status\": \"success\", \"data\": \"external data\"}' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'API Error: Rate limit exceeded' && exit 1; else echo 'API Response: {\"status\": \"success\"}' && exit 0; fi ;; 'degraded') sleep 3 && echo 'API Response: {\"status\": \"success\", \"warning\": \"slow response\"}' && exit 0 ;; 'failing') echo 'API Error: Service unavailable (503)' && exit 1 ;; 'recovering') if [ $(( RANDOM % 5 )) -eq 0 ]; then echo 'API Response: {\"status\": \"success\", \"note\": \"service recovered\"}' && exit 0; else echo 'API Error: Service still unstable' && exit 1; fi ;; esac"
 
 # Node: monitor_circuit_states
 set_var "CIRCUIT_STATES_SUMMARY" "" "monitor_circuit_states"

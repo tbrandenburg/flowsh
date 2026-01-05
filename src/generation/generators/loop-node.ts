@@ -12,13 +12,26 @@ import { BaseNodeGenerator } from './base-generator.js';
 export class LoopNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'loop';
 
+  /**
+   * Process configuration values that might contain template variables
+   */
+  private processConfigValue(value: any, defaultValue: any): string {
+    if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+      // This is a template variable, extract the variable name
+      const variableName = value.slice(2, -1);
+      // Return shell code that will resolve the variable at runtime
+      return `\$(get_workflow_var "${variableName}" "${defaultValue}")`;
+    }
+    return value?.toString() || defaultValue.toString();
+  }
+
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const data = node.data as LoopNodeData;
     const nodeId = this.sanitizeVariableName(node.id);
     const functionName = `execute_loop_${nodeId}`;
 
-    // Extract configuration with defaults
-    const maxIterations = data.max_iterations || 100;
+    // Extract configuration with defaults and template variable processing
+    const maxIterations = this.processConfigValue(data.max_iterations, 100);
     const breakOn = data.break_on || 'condition';
     const title = data.title || node.id;
 
@@ -92,6 +105,9 @@ ${functionName}() {
     const operator = condition.comparison_operator;
     const value = condition.value;
 
+    // Process the value to handle template variables
+    const processedValue = this.processConfigValue(value, '0');
+
     // Generate the appropriate comparison based on operator
     let comparisonCode = '';
 
@@ -103,16 +119,16 @@ ${functionName}() {
         comparisonCode = `[[ "\$(get_workflow_var "${variable}" "")" != "${this.escapeShellValue(String(value))}" ]]`;
         break;
       case '>':
-        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") > ${Number(value)} ))`;
+        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") > ${processedValue} ))`;
         break;
       case '<':
-        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") < ${Number(value)} ))`;
+        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") < ${processedValue} ))`;
         break;
       case '>=':
-        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") >= ${Number(value)} ))`;
+        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") >= ${processedValue} ))`;
         break;
       case '<=':
-        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") <= ${Number(value)} ))`;
+        comparisonCode = `(( \$(get_workflow_var "${variable}" "0") <= ${processedValue} ))`;
         break;
       case 'contains':
         comparisonCode = `[[ "\$(get_workflow_var "${variable}" "")" == *"${this.escapeShellValue(String(value))}"* ]]`;

@@ -107,16 +107,41 @@ export class CircuitBreakerNodeGenerator extends BaseNodeGenerator {
     return result;
   }
 
+  private processConfigValue(value: any, defaultValue: number, nodeId: string): string {
+    if (value === undefined || value === null) {
+      return defaultValue.toString();
+    }
+
+    if (typeof value === 'string') {
+      // Check if it's a template variable like "${failure_threshold}"
+      if (value.includes('${') || value.includes('{{')) {
+        // Process template variables to generate shell variable access
+        return `$(echo "${this.processTemplateVariables(value, nodeId)}" | bc -l 2>/dev/null || echo "${defaultValue}")`;
+      }
+      // If it's a plain string that looks like a number, return it
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        return Math.floor(numValue).toString();
+      }
+    }
+
+    if (typeof value === 'number') {
+      return Math.floor(value).toString();
+    }
+
+    return defaultValue.toString();
+  }
+
   override generate(node: WorkflowNode, _context: GenerationContext): string {
     const data = node.data as CircuitBreakerNodeData;
     const nodeId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
     const functionName = `execute_circuit_breaker_${nodeId}`;
 
-    // Extract configuration with defaults
-    const failureThreshold = data.failure_threshold || 5;
-    const timeoutDuration = data.timeout_duration || 60;
-    const successThreshold = data.success_threshold || 3;
-    const monitorWindow = data.monitor_window || 300;
+    // Extract configuration with defaults - handle template variables
+    const failureThreshold = this.processConfigValue(data.failure_threshold, 5, node.id);
+    const timeoutDuration = this.processConfigValue(data.timeout_duration, 60, node.id);
+    const successThreshold = this.processConfigValue(data.success_threshold, 3, node.id);
+    const monitorWindow = this.processConfigValue(data.monitor_window, 300, node.id);
 
     return [
       `# Node: ${node.id} (${nodeId})`,

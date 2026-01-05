@@ -1,0 +1,65 @@
+Starting workflow: variable-assignment-node-example
+# 📝 Variable Assignment Node Example Results
+
+## Original Inputs
+- **Base Value**: Hello World
+- **Number Input**: 42
+- **User Name**: User
+
+## Constant Assignments
+- **Welcome Message**: Welcome to the flowsh variable assignment demonstration!
+- **Max Attempts**: 3
+- **Debug Enabled**: true
+
+## Variable Copying
+- **Original Input Copy**: 
+- **Calculation Base**: 
+
+## Expression Results
+- **Personalized Greeting**: 
+- **Mathematical Result**: 
+- **Current Timestamp**: 
+- **System Information**: 
+- **Status Message**: 
+
+## Advanced Operations
+- **Processed Text**: 
+- **JSON Data**: 
+- **Environment Summary**: 
+
+## Write Mode Operations
+- **Activity Log**: 
+- **Temp Data (after clear)**:  (should be empty)
+
+## Variable Assignment Features Demonstrated
+
+### Assignment Types
+- **Constant**: Direct value assignment (strings, numbers, booleans)
+- **Variable**: Copying values between variables
+- **Expression**: Dynamic value generation using shell commands
+
+### Write Modes
+- **Over-write**: Replace existing value (default behavior)
+- **Append**: Add to existing value (useful for logs and accumulation)
+- **Clear**: Empty the variable (cleanup operations)
+
+### Expression Capabilities
+- **String Concatenation**: Combining multiple variables
+- **Mathematical Operations**: Arithmetic calculations
+- **System Commands**: Executing shell commands for dynamic values
+- **Conditional Logic**: If/else operations in expressions
+- **Text Processing**: Advanced string manipulation (sed, tr, awk)
+- **JSON Generation**: Creating structured data
+- **Environment Access**: Reading system information
+
+### Use Cases
+- **Data Transformation**: Converting and processing input values
+- **Configuration Management**: Setting up workflow parameters
+- **Logging and Tracking**: Building activity logs and audit trails
+- **Calculations**: Mathematical operations and computations
+- **System Integration**: Gathering environment and system information
+- **Dynamic Content**: Creating personalized and contextual outputs
+
+This example demonstrates the full range of variable assignment capabilities, from simple value setting to complex dynamic expression evaluation.
+
+Workflow completed successfully

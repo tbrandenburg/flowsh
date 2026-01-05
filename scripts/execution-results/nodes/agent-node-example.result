@@ -1,0 +1,43 @@
+Starting workflow: agent-node-example
+# 🤖 Agent Node Example Completed!
+
+## Task Executed
+**Original Request**: Create a simple text file with current system information
+**Output Format**: detailed
+**Safety Mode**: true
+
+## Agent Operations Performed
+
+1. **System Information Agent** 🔍
+   - Generated commands to gather system information
+   - Executed safely with proper environment setup
+   - Followed safety guidelines based on user preferences
+
+2. **File Operations Agent** 📝
+   - Created summary files with collected information
+   - Used template-driven command generation
+   - Maintained proper working directory isolation
+
+3. **Validation Agent** ✅
+   - Verified output file creation and contents
+   - Applied requested formatting standards
+   - Performed final validation checks
+
+4. **Cleanup Agent** 🧹
+   - Safely removed temporary files
+   - Followed cleanup best practices
+   - Ensured no resource leaks
+
+## Agent Node Features Demonstrated
+
+- **AI-Powered Command Generation**: Agents dynamically create shell commands based on natural language instructions
+- **Template System Integration**: Inline prompt templates with parameter substitution
+- **Context Awareness**: Agents can reference previous operations and maintain workflow context
+- **Safety Controls**: Built-in safety modes to restrict dangerous operations
+- **Environment Management**: Proper working directory and environment variable handling
+- **Specialized Roles**: Different agents for different types of operations (info gathering, file ops, validation, cleanup)
+- **Timeout Management**: Appropriate timeouts for different complexity tasks
+
+This example demonstrates how agent nodes can provide intelligent, AI-assisted automation while maintaining safety and control.
+
+Workflow completed successfully

@@ -36,10 +36,16 @@ export class LLMNodeGenerator extends BaseNodeGenerator {
     const promptStr = String(prompt || 'Hello');
     const processedPrompt = this.processTemplateVariables(promptStr, node.id);
 
-    return `curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
-  -H "Authorization: Bearer $OPENAI_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model": "${modelName}", "messages": [{"role": "user", "content": "${processedPrompt}"}]}'`;
+    return `# Check if API key is available
+if [[ -z "\${OPENAI_API_KEY:-}" ]]; then
+    log_warning "OPENAI_API_KEY not set, using mock LLM response"
+    echo "Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: ${processedPrompt}"
+else
+    curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
+      -H "Authorization: Bearer $OPENAI_API_KEY" \\
+      -H "Content-Type: application/json" \\
+      -d '{"model": "${modelName}", "messages": [{"role": "user", "content": "${processedPrompt}"}]}'
+fi`;
   }
 
   override validate(node: WorkflowNode): ValidationResult {

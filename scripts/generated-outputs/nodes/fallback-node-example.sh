@@ -61,11 +61,11 @@ get_var() {
 }
 
 # Environment Variables
-PRIMARY_SERVICE_URL=${PRIMARY_SERVICE_URL:-""}
-FALLBACK_STRATEGY=${FALLBACK_STRATEGY:-""}
-MAX_FALLBACK_TIME=${MAX_FALLBACK_TIME:-""}
-CONTINUE_ON_SUCCESS=${CONTINUE_ON_SUCCESS:-""}
-FAILURE_SIMULATION=${FAILURE_SIMULATION:-""}
+PRIMARY_SERVICE_URL=${PRIMARY_SERVICE_URL:-"https://primary-api.example.com"}
+FALLBACK_STRATEGY=${FALLBACK_STRATEGY:-"sequential"}
+MAX_FALLBACK_TIME=${MAX_FALLBACK_TIME:-"120"}
+CONTINUE_ON_SUCCESS=${CONTINUE_ON_SUCCESS:-"false"}
+FAILURE_SIMULATION=${FAILURE_SIMULATION:-"primary_fail"}
 FALLBACK_ATTEMPT_COUNT=${FALLBACK_ATTEMPT_COUNT:-""}
 FALLBACK_CONTEXT=${FALLBACK_CONTEXT:-""}
 PRIMARY_FALLBACK_RESULT=${PRIMARY_FALLBACK_RESULT:-""}
@@ -172,6 +172,45 @@ get_workflow_state() {
     echo "${workflow_state[$state_key]:-$default_value}"
 }
 
+# Temporary file management
+declare -a FLOWSH_TEMP_FILES=()
+
+register_temp_file() {
+    local temp_path="$1"
+    FLOWSH_TEMP_FILES+=("$temp_path")
+    log_debug "Registered temp file: $temp_path"
+}
+
+cleanup_temp_files() {
+    local cleaned_count=0
+    local failed_count=0
+    
+    for temp_file in "${FLOWSH_TEMP_FILES[@]}"; do
+        if [[ -e "$temp_file" ]]; then
+            if rm -rf "$temp_file" 2>/dev/null; then
+                ((cleaned_count++))
+                log_debug "Cleaned up temp file: $temp_file"
+            else
+                ((failed_count++))
+                log_warning "Failed to clean up temp file: $temp_file"
+            fi
+        fi
+    done
+    
+    # Clear the temp files array
+    FLOWSH_TEMP_FILES=()
+    
+    if [[ $cleaned_count -gt 0 ]]; then
+        log_info "Cleaned up $cleaned_count temporary files"
+    fi
+    
+    if [[ $failed_count -gt 0 ]]; then
+        log_warning "Failed to clean up $failed_count temporary files"
+    fi
+    
+    return 0
+}
+
 # Variable substitution in templates
 substitute_variables() {
     local template="$1"
@@ -194,6 +233,122 @@ substitute_variables() {
     echo "$result"
 }
 
+# Process tracking for parallel execution
+declare -a FLOWSH_ACTIVE_PIDS=()
+
+register_process() {
+    local pid="$1"
+    local description="${2:-unknown}"
+    
+    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+        FLOWSH_ACTIVE_PIDS+=("$pid")
+        log_debug "Registered process $pid: $description"
+    else
+        log_warning "Invalid PID for registration: $pid"
+    fi
+}
+
+unregister_process() {
+    local pid="$1"
+    local new_pids=()
+    
+    for active_pid in "${FLOWSH_ACTIVE_PIDS[@]}"; do
+        if [[ "$active_pid" != "$pid" ]]; then
+            new_pids+=("$active_pid")
+        fi
+    done
+    
+    FLOWSH_ACTIVE_PIDS=("${new_pids[@]}")
+    log_debug "Unregistered process $pid"
+}
+
+# Mock circuit breaker operation for testing
+execute_circuit_breaker_operation() {
+    local timeout_seconds="${1:-30}"
+    local failure_threshold="${2:-3}"
+    log_info "Mock circuit breaker operation (timeout: ${timeout_seconds}s, threshold: ${failure_threshold})"
+    
+    # Simulate circuit breaker with 25% failure rate
+    if [[ $((RANDOM % 4)) -eq 0 ]]; then
+        log_warning "Mock circuit breaker: operation failed (simulated failure)"
+        return 1
+    else
+        sleep 2
+        log_success "Mock circuit breaker: operation succeeded"
+        return 0
+    fi
+}
+
+# Mock retry command execution
+execute_retry_command() {
+    local attempt_number="${1:-1}"
+    local max_attempts="${2:-3}"
+    log_info "Mock retry command execution (attempt $attempt_number/$max_attempts)"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success after 2 attempts for realistic retry testing
+    if [[ $attempt_number -ge 2 ]]; then
+        log_success "Mock retry command: succeeded after $attempt_number attempts"
+        return 0
+    else
+        log_warning "Mock retry command: failed on attempt $attempt_number"
+        return 1
+    fi
+}
+
+# Mock sequential iteration processing
+execute_iteration_iterate_files_sequential() {
+    local pattern="${1:-*}"
+    log_info "Mock sequential iteration: processing files matching '$pattern'"
+    
+    # Simulate file processing
+    sleep 0.5
+    local files=("file1.txt" "file2.txt" "file3.txt")
+    
+    for file in "${files[@]}"; do
+        log_info "Processing file: $file"
+        sleep 0.5
+    done
+    
+    log_success "Sequential iteration completed: processed ${#files[@]} files"
+    return 0
+}
+
+# Mock fallback path execution for testing
+execute_fallback_path() {
+    local path_id="${1}"
+    log_info "Mock fallback path execution: $path_id"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success for primary_service_call, failure for others to test fallback behavior
+    case "$path_id" in
+        "primary_service_call")
+            log_success "Primary service call succeeded"
+            return 0
+            ;;
+        "secondary_service_call") 
+            log_warning "Secondary service call failed"
+            return 1
+            ;;
+        "cache_fallback_call")
+            log_warning "Cache fallback failed"
+            return 1
+            ;;
+        "default_response_call")
+            log_success "Default response call succeeded"
+            return 0
+            ;;
+        *)
+            log_info "Unknown fallback path succeeded: $path_id"
+            return 0
+            ;;
+    esac
+}
+
 # Workflow Execution
 
 # Node: initialize_tracking
@@ -207,9 +362,9 @@ set_var "FALLBACK_CONTEXT" "" "setup_fallback_context"
 execute_fallback_primary_service_fallback() {
     log_step "🛡️ Fallback Handler: Primary Service with Fallbacks"
 
-    local fallback_strategy="${fallback_strategy}"
-    local max_fallback_time=${max_fallback_time}
-    local continue_on_success=${continue_on_success}
+    local fallback_strategy=$(get_workflow_var "fallback_strategy" "sequential")
+    local max_fallback_time=$(get_workflow_var "max_fallback_time" "300")
+    local continue_on_success=$(get_workflow_var "continue_on_success" "false")
     local fallback_start_time=$(date +%s)
     
     # Define fallback paths
@@ -225,8 +380,8 @@ execute_fallback_primary_service_fallback() {
                 
                 # Check timeout
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge ${max_fallback_time} ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= ${max_fallback_time}s"
+                if [[ $elapsed_time -ge $(get_workflow_var "max_fallback_time" "300") ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= $(get_workflow_var "max_fallback_time" "300")s"
                     return 1
                 fi
                 
@@ -238,7 +393,7 @@ execute_fallback_primary_service_fallback() {
                     set_workflow_var "fallback_attempt" "$((path_index + 1))"
                     set_workflow_var "fallback_strategy" "sequential"
                     
-                    if [[ "${continue_on_success}" == "false" ]]; then
+                    if [[ "$(get_workflow_var "continue_on_success" "false")" == "false" ]]; then
                         return 0
                     fi
                 else
@@ -246,7 +401,7 @@ execute_fallback_primary_service_fallback() {
                 fi
             done
             
-            if [[ "${continue_on_success}" == "true" ]]; then
+            if [[ "$(get_workflow_var "continue_on_success" "false")" == "true" ]]; then
                 log_info "All fallback paths attempted (continue_on_success=true)"
                 return 0
             else
@@ -277,8 +432,8 @@ execute_fallback_primary_service_fallback() {
             # Wait for results with timeout check
             while [[ "$success_found" == "false" ]]; do
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge ${max_fallback_time} ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= ${max_fallback_time}s"
+                if [[ $elapsed_time -ge $(get_workflow_var "max_fallback_time" "300") ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= $(get_workflow_var "max_fallback_time" "300")s"
                     break
                 fi
                 
@@ -321,16 +476,16 @@ execute_fallback_primary_service_fallback() {
 execute_fallback_primary_service_fallback
 
 # Node: primary_service_call
-sh
+sh -c "echo 'Attempting primary service: $(get_var "PRIMARY_SERVICE_URL" "primary_service_call")' && if [ '$(get_var "FAILURE_SIMULATION" "primary_service_call")' = 'primary_fail' ] || [ '$(get_var "FAILURE_SIMULATION" "primary_service_call")' = 'all_fail' ]; then echo 'Primary service unavailable' && exit 1; else echo 'Primary service response: SUCCESS - Data from primary API' && exit 0; fi"
 
 # Node: secondary_service_call
-sh
+sh -c "echo 'Attempting secondary service fallback...' && if [ '$(get_var "FAILURE_SIMULATION" "secondary_service_call")' = 'first_fallback_fail' ] || [ '$(get_var "FAILURE_SIMULATION" "secondary_service_call")' = 'all_fail' ]; then echo 'Secondary service also unavailable' && exit 1; else echo 'Secondary service response: SUCCESS - Data from backup API' && exit 0; fi"
 
 # Node: cache_fallback_call
-sh
+sh -c "echo 'Attempting cache fallback...' && if [ '$(get_var "FAILURE_SIMULATION" "cache_fallback_call")' = 'all_fail' ]; then echo 'Cache unavailable' && exit 1; else echo 'Cache response: SUCCESS - Cached data from local storage (may be stale)' && exit 0; fi"
 
 # Node: default_response_call
-sh
+sh -c "echo 'Using default response fallback...' && echo 'Default response: LIMITED - Basic functionality available with default data' && exit 0"
 
 # Node: record_primary_fallback_result
 set_var "PRIMARY_FALLBACK_RESULT" "" "record_primary_fallback_result"
@@ -341,8 +496,8 @@ execute_fallback_database_fallback_example() {
     log_step "🛡️ Fallback Handler: Database Operation Fallbacks"
 
     local fallback_strategy="sequential"
-    local max_fallback_time=60
-    local continue_on_success=false
+    local max_fallback_time="60"
+    local continue_on_success="false"
     local fallback_start_time=$(date +%s)
     
     # Define fallback paths
@@ -358,8 +513,8 @@ execute_fallback_database_fallback_example() {
                 
                 # Check timeout
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge 60 ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= 60s"
+                if [[ $elapsed_time -ge "60" ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= "60"s"
                     return 1
                 fi
                 
@@ -371,7 +526,7 @@ execute_fallback_database_fallback_example() {
                     set_workflow_var "fallback_attempt" "$((path_index + 1))"
                     set_workflow_var "fallback_strategy" "sequential"
                     
-                    if [[ "false" == "false" ]]; then
+                    if [[ ""false"" == "false" ]]; then
                         return 0
                     fi
                 else
@@ -379,7 +534,7 @@ execute_fallback_database_fallback_example() {
                 fi
             done
             
-            if [[ "false" == "true" ]]; then
+            if [[ ""false"" == "true" ]]; then
                 log_info "All fallback paths attempted (continue_on_success=true)"
                 return 0
             else
@@ -410,8 +565,8 @@ execute_fallback_database_fallback_example() {
             # Wait for results with timeout check
             while [[ "$success_found" == "false" ]]; do
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge 60 ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= 60s"
+                if [[ $elapsed_time -ge "60" ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= "60"s"
                     break
                 fi
                 
@@ -454,13 +609,13 @@ execute_fallback_database_fallback_example() {
 execute_fallback_database_fallback_example
 
 # Node: primary_database_call
-sh
+sh -c "echo 'Querying primary database...' && if [ '$(get_var "FAILURE_SIMULATION" "primary_database_call")' = 'all_fail' ]; then echo 'Database connection failed' && exit 1; else echo 'Database result: User data retrieved from primary DB' && exit 0; fi"
 
 # Node: read_replica_call
-sh
+sh -c "echo 'Querying read replica...' && echo 'Replica result: User data from read replica (may be slightly stale)' && exit 0"
 
 # Node: database_cache_call
-sh
+sh -c "echo 'Querying database cache...' && echo 'Cache result: Cached user data (potentially stale but fast)' && exit 0"
 
 # Node: parallel_fallback_example
 # Node: parallel_fallback_example (parallel_fallback_example)
@@ -468,8 +623,8 @@ execute_fallback_parallel_fallback_example() {
     log_step "🛡️ Fallback Handler: Parallel Fallback Strategy"
 
     local fallback_strategy="parallel"
-    local max_fallback_time=30
-    local continue_on_success=true
+    local max_fallback_time="30"
+    local continue_on_success="true"
     local fallback_start_time=$(date +%s)
     
     # Define fallback paths
@@ -485,8 +640,8 @@ execute_fallback_parallel_fallback_example() {
                 
                 # Check timeout
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge 30 ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= 30s"
+                if [[ $elapsed_time -ge "30" ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= "30"s"
                     return 1
                 fi
                 
@@ -498,7 +653,7 @@ execute_fallback_parallel_fallback_example() {
                     set_workflow_var "fallback_attempt" "$((path_index + 1))"
                     set_workflow_var "fallback_strategy" "sequential"
                     
-                    if [[ "true" == "false" ]]; then
+                    if [[ ""true"" == "false" ]]; then
                         return 0
                     fi
                 else
@@ -506,7 +661,7 @@ execute_fallback_parallel_fallback_example() {
                 fi
             done
             
-            if [[ "true" == "true" ]]; then
+            if [[ ""true"" == "true" ]]; then
                 log_info "All fallback paths attempted (continue_on_success=true)"
                 return 0
             else
@@ -537,8 +692,8 @@ execute_fallback_parallel_fallback_example() {
             # Wait for results with timeout check
             while [[ "$success_found" == "false" ]]; do
                 local elapsed_time=$(($(date +%s) - fallback_start_time))
-                if [[ $elapsed_time -ge 30 ]]; then
-                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= 30s"
+                if [[ $elapsed_time -ge "30" ]]; then
+                    log_error "Fallback timeout exceeded: ${elapsed_time}s >= "30"s"
                     break
                 fi
                 
@@ -581,13 +736,13 @@ execute_fallback_parallel_fallback_example() {
 execute_fallback_parallel_fallback_example
 
 # Node: fast_service_call
-sh
+sh -c "echo 'Fast service executing...' && sleep 1 && echo 'Fast service result: Quick response with basic data' && exit 0"
 
 # Node: medium_service_call
-sh
+sh -c "echo 'Medium service executing...' && sleep 2 && echo 'Medium service result: Balanced response with standard data' && exit 0"
 
 # Node: slow_service_call
-sh
+sh -c "echo 'Slow service executing...' && sleep 3 && echo 'Slow service result: Comprehensive response with detailed data' && exit 0"
 
 # Node: aggregate_fallback_results
 

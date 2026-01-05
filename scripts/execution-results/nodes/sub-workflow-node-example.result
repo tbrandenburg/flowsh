@@ -1,0 +1,4 @@
+Starting workflow: sub-workflow-node-example
+[0;36m🚀 🏗️ Sub-Workflow: Validate First Dataset[0m
+[0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
+[0;31m❌ Failed to generate sub-workflow script[0m

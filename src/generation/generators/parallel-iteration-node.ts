@@ -22,6 +22,19 @@ import { BaseNodeGenerator } from './base-generator.js';
 export class ParallelIterationNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'parallel-iteration';
 
+  /**
+   * Process configuration values that might contain template variables
+   */
+  private processConfigValue(value: any, defaultValue: any): string {
+    if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+      // This is a template variable, extract the variable name
+      const variableName = value.slice(2, -1);
+      // Return shell code that will resolve the variable at runtime
+      return `\$(get_workflow_var "${variableName}" "${defaultValue}")`;
+    }
+    return value?.toString() || defaultValue.toString();
+  }
+
   override validate(node: WorkflowNode): ValidationResult {
     // Start with base validation
     const result = super.validate(node);
@@ -67,9 +80,9 @@ export class ParallelIterationNodeGenerator extends BaseNodeGenerator {
     const outputVariable = this.sanitizeVariableName(
       data.output_variable || 'parallel_iteration_results'
     );
-    const maxParallel = data.max_parallel ?? 4;
+    const maxParallel = this.processConfigValue(data.max_parallel, 4);
     const progressTracking = data.progress_tracking !== false;
-    const errorHandling = data.error_handling || 'fail';
+    const errorHandling = this.processConfigValue(data.error_handling, 'fail');
     const title = this.escapeShellValue(data.title || `Parallel Iteration ${node.id}`);
     const nodeId = this.sanitizeVariableName(node.id);
 
@@ -83,7 +96,7 @@ export class ParallelIterationNodeGenerator extends BaseNodeGenerator {
       `    local output_variable="${outputVariable}"`,
       `    local max_parallel=${maxParallel}`,
       `    local progress_tracking=${progressTracking}`,
-      `    local error_handling="${errorHandling}"`,
+      `    local error_handling=${errorHandling}`,
       `    `,
       `    # Get input array and validate`,
       `    local input_array_raw="$(get_workflow_var "$input_variable")"`,

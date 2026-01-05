@@ -1,0 +1,144 @@
+Starting workflow: http-request-node-example
+[0;36m🚀 🌐 HTTP Request: Simple GET Request[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.799716s, size: 255 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: GET Request with Custom Headers[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.124554s, size: 264 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: POST Request with JSON Body[0m
+scripts/generated-outputs/nodes/http-request-node-example.sh: line 52: "TEST_DATA": invalid variable name
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.755177s, size: 367 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: POST Request with Form Data[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.773843s, size: 453 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: Request with Bearer Authentication[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.574545s, size: 76 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: Request with Basic Authentication[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.593999s, size: 51 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: Request with API Key Authentication[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.054336s, size: 308 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: PUT Request for Data Update[0m
+[0;32m✅ HTTP PUT completed successfully (status: 200, time: 0.585055s, size: 629 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: DELETE Request[0m
+[0;32m✅ HTTP DELETE completed successfully (status: 200, time: 0.518135s, size: 370 bytes)[0m
+[0;36m🚀 🌐 HTTP Request: POST Request with XML Body[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.641485s, size: 637 bytes)[0m
+[0;36m🚀 📊 Variable Aggregation: Aggregate All HTTP Responses[0m
+[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Variable aggregation completed: 10 inputs -> all_http_responses[0m
+scripts/generated-outputs/nodes/http-request-node-example.sh: line 2235: /get: No such file or directory
+scripts/generated-outputs/nodes/http-request-node-example.sh: line 2235: /headers: No such file or directory
+scripts/generated-outputs/nodes/http-request-node-example.sh: line 2235: /post: No such file or directory
+scripts/generated-outputs/nodes/http-request-node-example.sh: line 2235: /post: No such file or directory
+# 🌐 HTTP Request Node Example Results
+
+## Configuration Summary
+- **Target API**: https://httpbin.org
+- **Request Timeout**: 30 seconds
+- **Maximum Retries**: 3
+- **Test Data**: {"message": "Hello from flowsh", "timestamp": "2024-01-01T00:00:00Z"}
+
+## HTTP Operations Performed
+
+### 1. Simple GET Request ✅
+- **Method**: GET
+- **Endpoint**: 
+- **Purpose**: Basic connectivity test
+- **Features**: Basic error handling and retries
+
+### 2. GET with Custom Headers 📋
+- **Method**: GET  
+- **Endpoint**: 
+- **Features**: Custom headers, User-Agent, Accept types
+- **Headers**: Content-Type, User-Agent, X-Custom-Header
+
+### 3. POST with JSON Body 📤
+- **Method**: POST
+- **Endpoint**: 
+- **Body Type**: JSON
+- **Features**: Structured data transmission
+
+### 4. POST with Form Data 📝
+- **Method**: POST
+- **Endpoint**: 
+- **Body Type**: Form-encoded
+- **Features**: Traditional web form submission
+
+### 5. Bearer Token Authentication 🔐
+- **Method**: GET
+- **Auth Type**: Bearer
+- **Features**: Modern API authentication
+
+### 6. Basic Authentication 🔑
+- **Method**: GET
+- **Auth Type**: Basic
+- **Features**: Username/password authentication
+
+### 7. API Key Authentication 🗝️
+- **Method**: GET
+- **Auth Type**: API Key
+- **Features**: Custom header-based authentication
+
+### 8. PUT Update Request 🔄
+- **Method**: PUT
+- **Body Type**: JSON
+- **Features**: Resource updating operations
+
+### 9. DELETE Request 🗑️
+- **Method**: DELETE
+- **Features**: Resource deletion operations
+
+### 10. XML Data Request 📄
+- **Method**: POST
+- **Body Type**: XML
+- **Features**: XML document transmission
+
+## Response Summary
+
+
+## Detailed Responses
+
+
+
+## HTTP Request Node Features Demonstrated
+
+### HTTP Methods
+- **GET**: Data retrieval and queries
+- **POST**: Data creation and submission
+- **PUT**: Data updates and modifications
+- **DELETE**: Resource removal operations
+- **PATCH**: Partial updates (extensible)
+
+### Authentication Methods
+- **None**: Open endpoints without authentication
+- **Bearer**: Token-based authentication for APIs
+- **Basic**: Username/password authentication
+- **API Key**: Custom header-based authentication
+
+### Content Types
+- **JSON**: Structured data interchange
+- **Form**: Traditional web form encoding
+- **XML**: Document-based data exchange
+- **Text**: Plain text content
+
+### Advanced Features
+- **Custom Headers**: Flexible request customization
+- **Timeout Control**: Request timeout management
+- **Retry Logic**: Automatic retry with configurable delays
+- **Error Handling**: Multiple error handling strategies (fail/ignore/continue)
+- **Response Processing**: Automatic response parsing and storage
+- **Variable Integration**: Dynamic URL and data construction
+
+### Error Handling Strategies
+- **Fail**: Stop workflow on HTTP errors
+- **Ignore**: Continue workflow ignoring errors
+- **Continue**: Log errors but proceed with workflow
+
+### Use Cases
+- **API Integration**: Connecting with external services
+- **Data Synchronization**: Exchanging data between systems
+- **Webhook Delivery**: Sending notifications and events
+- **Configuration Retrieval**: Fetching remote configuration
+- **Health Checks**: Monitoring service availability
+- **Authentication**: Securing API communications
+
+This example demonstrates the full HTTP client capabilities of flowsh, enabling robust integration with external APIs and services.
+
+Workflow completed successfully

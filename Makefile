@@ -83,19 +83,43 @@ example: build
 	@echo "Generating shell script from main example..."
 	node dist/cli/index.js compile examples/flowsh-workflow-example.yaml
 
-# Generate shell scripts from all node examples
+# Generate shell scripts from all node examples and execute them
 examples-all: build
-	@echo "Generating shell scripts from all node examples..."
+	@echo "Generating and executing shell scripts from all node examples..."
 	@mkdir -p scripts/generated-outputs/nodes/
-	@for example in examples/nodes/*-example.yaml; do \
+	@mkdir -p scripts/execution-results/nodes/
+	@success=0; total=0; \
+	for example in examples/nodes/*-example.yaml; do \
 		if [ -f "$$example" ]; then \
-			echo "Generating: $$example"; \
+			total=$$((total + 1)); \
+			echo "Processing: $$example"; \
 			basename=$$(basename "$$example" .yaml); \
-			node dist/cli/index.js compile "$$example" > "scripts/generated-outputs/nodes/$$basename.sh" 2>/dev/null || \
-			echo "  ❌ Failed to compile $$example"; \
+			script_file="scripts/generated-outputs/nodes/$$basename.sh"; \
+			result_file="scripts/execution-results/nodes/$$basename.result"; \
+			if node dist/cli/index.js compile "$$example" > "$$script_file" 2>/dev/null; then \
+				echo "  ✅ Generated: $$script_file"; \
+				chmod +x "$$script_file"; \
+				echo "  🚀 Executing: $$basename"; \
+				if timeout 60 "$$script_file" > "$$result_file" 2>&1; then \
+					echo "  ✅ Executed successfully"; \
+					success=$$((success + 1)); \
+				else \
+					echo "  ❌ Execution failed - see $$result_file"; \
+					tail -3 "$$result_file" | sed 's/^/    /'; \
+				fi; \
+			else \
+				echo "  ❌ Failed to compile $$example"; \
+			fi; \
 		fi; \
-	done
-	@echo "✅ Generated $(shell find examples/nodes -name '*-example.yaml' | wc -l) node example scripts in scripts/generated-outputs/nodes/"
+	done; \
+	echo ""; \
+	echo "📊 Results: $$success/$$total examples executed successfully"; \
+	if [ $$success -eq $$total ]; then \
+		echo "🎉 All examples passed!"; \
+	else \
+		echo "⚠️  Some examples failed - check scripts/execution-results/nodes/ for details"; \
+		exit 1; \
+	fi
 
 # Generate shell scripts from key workflow examples  
 examples-workflows: build

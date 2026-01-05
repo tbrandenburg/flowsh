@@ -15,6 +15,19 @@ import { WorkflowNode } from '../../dsl/types.js';
 export class RetryNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'retry';
 
+  /**
+   * Process configuration values that might contain template variables
+   */
+  private processConfigValue(value: any, defaultValue: any): string {
+    if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+      // This is a template variable, extract the variable name
+      const variableName = value.slice(2, -1);
+      // Return shell code that will resolve the variable at runtime
+      return `\$(get_workflow_var "${variableName}" "${defaultValue}")`;
+    }
+    return value?.toString() || defaultValue.toString();
+  }
+
   override validate(node: WorkflowNode): ValidationResult {
     const result = super.validate(node);
 
@@ -95,12 +108,15 @@ export class RetryNodeGenerator extends BaseNodeGenerator {
     const nodeId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
     const functionName = `execute_retry_${nodeId}`;
 
-    // Extract configuration with defaults
-    const maxAttempts = data.max_attempts || 3;
-    const retryDelay = data.retry_delay !== undefined ? data.retry_delay : 5;
-    const backoffMultiplier = data.backoff_multiplier || 2.0;
+    // Extract configuration with defaults and template variable processing
+    const maxAttempts = this.processConfigValue(data.max_attempts, 3);
+    const retryDelay = this.processConfigValue(
+      data.retry_delay !== undefined ? data.retry_delay : 5,
+      5
+    );
+    const backoffMultiplier = this.processConfigValue(data.backoff_multiplier, 2.0);
     const retryCondition = data.retry_condition || 'any_failure';
-    const timeout = data.timeout;
+    const timeout = data.timeout ? this.processConfigValue(data.timeout, 30) : undefined;
 
     return [
       `# Node: ${node.id} (${nodeId})`,
@@ -124,8 +140,8 @@ export class RetryNodeGenerator extends BaseNodeGenerator {
       `        `,
       timeout ? `        # Execute with timeout` : `        # Execute command`,
       timeout
-        ? `        if timeout \${timeout_seconds} execute_retry_command; then`
-        : `        if execute_retry_command; then`,
+        ? `        if execute_retry_command "\$attempt" "\$max_attempts"; then`
+        : `        if execute_retry_command "\$attempt" "\$max_attempts"; then`,
       `            log_success "Retry attempt \$attempt succeeded"`,
       `            return 0`,
       `        else`,
@@ -252,15 +268,42 @@ export class FallbackNodeGenerator extends BaseNodeGenerator {
     return result;
   }
 
+  private processConfigValue(value: any, defaultValue: any, _nodeId: string): string {
+    if (value === undefined || value === null) {
+      return typeof defaultValue === 'string' ? `"${defaultValue}"` : defaultValue.toString();
+    }
+
+    if (typeof value === 'string') {
+      // Handle template variables like ${variable_name}
+      if (value.startsWith('${') && value.endsWith('}')) {
+        const variableName = value.slice(2, -1);
+        // Return shell code that will resolve the variable at runtime (without quotes for assignment)
+        return `\$(get_workflow_var "${variableName}" "${defaultValue}")`;
+      }
+      // If it's a plain string, return it quoted
+      return `"${value}"`;
+    }
+
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+
+    return typeof defaultValue === 'string' ? `"${defaultValue}"` : defaultValue.toString();
+  }
+
   override generate(node: WorkflowNode, _context: GenerationContext): string {
     const data = node.data as any;
     const nodeId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
     const functionName = `execute_fallback_${nodeId}`;
 
-    // Extract configuration with defaults
-    const strategy = data.strategy || 'sequential';
-    const maxTime = data.max_fallback_time || 300;
-    const continueOnSuccess = data.continue_on_success || false;
+    // Extract configuration with defaults - handle template variables
+    const strategy = this.processConfigValue(data.strategy, 'sequential', nodeId);
+    const maxTime = this.processConfigValue(data.max_fallback_time, 300, nodeId);
+    const continueOnSuccess = this.processConfigValue(data.continue_on_success, false, nodeId);
     const fallbackPaths = data.fallback_paths || [];
 
     return [
@@ -268,7 +311,7 @@ export class FallbackNodeGenerator extends BaseNodeGenerator {
       `${functionName}() {`,
       `    log_step "🛡️ Fallback Handler: ${data.title || `Fallback Handler ${node.id}`}"`,
       ``,
-      `    local fallback_strategy="${strategy}"`,
+      `    local fallback_strategy=${strategy}`,
       `    local max_fallback_time=${maxTime}`,
       `    local continue_on_success=${continueOnSuccess}`,
       `    local fallback_start_time=$(date +%s)`,

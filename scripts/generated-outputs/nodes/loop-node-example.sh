@@ -61,9 +61,9 @@ get_var() {
 }
 
 # Environment Variables
-MAX_ITERATIONS=${MAX_ITERATIONS:-""}
-TARGET_VALUE=${TARGET_VALUE:-""}
-INCREMENT_STEP=${INCREMENT_STEP:-""}
+MAX_ITERATIONS=${MAX_ITERATIONS:-"10"}
+TARGET_VALUE=${TARGET_VALUE:-"50"}
+INCREMENT_STEP=${INCREMENT_STEP:-"5"}
 CURRENT_VALUE=${CURRENT_VALUE:-""}
 ITERATION_COUNT=${ITERATION_COUNT:-""}
 LOOP_INDEX=${LOOP_INDEX:-""}
@@ -169,6 +169,45 @@ get_workflow_state() {
     echo "${workflow_state[$state_key]:-$default_value}"
 }
 
+# Temporary file management
+declare -a FLOWSH_TEMP_FILES=()
+
+register_temp_file() {
+    local temp_path="$1"
+    FLOWSH_TEMP_FILES+=("$temp_path")
+    log_debug "Registered temp file: $temp_path"
+}
+
+cleanup_temp_files() {
+    local cleaned_count=0
+    local failed_count=0
+    
+    for temp_file in "${FLOWSH_TEMP_FILES[@]}"; do
+        if [[ -e "$temp_file" ]]; then
+            if rm -rf "$temp_file" 2>/dev/null; then
+                ((cleaned_count++))
+                log_debug "Cleaned up temp file: $temp_file"
+            else
+                ((failed_count++))
+                log_warning "Failed to clean up temp file: $temp_file"
+            fi
+        fi
+    done
+    
+    # Clear the temp files array
+    FLOWSH_TEMP_FILES=()
+    
+    if [[ $cleaned_count -gt 0 ]]; then
+        log_info "Cleaned up $cleaned_count temporary files"
+    fi
+    
+    if [[ $failed_count -gt 0 ]]; then
+        log_warning "Failed to clean up $failed_count temporary files"
+    fi
+    
+    return 0
+}
+
 # Variable substitution in templates
 substitute_variables() {
     local template="$1"
@@ -191,6 +230,122 @@ substitute_variables() {
     echo "$result"
 }
 
+# Process tracking for parallel execution
+declare -a FLOWSH_ACTIVE_PIDS=()
+
+register_process() {
+    local pid="$1"
+    local description="${2:-unknown}"
+    
+    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+        FLOWSH_ACTIVE_PIDS+=("$pid")
+        log_debug "Registered process $pid: $description"
+    else
+        log_warning "Invalid PID for registration: $pid"
+    fi
+}
+
+unregister_process() {
+    local pid="$1"
+    local new_pids=()
+    
+    for active_pid in "${FLOWSH_ACTIVE_PIDS[@]}"; do
+        if [[ "$active_pid" != "$pid" ]]; then
+            new_pids+=("$active_pid")
+        fi
+    done
+    
+    FLOWSH_ACTIVE_PIDS=("${new_pids[@]}")
+    log_debug "Unregistered process $pid"
+}
+
+# Mock circuit breaker operation for testing
+execute_circuit_breaker_operation() {
+    local timeout_seconds="${1:-30}"
+    local failure_threshold="${2:-3}"
+    log_info "Mock circuit breaker operation (timeout: ${timeout_seconds}s, threshold: ${failure_threshold})"
+    
+    # Simulate circuit breaker with 25% failure rate
+    if [[ $((RANDOM % 4)) -eq 0 ]]; then
+        log_warning "Mock circuit breaker: operation failed (simulated failure)"
+        return 1
+    else
+        sleep 2
+        log_success "Mock circuit breaker: operation succeeded"
+        return 0
+    fi
+}
+
+# Mock retry command execution
+execute_retry_command() {
+    local attempt_number="${1:-1}"
+    local max_attempts="${2:-3}"
+    log_info "Mock retry command execution (attempt $attempt_number/$max_attempts)"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success after 2 attempts for realistic retry testing
+    if [[ $attempt_number -ge 2 ]]; then
+        log_success "Mock retry command: succeeded after $attempt_number attempts"
+        return 0
+    else
+        log_warning "Mock retry command: failed on attempt $attempt_number"
+        return 1
+    fi
+}
+
+# Mock sequential iteration processing
+execute_iteration_iterate_files_sequential() {
+    local pattern="${1:-*}"
+    log_info "Mock sequential iteration: processing files matching '$pattern'"
+    
+    # Simulate file processing
+    sleep 0.5
+    local files=("file1.txt" "file2.txt" "file3.txt")
+    
+    for file in "${files[@]}"; do
+        log_info "Processing file: $file"
+        sleep 0.5
+    done
+    
+    log_success "Sequential iteration completed: processed ${#files[@]} files"
+    return 0
+}
+
+# Mock fallback path execution for testing
+execute_fallback_path() {
+    local path_id="${1}"
+    log_info "Mock fallback path execution: $path_id"
+    
+    # Simulate work
+    sleep 1
+    
+    # Simulate success for primary_service_call, failure for others to test fallback behavior
+    case "$path_id" in
+        "primary_service_call")
+            log_success "Primary service call succeeded"
+            return 0
+            ;;
+        "secondary_service_call") 
+            log_warning "Secondary service call failed"
+            return 1
+            ;;
+        "cache_fallback_call")
+            log_warning "Cache fallback failed"
+            return 1
+            ;;
+        "default_response_call")
+            log_success "Default response call succeeded"
+            return 0
+            ;;
+        *)
+            log_info "Unknown fallback path succeeded: $path_id"
+            return 0
+            ;;
+    esac
+}
+
 # Workflow Execution
 
 # Node: initialize_counter
@@ -207,7 +362,7 @@ execute_loop_main_loop() {
     
     # Loop configuration
     local loop_counter=0
-    local max_iterations=${max_iterations}
+    local max_iterations=$(get_workflow_var "max_iterations" "100")
     local continue_loop=true
     local break_on="condition"
     
@@ -222,7 +377,7 @@ execute_loop_main_loop() {
         # Evaluate loop condition
         local condition_result
                 # Evaluate condition: current_value < ${target_value}
-        if (( $(get_workflow_var "current_value" "0") < NaN )); then
+        if (( $(get_workflow_var "current_value" "0") < $(get_workflow_var "target_value" "0") )); then
             condition_result="true"
         else
             condition_result="false"
@@ -267,7 +422,7 @@ set_var "CURRENT_VALUE" "" "increment_counter"
 set_var "ITERATION_COUNT" "" "increment_iteration"
 
 # Node: log_progress
-echo
+echo "Iteration $(get_var "ITERATION_COUNT" "log_progress"): current_value=$(get_var "CURRENT_VALUE" "log_progress"), target=$(get_var "TARGET_VALUE" "log_progress")"
 
 # Node: check_early_termination
 if true; then

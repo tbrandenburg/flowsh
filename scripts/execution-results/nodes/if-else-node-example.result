@@ -1,0 +1,104 @@
+Starting workflow: if-else-node-example
+Condition passed
+# 🚫 Age Restriction Notice
+
+Sorry, you must be 18 or older to access this system.
+
+**Your age**: 25
+**Required age**: 18 or older
+
+Please return when you meet the age requirements.
+
+Condition passed
+# ❌ Access Denied
+
+Your account doesn't meet the access requirements:
+
+**Your role**: user
+**Account status**: active
+
+Requirements:
+- Role must not be 'guest'
+- Account status must be 'active'
+
+Condition passed
+# ✅ Basic Access Granted
+
+Welcome! You have basic access to the system.
+
+**Your details**:
+- Age: 25
+- Role: user
+- Status: active
+- Premium: false
+- Feature flags: 
+
+To unlock advanced features, consider:
+- Upgrading to premium membership
+- Joining the beta program
+- Enabling relevant feature flags
+
+Condition passed
+# 🔑 Administrator Access Granted
+
+Welcome, Administrator!
+
+You have full system access with all privileges:
+
+**Admin Details**:
+- Age: 25
+- Role: user (Administrative)
+- Status: active
+- Premium: false
+- Feature flags: 
+
+**Available Actions**:
+- ✅ User management
+- ✅ System configuration
+- ✅ Advanced features
+- ✅ Beta functionality
+- ✅ Premium features
+
+All feature restrictions are bypassed for administrators.
+
+Condition passed
+# 🌟 Premium Access Granted
+
+Congratulations! You have access to all premium features.
+
+**Verification Results**:
+- Premium member: ✅ false
+- Premium flag: ✅ Found in 
+- Age requirement (21+): ✅ 25 years old
+- Account status: ✅ active
+
+**Premium Features Available**:
+- 🚀 Advanced analytics
+- 🎯 Priority support
+- 📊 Extended reporting
+- 🔧 Custom integrations
+- 💎 Exclusive content
+
+Enjoy your premium experience!
+
+# ⭐ Premium Access (Limited)
+
+You have premium access with some limitations:
+
+**Status Check**:
+- Premium member: false
+- Feature flags: 
+- Age: 25
+- Account: active
+
+**Reason for limitations**:
+Not all premium requirements met (need premium=true AND premium flag AND age 21+)
+
+**Available Features**:
+- ✅ Enhanced functionality
+- ✅ Basic premium tools
+- ❌ Advanced premium features (age restriction)
+
+Upgrade or meet all requirements for full premium access.
+
+Workflow completed successfully

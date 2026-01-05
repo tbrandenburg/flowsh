@@ -13,17 +13,42 @@ import { BaseNodeGenerator } from './base-generator.js';
 export class HttpRequestNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'http-request';
 
+  private processConfigValue(value: any, defaultValue: any, nodeId: string): string {
+    if (value === undefined || value === null) {
+      return defaultValue.toString();
+    }
+
+    if (typeof value === 'string') {
+      // Check if it's a template variable like "${request_timeout}"
+      if (value.includes('${') || value.includes('{{')) {
+        // Process template variables to generate shell variable access
+        return `$(echo "${this.processTemplateVariables(value, nodeId)}" | bc -l 2>/dev/null || echo "${defaultValue}")`;
+      }
+      // If it's a plain string that looks like a number, return it
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        return Math.floor(numValue).toString();
+      }
+    }
+
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+
+    return defaultValue.toString();
+  }
+
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const data = node.data as HttpRequestNodeData;
     const nodeId = this.sanitizeVariableName(node.id);
     const functionName = `execute_http_${nodeId}`;
 
-    // Extract configuration with defaults
+    // Extract configuration with defaults - handle template variables
     const url = data.url || '';
     const method = data.method || 'GET';
-    const timeout = data.timeout || 30;
-    const maxRetries = data.retries || 3;
-    const retryDelay = data.retry_delay || 2;
+    const timeout = this.processConfigValue(data.timeout, 30, node.id);
+    const maxRetries = this.processConfigValue(data.retries, 3, node.id);
+    const retryDelay = this.processConfigValue(data.retry_delay, 2, node.id);
     const errorHandling = data.error_handling || 'fail';
     const title = data.title || node.id;
 
@@ -241,8 +266,12 @@ EOF`;
     const bodyType = data.body_type || 'json';
     const contentType = this.getContentType(bodyType);
 
+    // Process template variables first, then escape for shell
+    const processedBody = this.processTemplateVariables(data.body, nodeId);
+    const escapedBody = this.escapeForShellVariable(processedBody);
+
     return `    # Add request body
-    local body_content="${this.processTemplateVariables(data.body, nodeId)}"
+    local body_content="${escapedBody}"
     
     if [[ -n "$body_content" ]]; then
         curl_opts+=(-d "$body_content")
@@ -263,6 +292,17 @@ EOF`;
         
         log_debug "Request body length: \${#body_content} characters"
     fi`;
+  }
+
+  private escapeForShellVariable(content: string): string {
+    return (
+      content
+        .replace(/\\/g, '\\\\') // Escape backslashes
+        .replace(/"/g, '\\"') // Escape quotes
+        .replace(/`/g, '\\`') // Escape backticks
+        // DON'T escape $ since we need $(get_var ...) to work
+        .replace(/\n/g, '\\n')
+    ); // Escape newlines
   }
 
   private getContentType(bodyType: string): string {

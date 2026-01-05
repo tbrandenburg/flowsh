@@ -179,11 +179,35 @@ export function generateShellScript(
       progressTracker.setPhase('generation', nodes.length + 2);
     }
 
+    // Helper function to sanitize variable names
+    const sanitizeVariableName = (varName: string): string => {
+      return varName.replace(/[^a-zA-Z0-9_]/g, '_');
+    };
+
     const allVariables = new Map<string, string>();
+
+    // First pass: collect defaults from start nodes
+    const startDefaults = new Map<string, string>();
+    for (const node of nodes) {
+      if (node.type === 'start' && node.data && 'variables' in node.data) {
+        const startVariables = (node.data as any).variables;
+        if (Array.isArray(startVariables)) {
+          for (const varDef of startVariables) {
+            if (varDef.variable && varDef.default !== undefined) {
+              const sanitizedName = sanitizeVariableName(varDef.variable).toUpperCase();
+              startDefaults.set(sanitizedName, String(varDef.default));
+            }
+          }
+        }
+      }
+    }
+
+    // Second pass: collect all variables and apply defaults
     for (const node of nodes) {
       const nodeVars = registry.getNodeVariables(node);
       for (const varName of nodeVars) {
-        allVariables.set(varName, ''); // Default empty value
+        const defaultValue = startDefaults.get(varName) || '';
+        allVariables.set(varName, defaultValue);
       }
     }
 
@@ -370,8 +394,12 @@ function generateVariableSetup(variables: Map<string, string>): string {
   }
 
   const varLines: string[] = [];
-  for (const [varName] of variables) {
-    varLines.push(`${varName}=\${${varName}:-""}`);
+  for (const [varName, defaultValue] of variables) {
+    if (defaultValue && defaultValue !== '') {
+      varLines.push(`${varName}=\${${varName}:-"${defaultValue.replace(/"/g, '\\"')}"}`);
+    } else {
+      varLines.push(`${varName}=\${${varName}:-""}`);
+    }
   }
 
   return `# Environment Variables\n${varLines.join('\n')}`;

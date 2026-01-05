@@ -1,0 +1,63 @@
+Starting workflow: llm-node-example
+[1;33m⚠️  OPENAI_API_KEY not set, using mock LLM response[0m
+Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello
+[1;33m⚠️  OPENAI_API_KEY not set, using mock LLM response[0m
+Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello
+[1;33m⚠️  OPENAI_API_KEY not set, using mock LLM response[0m
+Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello
+[1;33m⚠️  OPENAI_API_KEY not set, using mock LLM response[0m
+Mock LLM Response: This is a simulated response because no API key was provided. Prompt was: Hello
+[0;36m🚀 📊 Variable Aggregation: Aggregate LLM Responses[0m
+[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Variable aggregation completed: 4 inputs -> combined_analysis[0m
+# 🧠 LLM Node Example Results
+
+## Original Query
+**Question**: Explain the concept of workflow automation in simple terms
+**Preferences**: educational style, medium length, examples: true
+
+## LLM Configurations Demonstrated
+
+### 1. Basic Chat Mode 💬
+- **Provider**: OpenAI GPT-3.5-turbo
+- **Mode**: Chat with system/user messages
+- **Features**: Basic temperature and token controls
+- **Use Case**: Quick, conversational interactions
+
+### 2. Advanced Template Mode 🎯
+- **Provider**: OpenAI GPT-4
+- **Mode**: Chat with structured templates
+- **Features**: Template parameters, context management, memory window
+- **Use Case**: Complex, structured analysis tasks
+
+### 3. Vision-Enabled Mode 👁️
+- **Provider**: OpenAI GPT-4-Vision
+- **Mode**: Chat with visual analysis capabilities
+- **Features**: Image understanding, visual context
+- **Use Case**: Analysis involving diagrams, charts, images
+
+### 4. Completion Mode 📝
+- **Provider**: OpenAI GPT-3.5-turbo-instruct
+- **Mode**: Completion (not chat)
+- **Features**: Direct text completion, stop sequences
+- **Use Case**: Text generation, creative writing, completion tasks
+
+## Advanced Features Showcased
+
+- **Multiple Model Providers**: Support for OpenAI, Anthropic, Google, local models
+- **Flexible Prompting**: Inline prompts, template systems, multi-message conversations
+- **Parameter Control**: Temperature, max_tokens, top_p, frequency/presence penalties
+- **Context Management**: Context variables, memory windows, role prefixes
+- **Vision Integration**: Image analysis capabilities when supported
+- **Template Parameters**: Dynamic prompt customization with variable substitution
+- **Response Aggregation**: Combining multiple LLM responses for comprehensive analysis
+
+## Combined Analysis Results
+
+
+
+---
+
+This example demonstrates the full range of LLM node capabilities in flowsh, from simple chat interactions to complex, template-driven AI workflows with advanced configuration options.
+
+Workflow completed successfully

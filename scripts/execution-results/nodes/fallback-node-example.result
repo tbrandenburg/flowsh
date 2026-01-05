@@ -1,0 +1,9 @@
+Starting workflow: fallback-node-example
+[0;36m🚀 🛡️ Fallback Handler: Primary Service with Fallbacks[0m
+[0;36mℹ️  Starting fallback handler: strategy=sequential, paths=4[0m
+[0;36mℹ️  Trying fallback path 1/4: primary_service_call[0m
+[0;36mℹ️  Mock fallback path execution: primary_service_call[0m
+[0;32m✅ Primary service call succeeded[0m
+[0;32m✅ Fallback path 'primary_service_call' succeeded[0m
+Attempting primary service: https://primary-api.example.com
+Primary service unavailable

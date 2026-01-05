@@ -124,6 +124,11 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
       return `$(get_var "${sanitizedVar.toUpperCase()}" "${nodeId}")`;
     });
 
+    // Escape remaining dollar signs that are meant for inner shell contexts
+    // This prevents issues with commands like 'sh -c "... awk '{print $1}' ..."'
+    // where the $1 should be escaped to avoid "unbound variable" errors
+    result = result.replace(/\$(?![\(\{])/g, '\\$');
+
     return result;
   }
 

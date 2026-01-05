@@ -1,0 +1,55 @@
+Starting workflow: loop-node-example
+[0;36m🚀 🔄 Starting Loop: Main Processing Loop[0m
+[0;36mℹ️  Loop exit condition met at iteration 0[0m
+[0;32m✅ Loop completed after 0 iterations[0m
+Iteration : current_value=, target=50
+Condition passed
+# ⚠️ Loop Terminated - Maximum Iterations Reached
+
+The loop was stopped because it reached the maximum iteration limit.
+
+**Final Results:**
+- Current value: 
+- Target value: 50
+- Iterations completed: 
+- Maximum allowed: 10
+- Increment step: 5
+
+**Status**: Target not reached within iteration limit.
+
+**Suggestions:**
+- Increase maximum iterations
+- Increase increment step
+- Reduce target value
+
+scripts/generated-outputs/nodes/loop-node-example.sh: line 471: / : syntax error: operand expected (error token is "/ ")
+[0;36m🚀 🔄 Starting Loop: Countdown Loop[0m
+[0;36mℹ️  Loop exit condition met at iteration 0[0m
+[0;32m✅ Loop completed after 0 iterations[0m
+# 🔄 Both Loop Examples Completed!
+
+## Loop Example Summary
+
+### 1. Incrementing Loop (Count Up)
+- **Objective**: Count from 0 to 50
+- **Method**: Increment by 5 each iteration
+- **Final value**: 
+- **Iterations**: 
+
+### 2. Decrementing Loop (Count Down)  
+- **Objective**: Count from 50 to 0
+- **Method**: Decrement by 5 each iteration
+- **Final value**: 
+
+## Loop Node Features Demonstrated
+
+- **Condition-based termination**: Loop stops when condition becomes false
+- **Maximum iteration safety**: Prevents infinite loops
+- **Flexible break conditions**: Can break on condition or max iterations
+- **Variable integration**: Loop conditions can use dynamic variables
+- **Multiple loop patterns**: Both increment and decrement patterns
+- **Progress tracking**: Monitor loop progress and performance
+
+This example shows how loop nodes provide controlled, safe iteration with multiple termination mechanisms.
+
+Workflow completed successfully
