@@ -563,6 +563,9 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
       if (data['model'] && typeof data['model'] === 'object') {
         baseData.model = transformModel(data['model'] as Record<string, unknown>);
       }
+      if (data['prompt']) {
+        baseData.prompt = String(data['prompt']);
+      }
       if (data['prompt_template']) {
         baseData.prompt_template = transformPromptTemplate(data['prompt_template']);
       }
