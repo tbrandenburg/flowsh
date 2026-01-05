@@ -2,7 +2,7 @@ Starting workflow: sub-workflow-node-example
 [0;36m🚀 🏗️ Sub-Workflow: Validate First Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_validate_dataset_1/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_validate_dataset_1/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -14,7 +14,7 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Transform Second Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_transform_dataset_2/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_transform_dataset_2/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -26,7 +26,7 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Analyze Third Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_analyze_dataset_3/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_analyze_dataset_3/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -39,7 +39,7 @@ Condition passed
 [0;36m🚀 🏗️ Sub-Workflow: High Priority Processing[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_high_priority_processing/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_high_priority_processing/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -51,7 +51,7 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Parallel Processing - Chunk 1[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_parallel_processing_1/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_parallel_processing_1/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -62,7 +62,7 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Parallel Processing - Chunk 2[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_3181060_parallel_processing_2/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
+/tmp/flowsh_subworkflow_3200805_parallel_processing_2/workflow.sh: line 367: [: "$(get_workflow_var "_INPUT_DATA" "default")": integer expression expected
 Condition passed
 Condition passed
 Workflow completed successfully
@@ -94,7 +94,7 @@ Condition passed
 
 
 ### Execution Summary
-Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: normal | Completion: Mon Jan 5 01:54:16 PM CET 2026
+Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: normal | Completion: Mon Jan 5 02:51:08 PM CET 2026
 
 ## Sub-workflow Node Features Demonstrated
 

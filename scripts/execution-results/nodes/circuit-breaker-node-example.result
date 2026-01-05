@@ -2,7 +2,5 @@ Starting workflow: circuit-breaker-node-example
 [0;36m🚀 ⚡ Circuit Breaker: Basic Service Protection Circuit Breaker[0m
 [0;36mℹ️  Circuit breaker state: CLOSED (failures: 0, successes: 0)[0m
 [0;36mℹ️  Mock circuit breaker operation (timeout: 30s, threshold: 3)[0m
-[0;32m✅ Mock circuit breaker: operation succeeded[0m
-[0;32m✅ Circuit breaker operation succeeded[0m
-Calling protected service: https://api.example.com/health
-Service temporarily unavailable
+[1;33m⚠️  Mock circuit breaker: operation failed (simulated failure)[0m
+[1;33m⚠️  Circuit breaker operation failed (failure 1/5)[0m

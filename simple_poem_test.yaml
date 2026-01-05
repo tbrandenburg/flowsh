@@ -1,0 +1,29 @@
+workflow:
+  name: 'simple-poem-test'
+  description: 'Simple poem generation test'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Start'
+
+    - id: 'generate_poem'
+      type: 'llm'
+      data:
+        title: 'Generate Poem'
+        model:
+          name: 'gpt-4'
+        prompt: 'Write a haiku about coding. Just the haiku, nothing else.'
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'End'
+
+  edges:
+    - source: 'start'
+      target: 'generate_poem'
+    - source: 'generate_poem'
+      target: 'end'
