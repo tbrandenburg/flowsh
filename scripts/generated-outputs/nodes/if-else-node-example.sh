@@ -200,7 +200,7 @@ echo "# 🚫 Age Restriction Notice
 
 Sorry, you must be 18 or older to access this system.
 
-**Your age**: ${user_age}
+**Your age**: $(get_var "USER_AGE" "minor_message")
 **Required age**: 18 or older
 
 Please return when you meet the age requirements.
@@ -218,8 +218,8 @@ echo "# ❌ Access Denied
 
 Your account doesn't meet the access requirements:
 
-**Your role**: ${user_role}
-**Account status**: ${account_status}
+**Your role**: $(get_var "USER_ROLE" "access_denied")
+**Account status**: $(get_var "ACCOUNT_STATUS" "access_denied")
 
 Requirements:
 - Role must not be 'guest'
@@ -239,11 +239,11 @@ echo "# ✅ Basic Access Granted
 Welcome! You have basic access to the system.
 
 **Your details**:
-- Age: ${user_age}
-- Role: ${user_role}
-- Status: ${account_status}
-- Premium: ${is_premium}
-- Feature flags: ${feature_flags}
+- Age: $(get_var "USER_AGE" "basic_access")
+- Role: $(get_var "USER_ROLE" "basic_access")
+- Status: $(get_var "ACCOUNT_STATUS" "basic_access")
+- Premium: $(get_var "IS_PREMIUM" "basic_access")
+- Feature flags: $(get_var "FEATURE_FLAGS" "basic_access")
 
 To unlock advanced features, consider:
 - Upgrading to premium membership
@@ -266,11 +266,11 @@ Welcome, Administrator!
 You have full system access with all privileges:
 
 **Admin Details**:
-- Age: ${user_age}
-- Role: ${user_role} (Administrative)
-- Status: ${account_status}
-- Premium: ${is_premium}
-- Feature flags: ${feature_flags}
+- Age: $(get_var "USER_AGE" "admin_access")
+- Role: $(get_var "USER_ROLE" "admin_access") (Administrative)
+- Status: $(get_var "ACCOUNT_STATUS" "admin_access")
+- Premium: $(get_var "IS_PREMIUM" "admin_access")
+- Feature flags: $(get_var "FEATURE_FLAGS" "admin_access")
 
 **Available Actions**:
 - ✅ User management
@@ -295,10 +295,10 @@ echo "# 🌟 Premium Access Granted
 Congratulations! You have access to all premium features.
 
 **Verification Results**:
-- Premium member: ✅ ${is_premium}
-- Premium flag: ✅ Found in "${feature_flags}"
-- Age requirement (21+): ✅ ${user_age} years old
-- Account status: ✅ ${account_status}
+- Premium member: ✅ $(get_var "IS_PREMIUM" "premium_access")
+- Premium flag: ✅ Found in "$(get_var "FEATURE_FLAGS" "premium_access")"
+- Age requirement (21+): ✅ $(get_var "USER_AGE" "premium_access") years old
+- Account status: ✅ $(get_var "ACCOUNT_STATUS" "premium_access")
 
 **Premium Features Available**:
 - 🚀 Advanced analytics
@@ -316,10 +316,10 @@ echo "# ⭐ Premium Access (Limited)
 You have premium access with some limitations:
 
 **Status Check**:
-- Premium member: ${is_premium}
-- Feature flags: ${feature_flags}
-- Age: ${user_age}
-- Account: ${account_status}
+- Premium member: $(get_var "IS_PREMIUM" "standard_premium_access")
+- Feature flags: $(get_var "FEATURE_FLAGS" "standard_premium_access")
+- Age: $(get_var "USER_AGE" "standard_premium_access")
+- Account: $(get_var "ACCOUNT_STATUS" "standard_premium_access")
 
 **Reason for limitations**:
 Not all premium requirements met (need premium=true AND premium flag AND age 21+)

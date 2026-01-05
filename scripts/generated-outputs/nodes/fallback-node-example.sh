@@ -761,16 +761,16 @@ set_var "FALLBACK_STATISTICS" "" "generate_fallback_statistics"
 echo "# 🛡️ Fallback Node Example Results
 
 ## Configuration Summary
-- **Primary Service**: ${primary_service_url}
-- **Fallback Strategy**: ${fallback_strategy}
-- **Max Fallback Time**: ${max_fallback_time} seconds
-- **Continue on Success**: ${continue_on_success}
-- **Failure Simulation**: ${failure_simulation}
+- **Primary Service**: $(get_var "PRIMARY_SERVICE_URL" "final_report")
+- **Fallback Strategy**: $(get_var "FALLBACK_STRATEGY" "final_report")
+- **Max Fallback Time**: $(get_var "MAX_FALLBACK_TIME" "final_report") seconds
+- **Continue on Success**: $(get_var "CONTINUE_ON_SUCCESS" "final_report")
+- **Failure Simulation**: $(get_var "FAILURE_SIMULATION" "final_report")
 
 ## Fallback Operations Performed
 
 ### 1. Primary Service Fallback Chain
-**Strategy**: ${fallback_strategy} execution
+**Strategy**: $(get_var "FALLBACK_STRATEGY" "final_report") execution
 **Fallback Sequence**:
 1. Primary Service → Primary API endpoint
 2. Secondary Service → Backup API endpoint  
@@ -793,10 +793,10 @@ echo "# 🛡️ Fallback Node Example Results
 
 ## Fallback Results Summary
 
-${combined_fallback_results}
+$(get_var "COMBINED_FALLBACK_RESULTS" "final_report")
 
 ## Performance Metrics
-${fallback_statistics}
+$(get_var "FALLBACK_STATISTICS" "final_report")
 
 ## Fallback Node Features Demonstrated
 

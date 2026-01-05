@@ -202,9 +202,9 @@ send_telegram_simple_message() {
 
     local message="🚀 <b>Workflow Started!</b>
 
-<i>Workflow Name:</i> <code>${workflow_name}</code>
-<i>User:</i> <code>${user_name}</code>
-<i>Notification Level:</i> <code>${notification_level}</code>
+<i>Workflow Name:</i> <code>$(get_var "WORKFLOW_NAME" "simple_message")</code>
+<i>User:</i> <code>$(get_var "USER_NAME" "simple_message")</code>
+<i>Notification Level:</i> <code>$(get_var "NOTIFICATION_LEVEL" "simple_message")</code>
 
 <b>Status:</b> ✅ Initialization Complete
 "
@@ -220,7 +220,7 @@ send_telegram_simple_message() {
     fi
 
     # Use chat_id from node configuration
-    local chat_id="${test_chat_id}"
+    local chat_id="$(get_var "TEST_CHAT_ID" "simple_message")"
 
     # Use bot_token from environment variable
     local bot_token="${TELEGRAM_BOT_TOKEN:-}"
@@ -550,8 +550,8 @@ send_telegram_markdown_message() {
 
     local message="## 📄 Markdown Example
 
-**Workflow:** `${workflow_name}`
-**User:** `${user_name}`
+**Workflow:** `$(get_var "WORKFLOW_NAME" "markdown_message")`
+**User:** `$(get_var "USER_NAME" "markdown_message")`
 
 ### Features Demonstrated:
 - *Italic text*
@@ -733,7 +733,7 @@ send_telegram_progress_update() {
 
     local message="🔄 <b>Progress Update</b>
 
-<b>Workflow:</b> <code>${workflow_name}</code>
+<b>Workflow:</b> <code>$(get_var "WORKFLOW_NAME" "progress_update")</code>
 <b>Progress:</b> 50% Complete
 <b>Stage:</b> Processing Messages
 <b>Next:</b> Error Handling Demo
@@ -917,8 +917,8 @@ send_telegram_error_notification() {
 
     local message="🚨 <b>ERROR ALERT</b> 🚨
 
-<b>Workflow:</b> <code>${workflow_name}</code>
-<b>Error:</b> <code>${error_message}</code>
+<b>Workflow:</b> <code>$(get_var "WORKFLOW_NAME" "error_notification")</code>
+<b>Error:</b> <code>$(get_var "ERROR_MESSAGE" "error_notification")</code>
 <b>Time:</b> <code>$(date '+%Y-%m-%d %H:%M:%S')</code>
 
 <b>Recommended Actions:</b>
@@ -1099,9 +1099,9 @@ send_telegram_recovery_message() {
 
     local message="✅ <b>System Recovery</b>
 
-<b>Workflow:</b> <code>${workflow_name}</code>
+<b>Workflow:</b> <code>$(get_var "WORKFLOW_NAME" "recovery_message")</code>
 <b>Status:</b> Recovered Successfully
-<b>Previous Error:</b> <code>${error_message}</code>
+<b>Previous Error:</b> <code>$(get_var "ERROR_MESSAGE" "recovery_message")</code>
 
 <b>Recovery Actions:</b>
 • Error logged and analyzed
@@ -1471,10 +1471,10 @@ send_telegram_detailed_completion() {
     local message="📊 <b>DETAILED WORKFLOW COMPLETION REPORT</b>
 
 <b>🔧 Configuration:</b>
-• Workflow: <code>${workflow_name}</code>
-• User: <code>${user_name}</code>
-• Notification Level: <code>${notification_level}</code>
-• Chat ID: <code>${test_chat_id}</code>
+• Workflow: <code>$(get_var "WORKFLOW_NAME" "detailed_completion")</code>
+• User: <code>$(get_var "USER_NAME" "detailed_completion")</code>
+• Notification Level: <code>$(get_var "NOTIFICATION_LEVEL" "detailed_completion")</code>
+• Chat ID: <code>$(get_var "TEST_CHAT_ID" "detailed_completion")</code>
 
 <b>📋 Messages Sent:</b>
 • Simple HTML Message ✅
@@ -1673,8 +1673,8 @@ send_telegram_simple_completion() {
 
     local message="✅ <b>Workflow Complete</b>
 
-<b>Name:</b> <code>${workflow_name}</code>
-<b>User:</b> <code>${user_name}</code>
+<b>Name:</b> <code>$(get_var "WORKFLOW_NAME" "simple_completion")</code>
+<b>User:</b> <code>$(get_var "USER_NAME" "simple_completion")</code>
 <b>Status:</b> All tests passed successfully
 
 🎉 Telegram node demonstration completed!
@@ -1848,10 +1848,10 @@ set_var "TELEGRAM_SUMMARY" "" "workflow_summary"
 echo "# 📱 Telegram Node Example Results
 
 ## Configuration Summary
-- **Workflow Name**: ${workflow_name}
-- **User**: ${user_name}
-- **Notification Level**: ${notification_level}
-- **Test Chat ID**: ${test_chat_id}
+- **Workflow Name**: $(get_var "WORKFLOW_NAME" "final_results")
+- **User**: $(get_var "USER_NAME" "final_results")
+- **Notification Level**: $(get_var "NOTIFICATION_LEVEL" "final_results")
+- **Test Chat ID**: $(get_var "TEST_CHAT_ID" "final_results")
 
 ## Telegram Operations Performed
 
@@ -1891,7 +1891,7 @@ echo "# 📱 Telegram Node Example Results
 - **Content**: Detailed vs simple completion reports
 
 ## Summary
-${telegram_summary}
+$(get_var "TELEGRAM_SUMMARY" "final_results")
 
 ## Telegram Node Features Demonstrated
 

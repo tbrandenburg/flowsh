@@ -216,8 +216,8 @@ echo "# 🔧 Code Node Example Completed Successfully!
    - Set environment variables for tracking
 
 2. **File Discovery** 📁
-   - Searched for pattern: `${file_pattern}`
-   - Target directory: `${target_directory}`
+   - Searched for pattern: `$(get_var "FILE_PATTERN" "success_summary")`
+   - Target directory: `$(get_var "TARGET_DIRECTORY" "success_summary")`
 
 3. **Analysis Operations** 📊
    - Counted lines in matched files

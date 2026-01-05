@@ -206,9 +206,9 @@ sh
 echo "# 🤖 Agent Node Example Completed!
 
 ## Task Executed
-**Original Request**: ${task_description}
-**Output Format**: ${output_format}
-**Safety Mode**: ${safety_mode}
+**Original Request**: $(get_var "TASK_DESCRIPTION" "final_report")
+**Output Format**: $(get_var "OUTPUT_FORMAT" "final_report")
+**Safety Mode**: $(get_var "SAFETY_MODE" "final_report")
 
 ## Agent Operations Performed
 

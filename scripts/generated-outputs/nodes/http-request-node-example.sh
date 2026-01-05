@@ -213,7 +213,7 @@ substitute_variables() {
 execute_http_simple_get_request() {
     log_step "🌐 HTTP Request: Simple GET Request"
 
-    local url="${test_api_url}/get"
+    local url="$(get_var "TEST_API_URL" "simple_get_request")/get"
     local method="GET"
     local timeout=${request_timeout}
     local max_retries=${max_retries}
@@ -349,7 +349,7 @@ execute_http_simple_get_request
 execute_http_get_with_headers() {
     log_step "🌐 HTTP Request: GET Request with Custom Headers"
 
-    local url="${test_api_url}/headers"
+    local url="$(get_var "TEST_API_URL" "get_with_headers")/headers"
     local method="GET"
     local timeout=${request_timeout}
     local max_retries=2
@@ -500,7 +500,7 @@ execute_http_get_with_headers
 execute_http_post_json_request() {
     log_step "🌐 HTTP Request: POST Request with JSON Body"
 
-    local url="${test_api_url}/post"
+    local url="$(get_var "TEST_API_URL" "post_json_request")/post"
     local method="POST"
     local timeout=${request_timeout}
     local max_retries=${max_retries}
@@ -544,7 +544,7 @@ Accept: application/json
 EOF
 
     # Add request body
-    local body_content="${test_data}"
+    local body_content="$(get_var "TEST_DATA" "post_json_request")"
     
     if [[ -n "$body_content" ]]; then
         curl_opts+=(-d "$body_content")
@@ -670,7 +670,7 @@ execute_http_post_json_request
 execute_http_post_form_request() {
     log_step "🌐 HTTP Request: POST Request with Form Data"
 
-    local url="${test_api_url}/post"
+    local url="$(get_var "TEST_API_URL" "post_form_request")/post"
     local method="POST"
     local timeout=${request_timeout}
     local max_retries=2
@@ -840,7 +840,7 @@ execute_http_post_form_request
 execute_http_authenticated_request() {
     log_step "🌐 HTTP Request: Request with Bearer Authentication"
 
-    local url="${test_api_url}/bearer"
+    local url="$(get_var "TEST_API_URL" "authenticated_request")/bearer"
     local method="GET"
     local timeout=${request_timeout}
     local max_retries=1
@@ -997,7 +997,7 @@ execute_http_authenticated_request
 execute_http_basic_auth_request() {
     log_step "🌐 HTTP Request: Request with Basic Authentication"
 
-    local url="${test_api_url}/basic-auth/testuser/testpass"
+    local url="$(get_var "TEST_API_URL" "basic_auth_request")/basic-auth/testuser/testpass"
     local method="GET"
     local timeout=${request_timeout}
     local max_retries=2
@@ -1154,7 +1154,7 @@ execute_http_basic_auth_request
 execute_http_api_key_request() {
     log_step "🌐 HTTP Request: Request with API Key Authentication"
 
-    local url="${test_api_url}/get"
+    local url="$(get_var "TEST_API_URL" "api_key_request")/get"
     local method="GET"
     local timeout=${request_timeout}
     local max_retries=1
@@ -1312,7 +1312,7 @@ execute_http_api_key_request
 execute_http_put_update_request() {
     log_step "🌐 HTTP Request: PUT Request for Data Update"
 
-    local url="${test_api_url}/put"
+    local url="$(get_var "TEST_API_URL" "put_update_request")/put"
     local method="PUT"
     local timeout=${request_timeout}
     local max_retries=2
@@ -1482,7 +1482,7 @@ execute_http_put_update_request
 execute_http_delete_request() {
     log_step "🌐 HTTP Request: DELETE Request"
 
-    local url="${test_api_url}/delete"
+    local url="$(get_var "TEST_API_URL" "delete_request")/delete"
     local method="DELETE"
     local timeout=${request_timeout}
     local max_retries=1
@@ -1631,7 +1631,7 @@ execute_http_delete_request
 execute_http_post_xml_request() {
     log_step "🌐 HTTP Request: POST Request with XML Body"
 
-    local url="${test_api_url}/post"
+    local url="$(get_var "TEST_API_URL" "post_xml_request")/post"
     local method="POST"
     local timeout=${request_timeout}
     local max_retries=1
@@ -1974,10 +1974,10 @@ set_var "HTTP_SUMMARY" "" "generate_summary_stats"
 echo "# 🌐 HTTP Request Node Example Results
 
 ## Configuration Summary
-- **Target API**: ${test_api_url}
-- **Request Timeout**: ${request_timeout} seconds
-- **Maximum Retries**: ${max_retries}
-- **Test Data**: ${test_data}
+- **Target API**: $(get_var "TEST_API_URL" "final_results")
+- **Request Timeout**: $(get_var "REQUEST_TIMEOUT" "final_results") seconds
+- **Maximum Retries**: $(get_var "MAX_RETRIES" "final_results")
+- **Test Data**: $(get_var "TEST_DATA" "final_results")
 
 ## HTTP Operations Performed
 
@@ -2035,11 +2035,11 @@ echo "# 🌐 HTTP Request Node Example Results
 - **Features**: XML document transmission
 
 ## Response Summary
-${http_summary}
+$(get_var "HTTP_SUMMARY" "final_results")
 
 ## Detailed Responses
 
-${all_http_responses}
+$(get_var "ALL_HTTP_RESPONSES" "final_results")
 
 ## HTTP Request Node Features Demonstrated
 

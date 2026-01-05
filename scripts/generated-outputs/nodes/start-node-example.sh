@@ -203,11 +203,11 @@ fi
 echo "✅ Start Node Example Completed Successfully!
 
 Collected Inputs:
-- Name: ${user_name}
-- Priority: ${task_priority}
-- Max Items: ${max_items}
-- Debug Mode: ${enable_debug}
-- Comments: ${user_feedback}
+- Name: $(get_var "USER_NAME" "success_output")
+- Priority: $(get_var "TASK_PRIORITY" "success_output")
+- Max Items: $(get_var "MAX_ITEMS" "success_output")
+- Debug Mode: $(get_var "ENABLE_DEBUG" "success_output")
+- Comments: $(get_var "USER_FEEDBACK" "success_output")
 
 All inputs have been validated and are ready for processing.
 "
@@ -220,8 +220,8 @@ Please check the following requirements:
 - Max items must be greater than 0
 
 Current values:
-- Name: "${user_name}"
-- Max Items: ${max_items}
+- Name: "$(get_var "USER_NAME" "error_output")"
+- Max Items: $(get_var "MAX_ITEMS" "error_output")
 "
 
 echo "Workflow completed successfully"

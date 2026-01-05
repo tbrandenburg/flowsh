@@ -391,8 +391,8 @@ execute_aggregation_aggregate_responses
 echo "# 🧠 LLM Node Example Results
 
 ## Original Query
-**Question**: ${user_query}
-**Preferences**: ${response_style} style, ${max_length} length, examples: ${include_examples}
+**Question**: $(get_var "USER_QUERY" "final_summary")
+**Preferences**: $(get_var "RESPONSE_STYLE" "final_summary") style, $(get_var "MAX_LENGTH" "final_summary") length, examples: $(get_var "INCLUDE_EXAMPLES" "final_summary")
 
 ## LLM Configurations Demonstrated
 
@@ -432,7 +432,7 @@ echo "# 🧠 LLM Node Example Results
 
 ## Combined Analysis Results
 
-${combined_analysis}
+$(get_var "COMBINED_ANALYSIS" "final_summary")
 
 ---
 

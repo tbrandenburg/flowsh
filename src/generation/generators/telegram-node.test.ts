@@ -90,6 +90,24 @@ describe('TelegramNodeGenerator', () => {
       expect(result).toContain('$(get_var "CHAT_ID" "template_message")');
     });
 
+    it('should generate message with shell-style template variables', () => {
+      const node: WorkflowNode = {
+        id: 'shell_template_message',
+        type: 'telegram',
+        data: {
+          message: 'Workflow: ${workflow_name}, User: ${user_name}',
+          chat_id: '${test_chat_id}',
+        } as TelegramNodeData,
+      };
+
+      const result = generator.generate(node, mockContext);
+
+      expect(result).toContain('send_telegram_shell_template_message()');
+      expect(result).toContain('$(get_var "WORKFLOW_NAME" "shell_template_message")');
+      expect(result).toContain('$(get_var "USER_NAME" "shell_template_message")');
+      expect(result).toContain('$(get_var "TEST_CHAT_ID" "shell_template_message")');
+    });
+
     it('should generate message with optional parameters', () => {
       const node: WorkflowNode = {
         id: 'full_config',
@@ -387,6 +405,22 @@ describe('TelegramNodeGenerator', () => {
       expect(variables).toContain('TELEGRAM_RESPONSE');
       expect(variables).toContain('TELEGRAM_MESSAGE_SENT');
       expect(variables).toContain('TELEGRAM_ERROR');
+    });
+
+    it('should extract shell-style template variables', () => {
+      const node: WorkflowNode = {
+        id: 'shell_vars',
+        type: 'telegram',
+        data: {
+          message: 'Status: ${status_code}, Time: ${timestamp}',
+          chat_id: '${dynamic_chat_id}',
+        } as TelegramNodeData,
+      };
+
+      const variables = generator.getVariables(node);
+      expect(variables).toContain('STATUS_CODE');
+      expect(variables).toContain('TIMESTAMP');
+      expect(variables).toContain('DYNAMIC_CHAT_ID');
     });
 
     it('should deduplicate variables', () => {

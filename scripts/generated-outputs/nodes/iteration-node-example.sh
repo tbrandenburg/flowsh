@@ -520,17 +520,17 @@ set_var "PROCESSING_SUMMARY" "" "create_summary_report"
 echo "# 🔄 Iteration Node Example Results
 
 ## Processing Configuration
-- **Input Files**: ${file_list}
-- **Processing Mode**: ${processing_mode}
-- **Parallel Processing**: ${enable_parallel}
-- **Total Files**: ${total_files_processed}
+- **Input Files**: $(get_var "FILE_LIST" "final_results")
+- **Processing Mode**: $(get_var "PROCESSING_MODE" "final_results")
+- **Parallel Processing**: $(get_var "ENABLE_PARALLEL" "final_results")
+- **Total Files**: $(get_var "TOTAL_FILES_PROCESSED" "final_results")
 
 ## Processing Results
 
-${final_results}
+$(get_var "FINAL_RESULTS" "final_results")
 
 ## Summary Statistics
-${processing_summary}
+$(get_var "PROCESSING_SUMMARY" "final_results")
 
 ## File Type Breakdown
 The iteration processed different file types with specialized handling:

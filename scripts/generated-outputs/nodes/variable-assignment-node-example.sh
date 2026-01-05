@@ -262,34 +262,34 @@ set_var "TEMP_DATA" "" "clear_temp_variable"
 echo "# 📝 Variable Assignment Node Example Results
 
 ## Original Inputs
-- **Base Value**: ${base_value}
-- **Number Input**: ${number_input}
-- **User Name**: ${user_name}
+- **Base Value**: $(get_var "BASE_VALUE" "final_summary")
+- **Number Input**: $(get_var "NUMBER_INPUT" "final_summary")
+- **User Name**: $(get_var "USER_NAME" "final_summary")
 
 ## Constant Assignments
-- **Welcome Message**: ${welcome_message}
-- **Max Attempts**: ${max_attempts}
-- **Debug Enabled**: ${debug_enabled}
+- **Welcome Message**: $(get_var "WELCOME_MESSAGE" "final_summary")
+- **Max Attempts**: $(get_var "MAX_ATTEMPTS" "final_summary")
+- **Debug Enabled**: $(get_var "DEBUG_ENABLED" "final_summary")
 
 ## Variable Copying
-- **Original Input Copy**: ${original_input}
-- **Calculation Base**: ${calculation_base}
+- **Original Input Copy**: $(get_var "ORIGINAL_INPUT" "final_summary")
+- **Calculation Base**: $(get_var "CALCULATION_BASE" "final_summary")
 
 ## Expression Results
-- **Personalized Greeting**: ${personalized_greeting}
-- **Mathematical Result**: ${calculated_result}
-- **Current Timestamp**: ${current_timestamp}
-- **System Information**: ${system_info}
-- **Status Message**: ${status_message}
+- **Personalized Greeting**: $(get_var "PERSONALIZED_GREETING" "final_summary")
+- **Mathematical Result**: $(get_var "CALCULATED_RESULT" "final_summary")
+- **Current Timestamp**: $(get_var "CURRENT_TIMESTAMP" "final_summary")
+- **System Information**: $(get_var "SYSTEM_INFO" "final_summary")
+- **Status Message**: $(get_var "STATUS_MESSAGE" "final_summary")
 
 ## Advanced Operations
-- **Processed Text**: ${processed_text}
-- **JSON Data**: ${json_data}
-- **Environment Summary**: ${env_summary}
+- **Processed Text**: $(get_var "PROCESSED_TEXT" "final_summary")
+- **JSON Data**: $(get_var "JSON_DATA" "final_summary")
+- **Environment Summary**: $(get_var "ENV_SUMMARY" "final_summary")
 
 ## Write Mode Operations
-- **Activity Log**: ${activity_log}
-- **Temp Data (after clear)**: "${temp_data}" (should be empty)
+- **Activity Log**: $(get_var "ACTIVITY_LOG" "final_summary")
+- **Temp Data (after clear)**: "$(get_var "TEMP_DATA" "final_summary")" (should be empty)
 
 ## Variable Assignment Features Demonstrated
 

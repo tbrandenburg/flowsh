@@ -1550,53 +1550,53 @@ set_var "AGGREGATION_SUMMARY" "" "create_aggregation_metadata"
 echo "# 🔄 Variable Aggregation Node Example Results
 
 ## Original Input Data
-- **Dataset 1**: ${dataset_1}
-- **Dataset 2**: ${dataset_2}
-- **Dataset 3**: ${dataset_3}
-- **Numbers 1**: ${numbers_1}
-- **Numbers 2**: ${numbers_2}
-- **Numbers 3**: ${numbers_3}
+- **Dataset 1**: $(get_var "DATASET_1" "final_results")
+- **Dataset 2**: $(get_var "DATASET_2" "final_results")
+- **Dataset 3**: $(get_var "DATASET_3" "final_results")
+- **Numbers 1**: $(get_var "NUMBERS_1" "final_results")
+- **Numbers 2**: $(get_var "NUMBERS_2" "final_results")
+- **Numbers 3**: $(get_var "NUMBERS_3" "final_results")
 
 ## Concatenation Results
 
 ### Newline Separated Text
 ```
-${combined_text_newline}
+$(get_var "COMBINED_TEXT_NEWLINE" "final_results")
 ```
 
 ### Pipe Separated Datasets
 ```
-${combined_datasets_pipe}
+$(get_var "COMBINED_DATASETS_PIPE" "final_results")
 ```
 
 ### Comma Separated Combined
 ```
-${combined_datasets_comma}
+$(get_var "COMBINED_DATASETS_COMMA" "final_results")
 ```
 
 ## Numerical Aggregation Results
-- **Total Sum**: ${total_sum}
-- **Average Value**: ${average_value}
+- **Total Sum**: $(get_var "TOTAL_SUM" "final_results")
+- **Average Value**: $(get_var "AVERAGE_VALUE" "final_results")
 
 ## Advanced Aggregations
 
 ### Merged JSON Objects
 ```json
-${merged_json}
+$(get_var "MERGED_JSON" "final_results")
 ```
 
 ### Collected Arrays
 ```
-${collected_arrays}
+$(get_var "COLLECTED_ARRAYS" "final_results")
 ```
 
 ### Space-Separated Numbers
 ```
-${all_numbers_space}
+$(get_var "ALL_NUMBERS_SPACE" "final_results")
 ```
 
 ## Aggregation Metadata
-${aggregation_summary}
+$(get_var "AGGREGATION_SUMMARY" "final_results")
 
 ## Variable Aggregation Features Demonstrated
 

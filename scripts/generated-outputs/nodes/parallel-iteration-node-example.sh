@@ -562,33 +562,33 @@ set_var "THROUGHPUT" "" "calculate_throughput"
 echo "# 🚀 Parallel Iteration Node Example Results
 
 ## Configuration Summary
-- **Total Tasks**: ${total_tasks}
-- **Max Concurrent**: ${max_concurrent}
-- **Chunk Size**: ${chunk_size}
-- **Error Handling**: ${error_handling}
-- **Progress Tracking**: ${enable_progress_tracking}
+- **Total Tasks**: $(get_var "TOTAL_TASKS" "final_report")
+- **Max Concurrent**: $(get_var "MAX_CONCURRENT" "final_report")
+- **Chunk Size**: $(get_var "CHUNK_SIZE" "final_report")
+- **Error Handling**: $(get_var "ERROR_HANDLING" "final_report")
+- **Progress Tracking**: $(get_var "ENABLE_PROGRESS_TRACKING" "final_report")
 
 ## Performance Metrics
-- **Execution Time**: ${execution_duration} seconds
-- **Throughput**: ${throughput} tasks/second
-- **Concurrency Efficiency**: ${max_concurrent} parallel workers
-- **Chunk Processing**: ${chunk_size} tasks per batch
+- **Execution Time**: $(get_var "EXECUTION_DURATION" "final_report") seconds
+- **Throughput**: $(get_var "THROUGHPUT" "final_report") tasks/second
+- **Concurrency Efficiency**: $(get_var "MAX_CONCURRENT" "final_report") parallel workers
+- **Chunk Processing**: $(get_var "CHUNK_SIZE" "final_report") tasks per batch
 
 ## Processing Results
 
-${combined_results}
+$(get_var "COMBINED_RESULTS" "final_report")
 
 ## Parallel Processing Analysis
 
 ### Concurrency Benefits
-- **Scalability**: Processing ${total_tasks} tasks across ${max_concurrent} parallel workers
-- **Resource Optimization**: Chunked processing with ${chunk_size} items per batch
-- **Error Resilience**: ${error_handling} strategy for handling individual failures
-- **Progress Monitoring**: Real-time tracking of ${enable_progress_tracking} execution progress
+- **Scalability**: Processing $(get_var "TOTAL_TASKS" "final_report") tasks across $(get_var "MAX_CONCURRENT" "final_report") parallel workers
+- **Resource Optimization**: Chunked processing with $(get_var "CHUNK_SIZE" "final_report") items per batch
+- **Error Resilience**: $(get_var "ERROR_HANDLING" "final_report") strategy for handling individual failures
+- **Progress Monitoring**: Real-time tracking of $(get_var "ENABLE_PROGRESS_TRACKING" "final_report") execution progress
 
 ### Performance Characteristics
-- **Parallel Speedup**: Theoretical max ${max_concurrent}x improvement over sequential processing
-- **Actual Throughput**: ${throughput} tasks/second with current configuration
+- **Parallel Speedup**: Theoretical max $(get_var "MAX_CONCURRENT" "final_report")x improvement over sequential processing
+- **Actual Throughput**: $(get_var "THROUGHPUT" "final_report") tasks/second with current configuration
 - **Resource Utilization**: Balanced load across available parallel workers
 - **Fault Tolerance**: Robust error handling ensures workflow continuation
 

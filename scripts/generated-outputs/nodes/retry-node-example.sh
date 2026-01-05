@@ -614,11 +614,11 @@ execute_aggregation_aggregate_all_results
 echo "# 🔄 Retry Node Example Results
 
 ## Retry Configuration
-- **Maximum Attempts**: ${max_retry_attempts}
-- **Base Delay**: ${base_delay} seconds
-- **Backoff Multiplier**: ${backoff_multiplier}x
-- **Operation Timeout**: ${operation_timeout} seconds
-- **Failure Simulation**: ${failure_simulation}
+- **Maximum Attempts**: $(get_var "MAX_RETRY_ATTEMPTS" "final_report")
+- **Base Delay**: $(get_var "BASE_DELAY" "final_report") seconds
+- **Backoff Multiplier**: $(get_var "BACKOFF_MULTIPLIER" "final_report")x
+- **Operation Timeout**: $(get_var "OPERATION_TIMEOUT" "final_report") seconds
+- **Failure Simulation**: $(get_var "FAILURE_SIMULATION" "final_report")
 
 ## Retry Operations Performed
 
@@ -644,10 +644,10 @@ echo "# 🔄 Retry Node Example Results
 
 ## Retry Results Summary
 
-${combined_retry_results}
+$(get_var "COMBINED_RETRY_RESULTS" "final_report")
 
 ## Performance Metrics
-${retry_statistics}
+$(get_var "RETRY_STATISTICS" "final_report")
 
 ## Retry Node Features Demonstrated
 

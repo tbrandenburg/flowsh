@@ -1095,20 +1095,20 @@ set_var "CIRCUIT_SUMMARY" "" "generate_circuit_summary"
 echo "# ⚡ Circuit Breaker Node Example Results
 
 ## Configuration Summary
-- **Failure Threshold**: ${failure_threshold} failures
-- **Timeout Duration**: ${timeout_duration} seconds
-- **Success Threshold**: ${success_threshold} successes
-- **Monitor Window**: ${monitor_window} seconds
-- **Protected Endpoint**: ${service_endpoint}
-- **Failure Simulation**: ${failure_simulation_mode}
+- **Failure Threshold**: $(get_var "FAILURE_THRESHOLD" "final_report") failures
+- **Timeout Duration**: $(get_var "TIMEOUT_DURATION" "final_report") seconds
+- **Success Threshold**: $(get_var "SUCCESS_THRESHOLD" "final_report") successes
+- **Monitor Window**: $(get_var "MONITOR_WINDOW" "final_report") seconds
+- **Protected Endpoint**: $(get_var "SERVICE_ENDPOINT" "final_report")
+- **Failure Simulation**: $(get_var "FAILURE_SIMULATION_MODE" "final_report")
 
 ## Circuit Breaker Patterns Demonstrated
 
 ### 1. Basic Service Protection
 **Purpose**: Protect primary service endpoints from cascading failures
 **Configuration**: Standard thresholds with balanced recovery
-**Protected Service**: ${service_endpoint}
-**Simulation Mode**: ${failure_simulation_mode}
+**Protected Service**: $(get_var "SERVICE_ENDPOINT" "final_report")
+**Simulation Mode**: $(get_var "FAILURE_SIMULATION_MODE" "final_report")
 
 ### 2. High-Frequency Operations Protection
 **Purpose**: Protect high-throughput operations from rapid failure accumulation
@@ -1130,18 +1130,18 @@ echo "# ⚡ Circuit Breaker Node Example Results
 
 ## Circuit Breaker Results Summary
 
-${combined_circuit_results}
+$(get_var "COMBINED_CIRCUIT_RESULTS" "final_report")
 
 ## System Health Metrics
 
 ### Circuit States Monitoring
-${circuit_states_summary}
+$(get_var "CIRCUIT_STATES_SUMMARY" "final_report")
 
 ### Health Metrics
-${health_metrics}
+$(get_var "HEALTH_METRICS" "final_report")
 
 ### Comprehensive Summary
-${circuit_summary}
+$(get_var "CIRCUIT_SUMMARY" "final_report")
 
 ## Circuit Breaker Node Features Demonstrated
 

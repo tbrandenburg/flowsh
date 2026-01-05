@@ -90,7 +90,7 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
 
   /**
    * Replace template variables in command with getter function calls
-   * Supports both {{variable}} and {{#variable.path#}} syntax
+   * Supports {{variable}}, {{#variable.path#}}, and ${variable} syntax
    */
   protected processTemplateVariables(command: string, nodeId: string = 'template_node'): string {
     // Defensive programming: ensure command is a string
@@ -118,12 +118,18 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
       return `$(get_var "${sanitizedVar.toUpperCase()}" "${nodeId}")`;
     });
 
+    // Handle ${variable} syntax (common shell-style variable references)
+    result = result.replace(/\$\{(\w+)\}/g, (_, varName: string) => {
+      const sanitizedVar = this.sanitizeVariableName(varName || '');
+      return `$(get_var "${sanitizedVar.toUpperCase()}" "${nodeId}")`;
+    });
+
     return result;
   }
 
   /**
    * Extract template variable names from a command string
-   * Supports both {{variable}} and {{#variable.path#}} syntax
+   * Supports {{variable}}, {{#variable.path#}}, and ${variable} syntax
    */
   protected extractTemplateVariables(text: string): string[] {
     // Defensive programming: ensure text is a string
@@ -148,6 +154,13 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
     const traditionalMatches = text.match(/\{\{(\w+)\}\}/g) || [];
     traditionalMatches.forEach(match => {
       const rawVarName = match.replace(/\{\{|\}\}/g, '');
+      variables.push(this.sanitizeVariableName(rawVarName || '').toUpperCase());
+    });
+
+    // Extract ${variable} variables
+    const shellStyleMatches = text.match(/\$\{(\w+)\}/g) || [];
+    shellStyleMatches.forEach(match => {
+      const rawVarName = match.replace(/\$\{|\}/g, '');
       variables.push(this.sanitizeVariableName(rawVarName || '').toUpperCase());
     });
 

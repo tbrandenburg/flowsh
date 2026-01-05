@@ -1729,7 +1729,7 @@ set_var "EXECUTION_SUMMARY" "" "generate_execution_summary"
 echo "# 🔄 Sub-workflow Node Example Results
 
 ## Configuration Summary
-- **Processing Priority**: ${processing_priority}
+- **Processing Priority**: $(get_var "PROCESSING_PRIORITY" "final_report")
 - **Primary Datasets**: 3 datasets processed
 - **Parallel Chunks**: 2 chunks processed
 - **Total Sub-workflows**: 5+ executions
@@ -1737,13 +1737,13 @@ echo "# 🔄 Sub-workflow Node Example Results
 ## Sub-workflow Execution Results
 
 ### Dataset Processing Results
-${final_results_with_priority}
+$(get_var "FINAL_RESULTS_WITH_PRIORITY" "final_report")
 
 ### Processing Metadata
-${combined_metadata}
+$(get_var "COMBINED_METADATA" "final_report")
 
 ### Execution Summary
-${execution_summary}
+$(get_var "EXECUTION_SUMMARY" "final_report")
 
 ## Sub-workflow Node Features Demonstrated
 

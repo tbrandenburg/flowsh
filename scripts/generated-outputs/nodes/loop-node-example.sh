@@ -282,11 +282,11 @@ echo "# ⚠️ Loop Terminated - Maximum Iterations Reached
 The loop was stopped because it reached the maximum iteration limit.
 
 **Final Results:**
-- Current value: ${current_value}
-- Target value: ${target_value}
-- Iterations completed: ${iteration_count}
-- Maximum allowed: ${max_iterations}
-- Increment step: ${increment_step}
+- Current value: $(get_var "CURRENT_VALUE" "max_iterations_reached")
+- Target value: $(get_var "TARGET_VALUE" "max_iterations_reached")
+- Iterations completed: $(get_var "ITERATION_COUNT" "max_iterations_reached")
+- Maximum allowed: $(get_var "MAX_ITERATIONS" "max_iterations_reached")
+- Increment step: $(get_var "INCREMENT_STEP" "max_iterations_reached")
 
 **Status**: Target not reached within iteration limit.
 
@@ -302,15 +302,15 @@ echo "# 🎯 Loop Completed Successfully!
 The target value was reached within the iteration limit.
 
 **Final Results:**
-- Final value: ${current_value}
-- Target value: ${target_value}
-- Total iterations: ${iteration_count}
-- Maximum allowed: ${max_iterations}
-- Increment step: ${increment_step}
+- Final value: $(get_var "CURRENT_VALUE" "target_reached")
+- Target value: $(get_var "TARGET_VALUE" "target_reached")
+- Total iterations: $(get_var "ITERATION_COUNT" "target_reached")
+- Maximum allowed: $(get_var "MAX_ITERATIONS" "target_reached")
+- Increment step: $(get_var "INCREMENT_STEP" "target_reached")
 
 **Performance:**
-- Efficiency: ${iteration_count}/${max_iterations} iterations used
-- Average increment: $((${current_value} / ${iteration_count})) per iteration
+- Efficiency: $(get_var "ITERATION_COUNT" "target_reached")/$(get_var "MAX_ITERATIONS" "target_reached") iterations used
+- Average increment: $(($(get_var "CURRENT_VALUE" "target_reached") / $(get_var "ITERATION_COUNT" "target_reached"))) per iteration
 
 **Status**: ✅ Target reached successfully!
 "
@@ -388,15 +388,15 @@ echo "# 🔄 Both Loop Examples Completed!
 ## Loop Example Summary
 
 ### 1. Incrementing Loop (Count Up)
-- **Objective**: Count from 0 to ${target_value}
-- **Method**: Increment by ${increment_step} each iteration
-- **Final value**: ${current_value}
-- **Iterations**: ${iteration_count}
+- **Objective**: Count from 0 to $(get_var "TARGET_VALUE" "countdown_complete")
+- **Method**: Increment by $(get_var "INCREMENT_STEP" "countdown_complete") each iteration
+- **Final value**: $(get_var "CURRENT_VALUE" "countdown_complete")
+- **Iterations**: $(get_var "ITERATION_COUNT" "countdown_complete")
 
 ### 2. Decrementing Loop (Count Down)  
-- **Objective**: Count from ${target_value} to 0
-- **Method**: Decrement by ${increment_step} each iteration
-- **Final value**: ${countdown_value}
+- **Objective**: Count from $(get_var "TARGET_VALUE" "countdown_complete") to 0
+- **Method**: Decrement by $(get_var "INCREMENT_STEP" "countdown_complete") each iteration
+- **Final value**: $(get_var "COUNTDOWN_VALUE" "countdown_complete")
 
 ## Loop Node Features Demonstrated
 
