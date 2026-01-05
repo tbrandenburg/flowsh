@@ -160,7 +160,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -244,13 +261,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -372,40 +391,62 @@ set_var "ORIGINAL_INPUT" "" "copy_variable"
 set_var "CALCULATION_BASE" "" "copy_number_variable"
 
 # Node: string_concatenation
-set_var "PERSONALIZED_GREETING" "" "string_concatenation"
+# Node: string_concatenation
+PERSONALIZED_GREETING=$(echo 'Hello $(get_workflow_var "USER_NAME" "0")! $(get_workflow_var "WELCOME_MESSAGE" "0")')
+set_var "PERSONALIZED_GREETING" "$PERSONALIZED_GREETING" "string_concatenation"
 
 # Node: mathematical_calculation
-set_var "CALCULATED_RESULT" "" "mathematical_calculation"
+# Node: mathematical_calculation
+CALCULATED_RESULT=$(echo $(($(get_workflow_var "NUMBER_INPUT" "0") * 2 + 10)))
+set_var "CALCULATED_RESULT" "$CALCULATED_RESULT" "mathematical_calculation"
 
 # Node: date_timestamp
-set_var "CURRENT_TIMESTAMP" "" "date_timestamp"
+# Node: date_timestamp
+CURRENT_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+set_var "CURRENT_TIMESTAMP" "$CURRENT_TIMESTAMP" "date_timestamp"
 
 # Node: file_operation
-set_var "SYSTEM_INFO" "" "file_operation"
+# Node: file_operation
+SYSTEM_INFO=$(echo 'System: '$(uname -s)', User: '$(whoami)', Directory: '$(pwd))
+set_var "SYSTEM_INFO" "$SYSTEM_INFO" "file_operation"
 
 # Node: conditional_expression
-set_var "STATUS_MESSAGE" "" "conditional_expression"
+# Node: conditional_expression
+STATUS_MESSAGE=$(if [ $(get_workflow_var "NUMBER_INPUT" "0") -gt 50 ]; then echo 'High value'; else echo 'Low value'; fi)
+set_var "STATUS_MESSAGE" "$STATUS_MESSAGE" "conditional_expression"
 
 # Node: initialize_log
 set_var "ACTIVITY_LOG" "Log initialized" "initialize_log"
 
 # Node: append_to_log_1
-set_var "ACTIVITY_LOG" "" "append_to_log_1"
+# Node: append_to_log_1
+ACTIVITY_LOG=$(echo ' | Entry 1: Variable assignments demonstrated')
+set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_to_log_1"
 
 # Node: append_to_log_2
-set_var "ACTIVITY_LOG" "" "append_to_log_2"
+# Node: append_to_log_2
+ACTIVITY_LOG=$(echo ' | Entry 2: Timestamp - $(get_workflow_var "CURRENT_TIMESTAMP" "0")')
+set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_to_log_2"
 
 # Node: append_calculation
-set_var "ACTIVITY_LOG" "" "append_calculation"
+# Node: append_calculation
+ACTIVITY_LOG=$(echo ' | Entry 3: Calculation result - $(get_workflow_var "CALCULATED_RESULT" "0")')
+set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_calculation"
 
 # Node: complex_string_manipulation
-set_var "PROCESSED_TEXT" "" "complex_string_manipulation"
+# Node: complex_string_manipulation
+PROCESSED_TEXT=$(echo '$(get_workflow_var "BASE_VALUE" "0")' | tr '[:lower:]' '[:upper:]' | sed 's/WORLD/UNIVERSE/g')
+set_var "PROCESSED_TEXT" "$PROCESSED_TEXT" "complex_string_manipulation"
 
 # Node: json_creation
-set_var "JSON_DATA" "" "json_creation"
+# Node: json_creation
+JSON_DATA=$(echo '{"user": "$(get_workflow_var "USER_NAME" "0")", "value": $(get_workflow_var "NUMBER_INPUT" "0"), "timestamp": "$(get_workflow_var "CURRENT_TIMESTAMP" "0")", "status": "$(get_workflow_var "STATUS_MESSAGE" "0")"}')
+set_var "JSON_DATA" "$JSON_DATA" "json_creation"
 
 # Node: environment_info
-set_var "ENV_SUMMARY" "" "environment_info"
+# Node: environment_info
+ENV_SUMMARY=$(echo 'Environment Summary: OS='$(uname -o 2>/dev/null || uname -s)', Hostname='$(hostname)', Shell='$SHELL', Path='$(pwd)'')
+set_var "ENV_SUMMARY" "$ENV_SUMMARY" "environment_info"
 
 # Node: create_temp_variable
 set_var "TEMP_DATA" "This is temporary data that will be cleared" "create_temp_variable"

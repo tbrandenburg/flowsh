@@ -1,11 +1,11 @@
 Starting workflow: variable-aggregation-node-example
 [0;36m🚀 📊 Variable Aggregation: Concatenate with Newlines[0m
-[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Concatenated 3 values into combined_text_newline[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> combined_text_newline[0m
 [0;36m🚀 📊 Variable Aggregation: Concatenate with Pipe Separators[0m
-[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Concatenated 3 values into combined_datasets_pipe[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> combined_datasets_pipe[0m
 [0;36m🚀 📊 Variable Aggregation: Concatenate with Comma Separators[0m
-[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Concatenated 3 values into combined_datasets_comma[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> combined_datasets_comma[0m
 [0;36m🚀 📊 Variable Aggregation: Sum All Numbers[0m

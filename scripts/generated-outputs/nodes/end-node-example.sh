@@ -149,7 +149,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -233,13 +250,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -346,19 +365,29 @@ execute_fallback_path() {
 # Workflow Execution
 
 # Node: process_data
-set_var "PROCESSED_RESULT" "" "process_data"
+# Node: process_data
+PROCESSED_RESULT=$(echo "Processed: $(get_workflow_var "INPUT_DATA" "0")" | tr '[:lower:]' '[:upper:]')
+set_var "PROCESSED_RESULT" "$PROCESSED_RESULT" "process_data"
 
 # Node: calculate_stats
-set_var "DATA_LENGTH" "" "calculate_stats"
+# Node: calculate_stats
+DATA_LENGTH=$(echo "$(get_workflow_var "PROCESSED_RESULT" "0")" | wc -c)
+set_var "DATA_LENGTH" "$DATA_LENGTH" "calculate_stats"
 
 # Node: generate_timestamp
-set_var "COMPLETION_TIME" "" "generate_timestamp"
+# Node: generate_timestamp
+COMPLETION_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+set_var "COMPLETION_TIME" "$COMPLETION_TIME" "generate_timestamp"
 
 # Node: create_summary
-set_var "PROCESSING_SUMMARY" "" "create_summary"
+# Node: create_summary
+PROCESSING_SUMMARY=$(echo "Processing completed at $(get_workflow_var "COMPLETION_TIME" "0"). Input length: $(get_workflow_var "DATA_LENGTH" "0") characters.")
+set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary"
 
 # Node: prepare_metadata
-set_var "METADATA" "" "prepare_metadata"
+# Node: prepare_metadata
+METADATA=$(echo '{"workflow": "end-node-example", "version": "1.0", "status": "completed", "input_length": '"$(get_workflow_var "DATA_LENGTH" "0")"'}')
+set_var "METADATA" "$METADATA" "prepare_metadata"
 
 # Node: preserve_input
 set_var "ORIGINAL_INPUT" "" "preserve_input"

@@ -198,7 +198,7 @@ graph:
         description: 'Collect comprehensive environment details'
         variable: 'env_summary'
         assignment_type: 'expression'
-        expression: "echo 'Environment Summary: OS='$(uname -o 2>/dev/null || uname -s)', Hostname='$(hostname)', Shell='$SHELL', Path='$(pwd)'"
+        expression: "echo 'Environment Summary: OS='$(uname -o 2>/dev/null || uname -s)', Hostname='$(hostname)', Shell='$SHELL', Path='$(pwd)''"
 
     # Clear operation example
     - id: 'create_temp_variable'

@@ -73,10 +73,6 @@ MONITORING_CONTEXT=${MONITORING_CONTEXT:-""}
 BASIC_CIRCUIT_RESULT=${BASIC_CIRCUIT_RESULT:-""}
 CIRCUIT_STATES_SUMMARY=${CIRCUIT_STATES_SUMMARY:-""}
 HEALTH_METRICS=${HEALTH_METRICS:-""}
-BASIC_CIRCUIT_BREAKER=${BASIC_CIRCUIT_BREAKER:-""}
-HIGH_FREQUENCY_CIRCUIT_BREAKER=${HIGH_FREQUENCY_CIRCUIT_BREAKER:-""}
-DATABASE_CIRCUIT_BREAKER=${DATABASE_CIRCUIT_BREAKER:-""}
-EXTERNAL_API_CIRCUIT_BREAKER=${EXTERNAL_API_CIRCUIT_BREAKER:-""}
 COMBINED_CIRCUIT_RESULTS=${COMBINED_CIRCUIT_RESULTS:-""}
 CIRCUIT_SUMMARY=${CIRCUIT_SUMMARY:-""}
 
@@ -160,7 +156,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -244,13 +257,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -363,7 +378,9 @@ set_var "CIRCUIT_STATE" "CLOSED" "initialize_circuit_state"
 set_var "FAILURE_COUNT" "0" "initialize_failure_count"
 
 # Node: setup_monitoring_context
-set_var "MONITORING_CONTEXT" "" "setup_monitoring_context"
+# Node: setup_monitoring_context
+MONITORING_CONTEXT=$(echo 'Circuit Breaker Monitor: Threshold=$(get_workflow_var "FAILURE_THRESHOLD" "0"), Timeout=$(get_workflow_var "TIMEOUT_DURATION" "0")s, Success=$(get_workflow_var "SUCCESS_THRESHOLD" "0"), Window=$(get_workflow_var "MONITOR_WINDOW" "0")s')
+set_var "MONITORING_CONTEXT" "$MONITORING_CONTEXT" "setup_monitoring_context"
 
 # Node: basic_circuit_breaker
 # Node: basic_circuit_breaker (basic_circuit_breaker)
@@ -542,7 +559,9 @@ execute_circuit_breaker_basic_circuit_breaker
 sh -c "echo 'Calling protected service: $(get_var "SERVICE_ENDPOINT" "protected_service_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "protected_service_call")' in 'stable') echo 'Service response: SUCCESS' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Service response: SUCCESS' && exit 0; else echo 'Service temporarily unavailable' && exit 1; fi ;; 'degraded') if [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Service response: DEGRADED SUCCESS' && exit 0; else echo 'Service degraded response failure' && exit 1; fi ;; 'failing') echo 'Service completely down' && exit 1 ;; 'recovering') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Service response: RECOVERY SUCCESS' && exit 0; else echo 'Service still recovering' && exit 1; fi ;; esac"
 
 # Node: record_basic_result
-set_var "BASIC_CIRCUIT_RESULT" "" "record_basic_result"
+# Node: record_basic_result
+BASIC_CIRCUIT_RESULT=$(echo 'Basic circuit breaker completed for $(get_workflow_var "SERVICE_ENDPOINT" "0") with $(get_workflow_var "FAILURE_SIMULATION_MODE" "0") simulation')
+set_var "BASIC_CIRCUIT_RESULT" "$BASIC_CIRCUIT_RESULT" "record_basic_result"
 
 # Node: high_frequency_circuit_breaker
 # Node: high_frequency_circuit_breaker (high_frequency_circuit_breaker)
@@ -1073,10 +1092,14 @@ execute_circuit_breaker_external_api_circuit_breaker
 sh -c "echo 'Calling external API: $(get_var "SERVICE_ENDPOINT" "external_api_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "external_api_call")' in 'stable') echo 'API Response: {\"status\": \"success\", \"data\": \"external data\"}' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'API Error: Rate limit exceeded' && exit 1; else echo 'API Response: {\"status\": \"success\"}' && exit 0; fi ;; 'degraded') sleep 3 && echo 'API Response: {\"status\": \"success\", \"warning\": \"slow response\"}' && exit 0 ;; 'failing') echo 'API Error: Service unavailable (503)' && exit 1 ;; 'recovering') if [ $(( RANDOM % 5 )) -eq 0 ]; then echo 'API Response: {\"status\": \"success\", \"note\": \"service recovered\"}' && exit 0; else echo 'API Error: Service still unstable' && exit 1; fi ;; esac"
 
 # Node: monitor_circuit_states
-set_var "CIRCUIT_STATES_SUMMARY" "" "monitor_circuit_states"
+# Node: monitor_circuit_states
+CIRCUIT_STATES_SUMMARY=$(echo 'Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold=$(get_workflow_var "FAILURE_THRESHOLD" "0")')
+set_var "CIRCUIT_STATES_SUMMARY" "$CIRCUIT_STATES_SUMMARY" "monitor_circuit_states"
 
 # Node: generate_health_metrics
-set_var "HEALTH_METRICS" "" "generate_health_metrics"
+# Node: generate_health_metrics
+HEALTH_METRICS=$(echo 'Health Metrics: Simulation=$(get_workflow_var "FAILURE_SIMULATION_MODE" "0"), Thresholds configured, Recovery patterns active, Monitoring window=$(get_workflow_var "MONITOR_WINDOW" "0")s')
+set_var "HEALTH_METRICS" "$HEALTH_METRICS" "generate_health_metrics"
 
 # Node: aggregate_circuit_results
 
@@ -1084,167 +1107,38 @@ set_var "HEALTH_METRICS" "" "generate_health_metrics"
 execute_aggregation_aggregate_circuit_results() {
     log_step "📊 Variable Aggregation: Aggregate Circuit Breaker Results"
 
-    local -a input_vars=("basic_circuit_breaker" "high_frequency_circuit_breaker" "database_circuit_breaker" "external_api_circuit_breaker")
+    local -a input_vars=("BASIC_CIRCUIT_BREAKER" "HIGH_FREQUENCY_CIRCUIT_BREAKER" "DATABASE_CIRCUIT_BREAKER" "EXTERNAL_API_CIRCUIT_BREAKER")
     local output_var="combined_circuit_results"
     local method="concat"
     local separator=$'
 --- CIRCUIT BREAKER SEPARATOR ---
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
 execute_aggregation_aggregate_circuit_results
 
 # Node: generate_circuit_summary
-set_var "CIRCUIT_SUMMARY" "" "generate_circuit_summary"
+# Node: generate_circuit_summary
+CIRCUIT_SUMMARY=$(echo 'Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: $(get_workflow_var "FAILURE_THRESHOLD" "0") | Timeout: $(get_workflow_var "TIMEOUT_DURATION" "0")s | Success threshold: $(get_workflow_var "SUCCESS_THRESHOLD" "0") | Monitor window: $(get_workflow_var "MONITOR_WINDOW" "0")s | Simulation: $(get_workflow_var "FAILURE_SIMULATION_MODE" "0")')
+set_var "CIRCUIT_SUMMARY" "$CIRCUIT_SUMMARY" "generate_circuit_summary"
 
 # Node: final_report
 echo "# ⚡ Circuit Breaker Node Example Results

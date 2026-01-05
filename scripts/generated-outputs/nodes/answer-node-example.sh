@@ -149,7 +149,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -233,13 +250,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -346,10 +365,14 @@ execute_fallback_path() {
 # Workflow Execution
 
 # Node: calculate_stats
-set_var "CURRENT_TIMESTAMP" "" "calculate_stats"
+# Node: calculate_stats
+CURRENT_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+set_var "CURRENT_TIMESTAMP" "$CURRENT_TIMESTAMP" "calculate_stats"
 
 # Node: generate_data
-set_var "SAMPLE_COUNT" "" "generate_data"
+# Node: generate_data
+SAMPLE_COUNT=$(echo $((RANDOM % 100 + 1)))
+set_var "SAMPLE_COUNT" "$SAMPLE_COUNT" "generate_data"
 
 # Node: create_status
 set_var "STATUS_MESSAGE" "Processing completed successfully" "create_status"

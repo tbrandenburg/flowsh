@@ -166,7 +166,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -250,13 +267,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -363,13 +382,19 @@ execute_fallback_path() {
 # Workflow Execution
 
 # Node: create_text_source_1
-set_var "TEXT_SOURCE_A" "" "create_text_source_1"
+# Node: create_text_source_1
+TEXT_SOURCE_A=$(echo 'Source A: $(get_workflow_var "DATASET_1" "0")')
+set_var "TEXT_SOURCE_A" "$TEXT_SOURCE_A" "create_text_source_1"
 
 # Node: create_text_source_2
-set_var "TEXT_SOURCE_B" "" "create_text_source_2"
+# Node: create_text_source_2
+TEXT_SOURCE_B=$(echo 'Source B: $(get_workflow_var "DATASET_2" "0")')
+set_var "TEXT_SOURCE_B" "$TEXT_SOURCE_B" "create_text_source_2"
 
 # Node: create_text_source_3
-set_var "TEXT_SOURCE_C" "" "create_text_source_3"
+# Node: create_text_source_3
+TEXT_SOURCE_C=$(echo 'Source C: $(get_workflow_var "DATASET_3" "0")')
+set_var "TEXT_SOURCE_C" "$TEXT_SOURCE_C" "create_text_source_3"
 
 # Node: concat_with_newlines
 
@@ -377,159 +402,28 @@ set_var "TEXT_SOURCE_C" "" "create_text_source_3"
 execute_aggregation_concat_with_newlines() {
     log_step "📊 Variable Aggregation: Concatenate with Newlines"
 
-    local -a input_vars=("text_source_a" "text_source_b" "text_source_c")
+    local -a input_vars=("TEXT_SOURCE_A" "TEXT_SOURCE_B" "TEXT_SOURCE_C")
     local output_var="combined_text_newline"
     local method="concat"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
@@ -541,158 +435,27 @@ execute_aggregation_concat_with_newlines
 execute_aggregation_concat_with_pipes() {
     log_step "📊 Variable Aggregation: Concatenate with Pipe Separators"
 
-    local -a input_vars=("dataset_1" "dataset_2" "dataset_3")
+    local -a input_vars=("DATASET_1" "DATASET_2" "DATASET_3")
     local output_var="combined_datasets_pipe"
     local method="concat"
     local separator=$' | '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
@@ -704,158 +467,27 @@ execute_aggregation_concat_with_pipes
 execute_aggregation_concat_with_comma() {
     log_step "📊 Variable Aggregation: Concatenate with Comma Separators"
 
-    local -a input_vars=("dataset_1" "dataset_2" "dataset_3")
+    local -a input_vars=("DATASET_1" "DATASET_2" "DATASET_3")
     local output_var="combined_datasets_comma"
     local method="concat"
     local separator=$','
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
@@ -867,159 +499,58 @@ execute_aggregation_concat_with_comma
 execute_aggregation_sum_all_numbers() {
     log_step "📊 Variable Aggregation: Sum All Numbers"
 
-    local -a input_vars=("numbers_1" "numbers_2" "numbers_3")
+    local -a input_vars=("NUMBERS_1" "NUMBERS_2" "NUMBERS_3")
     local output_var="total_sum"
     local method="sum"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
+    log_debug "Starting sum method with input vars: ${input_vars[@]}"
+    local total=0
+    local valid_count=0
+    
+    log_debug "About to iterate through ${#input_vars[@]} variables"
+    for var_name in "${input_vars[@]}"; do
+        log_debug "Processing variable: $var_name"
+        local value="$(get_workflow_var "$var_name" "0")"
+        log_debug "Got value for $var_name: $value"
+        
+        # Handle comma-separated numbers with simple approach
+        if [[ "$value" == *","* ]]; then
+            log_debug "Processing comma-separated value: $value"
+            # Replace commas with spaces and iterate
+            local space_separated=$(echo "$value" | tr ',' ' ')
+            log_debug "Space separated: $space_separated"
+            for num in $space_separated; do
+                # Trim whitespace and validate with case statement (safer than regex)
+                num=$(echo "$num" | xargs)
+                log_debug "Processing number: $num"
+                case "$num" in
+                    ''|*[!0-9]*) log_warning "Skipping non-numeric value '$num' in $var_name" ;;
+                    *) 
+                        total=$((total + num))
+                        ((valid_count++))
+                        log_debug "Added $num, running total: $total"
+                        ;;
+                esac
             done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
+        else
+            # Handle single value with case statement
+            case "$value" in
+                ''|*[!0-9]*) log_warning "Skipping non-numeric value in $var_name: $value" ;;
+                *)
+                    total=$((total + value))
                     ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+                    log_debug "Added single value $value, total: $total"
+                    ;;
+            esac
+        fi
+        log_debug "Completed processing $var_name"
+    done
+    
+    log_debug "Sum calculation complete. Total: $total, Count: $valid_count"
+    set_workflow_var "$output_var" "$total"
+    log_success "Summed $valid_count numeric values, result: $total"
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
@@ -1031,172 +562,76 @@ execute_aggregation_sum_all_numbers
 execute_aggregation_average_numbers() {
     log_step "📊 Variable Aggregation: Calculate Average"
 
-    local -a input_vars=("numbers_1" "numbers_2" "numbers_3")
+    local -a input_vars=("NUMBERS_1" "NUMBERS_2" "NUMBERS_3")
     local output_var="average_value"
     local method="avg"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
+    log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
+    local total=0
+    local valid_count=0
+    
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "0")"
+        log_debug "Processing variable $var_name with value: $value"
+        
+        # Handle comma-separated numbers with simple approach
+        if [[ "$value" == *","* ]]; then
+            # Replace commas with spaces and iterate
+            local space_separated=$(echo "$value" | tr ',' ' ')
+            for num in $space_separated; do
+                # Trim whitespace and validate with case statement (safer than regex)
+                num=$(echo "$num" | xargs)
+                case "$num" in
+                    ''|*[!0-9]*) log_warning "Skipping non-numeric value '$num' in $var_name" ;;
+                    *) 
+                        total=$((total + num))
+                        ((valid_count++))
+                        log_debug "Added $num, running total: $total"
+                        ;;
+                esac
             done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
+        else
+            # Handle single value with case statement
+            case "$value" in
+                ''|*[!0-9]*) log_warning "Skipping non-numeric value in $var_name: $value" ;;
+                *)
+                    total=$((total + value))
                     ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+                    log_debug "Added single value $value, total: $total"
+                    ;;
+            esac
+        fi
+    done
+    
+    if [[ $valid_count -gt 0 ]]; then
+        local average=$((total / valid_count))
+        set_workflow_var "$output_var" "$average"
+        log_success "Calculated average of $valid_count values: $average (total: $total)"
+    else
+        log_warning "No valid numeric values to average"
+        set_workflow_var "$output_var" "0"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
 execute_aggregation_average_numbers
 
 # Node: create_json_object_1
-set_var "JSON_OBJ_1" "" "create_json_object_1"
+# Node: create_json_object_1
+JSON_OBJ_1=$(echo '{"name": "object1", "type": "fruit", "items": ["$(get_workflow_var "DATASET_1" "0")"], "count": 3}')
+set_var "JSON_OBJ_1" "$JSON_OBJ_1" "create_json_object_1"
 
 # Node: create_json_object_2
-set_var "JSON_OBJ_2" "" "create_json_object_2"
+# Node: create_json_object_2
+JSON_OBJ_2=$(echo '{"name": "object2", "type": "animal", "items": ["$(get_workflow_var "DATASET_2" "0")"], "count": 3}')
+set_var "JSON_OBJ_2" "$JSON_OBJ_2" "create_json_object_2"
 
 # Node: create_json_object_3
-set_var "JSON_OBJ_3" "" "create_json_object_3"
+# Node: create_json_object_3
+JSON_OBJ_3=$(echo '{"name": "object3", "type": "tool", "items": ["$(get_workflow_var "DATASET_3" "0")"], "count": 3}')
+set_var "JSON_OBJ_3" "$JSON_OBJ_3" "create_json_object_3"
 
 # Node: merge_json_objects
 
@@ -1204,159 +639,39 @@ set_var "JSON_OBJ_3" "" "create_json_object_3"
 execute_aggregation_merge_json_objects() {
     log_step "📊 Variable Aggregation: Merge JSON Objects"
 
-    local -a input_vars=("json_obj_1" "json_obj_2" "json_obj_3")
+    local -a input_vars=("JSON_OBJ_1" "JSON_OBJ_2" "JSON_OBJ_3")
     local output_var="merged_json"
     local method="merge"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
+    log_debug "Merging JSON objects from ${#input_vars[@]} variables"
+    local merged_json="{}"
+    local merge_count=0
+    
+    if command -v jq >/dev/null 2>&1; then
+        for var_name in "${input_vars[@]}"; do
+            local value="$(get_workflow_var "$var_name" "{}")"
+            # Validate that value is valid JSON
+            if echo "$value" | jq -e . >/dev/null 2>&1; then
+                merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
+                if [[ $? -eq 0 ]]; then
+                    ((merge_count++))
                 else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
+                    log_warning "Failed to merge JSON from $var_name"
                 fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
             else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
+                log_warning "Invalid JSON in variable $var_name, skipping"
             fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+        done
+        
+        set_workflow_var "$output_var" "$merged_json"
+        log_success "Merged $merge_count JSON objects"
+    else
+        log_error "jq is required for merge operation but not available"
+        set_workflow_var "$output_var" "{}"
+        return 1
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
@@ -1368,172 +683,61 @@ execute_aggregation_merge_json_objects
 execute_aggregation_collect_all_datasets() {
     log_step "📊 Variable Aggregation: Collect All Datasets"
 
-    local -a input_vars=("dataset_1" "dataset_2" "dataset_3")
+    local -a input_vars=("DATASET_1" "DATASET_2" "DATASET_3")
     local output_var="collected_arrays"
     local method="collect"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
+    log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
+    local -a collected=()
+    
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && collected+=("$value")
+    done
+    
+    # Store as JSON array for structured access
+    if command -v jq >/dev/null 2>&1; then
+        local json_array
+        json_array=$(printf '%s\n' "${collected[@]}" | jq -R . | jq -s .)
+        set_workflow_var "$output_var" "$json_array"
+        log_success "Collected ${#collected[@]} values into JSON array"
+    else
+        # Fallback: create simple array format
+        local array_string="["
+        local first=true
+        for value in "${collected[@]}"; do
+            if [[ "$first" == "true" ]]; then
+                first=false
             else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
+                array_string+=", "
             fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+            array_string+="\"$value\""
+        done
+        array_string+="]"
+        set_workflow_var "$output_var" "$array_string"
+        log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
 execute_aggregation_collect_all_datasets
 
 # Node: process_numbers_for_aggregation
-set_var "PROCESSED_NUMBERS_1" "" "process_numbers_for_aggregation"
+# Node: process_numbers_for_aggregation
+PROCESSED_NUMBERS_1=$(echo '$(get_workflow_var "NUMBERS_1" "0")' | tr ',' ' ')
+set_var "PROCESSED_NUMBERS_1" "$PROCESSED_NUMBERS_1" "process_numbers_for_aggregation"
 
 # Node: process_numbers_2
-set_var "PROCESSED_NUMBERS_2" "" "process_numbers_2"
+# Node: process_numbers_2
+PROCESSED_NUMBERS_2=$(echo '$(get_workflow_var "NUMBERS_2" "0")' | tr ',' ' ')
+set_var "PROCESSED_NUMBERS_2" "$PROCESSED_NUMBERS_2" "process_numbers_2"
 
 # Node: process_numbers_3
-set_var "PROCESSED_NUMBERS_3" "" "process_numbers_3"
+# Node: process_numbers_3
+PROCESSED_NUMBERS_3=$(echo '$(get_workflow_var "NUMBERS_3" "0")' | tr ',' ' ')
+set_var "PROCESSED_NUMBERS_3" "$PROCESSED_NUMBERS_3" "process_numbers_3"
 
 # Node: aggregate_processed_numbers
 
@@ -1541,165 +745,36 @@ set_var "PROCESSED_NUMBERS_3" "" "process_numbers_3"
 execute_aggregation_aggregate_processed_numbers() {
     log_step "📊 Variable Aggregation: Aggregate Processed Numbers"
 
-    local -a input_vars=("processed_numbers_1" "processed_numbers_2" "processed_numbers_3")
+    local -a input_vars=("PROCESSED_NUMBERS_1" "PROCESSED_NUMBERS_2" "PROCESSED_NUMBERS_3")
     local output_var="all_numbers_space"
     local method="concat"
     local separator=$' '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
 execute_aggregation_aggregate_processed_numbers
 
 # Node: create_aggregation_metadata
-set_var "AGGREGATION_SUMMARY" "" "create_aggregation_metadata"
+# Node: create_aggregation_metadata
+AGGREGATION_SUMMARY=$(echo 'Processed at: '$(date)' | Total variables aggregated: 15 | Methods used: concat, sum, avg, merge, collect')
+set_var "AGGREGATION_SUMMARY" "$AGGREGATION_SUMMARY" "create_aggregation_metadata"
 
 # Node: final_results
 echo "# 🔄 Variable Aggregation Node Example Results

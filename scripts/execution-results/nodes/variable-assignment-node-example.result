@@ -16,19 +16,19 @@ Starting workflow: variable-assignment-node-example
 - **Calculation Base**: 
 
 ## Expression Results
-- **Personalized Greeting**: 
-- **Mathematical Result**: 
-- **Current Timestamp**: 
-- **System Information**: 
-- **Status Message**: 
+- **Personalized Greeting**: Hello $(get_workflow_var "USER_NAME" "0")! $(get_workflow_var "WELCOME_MESSAGE" "0")
+- **Mathematical Result**: 94
+- **Current Timestamp**: 2026-01-05 11:12:36
+- **System Information**: System: Linux, User: tom, Directory: /home/tom/workspace/ai/made/workspace/flowsh
+- **Status Message**: Low value
 
 ## Advanced Operations
-- **Processed Text**: 
-- **JSON Data**: 
-- **Environment Summary**: 
+- **Processed Text**: $(GET_WORKFLOW_VAR "BASE_VALUE" "0")
+- **JSON Data**: {"user": "$(get_workflow_var "USER_NAME" "0")", "value": $(get_workflow_var "NUMBER_INPUT" "0"), "timestamp": "$(get_workflow_var "CURRENT_TIMESTAMP" "0")", "status": "$(get_workflow_var "STATUS_MESSAGE" "0")"}
+- **Environment Summary**: Environment Summary: OS=GNU/Linux, Hostname=tom-nuc7, Shell=/bin/bash, Path=/home/tom/workspace/ai/made/workspace/flowsh
 
 ## Write Mode Operations
-- **Activity Log**: 
+- **Activity Log**:  | Entry 3: Calculation result - $(get_workflow_var "CALCULATED_RESULT" "0")
 - **Temp Data (after clear)**:  (should be empty)
 
 ## Variable Assignment Features Demonstrated

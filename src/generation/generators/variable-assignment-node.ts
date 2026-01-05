@@ -15,13 +15,48 @@ export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const rawVariable = this.getNodeData(node, 'variable', 'TEMP_VAR');
     const variable = this.sanitizeVariableName(String(rawVariable));
-    const rawValue = this.getNodeData(node, 'value', '');
+    const assignmentType = String(this.getNodeData(node, 'assignment_type', 'constant'));
 
-    // Escape value to prevent injection
-    const value = this.escapeShellValue(String(rawValue));
+    if (assignmentType === 'expression') {
+      // Handle expression-based assignment
+      const expression = this.processConfigValue(this.getNodeData(node, 'expression', ''), '');
 
-    // Use the new variable management function with debug logging
-    return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
+      if (expression) {
+        return `# Node: ${node.id}
+${variable.toUpperCase()}=$(${expression})
+set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
+      } else {
+        // Fallback to empty if no expression
+        return `set_var "${variable.toUpperCase()}" "" "${node.id}"`;
+      }
+    } else {
+      // Handle constant value assignment (original logic)
+      const rawValue = this.getNodeData(node, 'value', '');
+      const value = this.escapeShellValue(String(rawValue));
+
+      return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
+    }
+  }
+
+  /**
+   * Process configuration values with template variable substitution
+   */
+  private processConfigValue(value: any, defaultValue: any): string {
+    if (!value) return defaultValue.toString();
+
+    const stringValue = value.toString();
+
+    // Handle template variables like ${variable_name}
+    if (stringValue.includes('${')) {
+      // Replace all ${var_name} with $(get_workflow_var "VAR_NAME" "0")
+      let result = stringValue.replace(/\$\{([^}]+)\}/g, (_match: string, varName: string) => {
+        const sanitizedVar = this.sanitizeVariableName(varName).toUpperCase();
+        return `$(get_workflow_var "${sanitizedVar}" "0")`;
+      });
+      return result;
+    }
+
+    return stringValue;
   }
 
   override validate(node: WorkflowNode): ValidationResult {

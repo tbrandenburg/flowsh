@@ -8,9 +8,9 @@ Starting workflow: template-transform-node-example
 [0;36m🚀 🔧 Template Transform: Transform Documentation Template[0m
 [0;32m✅ Template transformed and stored in generated_docs[0m
 [0;36m🚀 📊 Variable Aggregation: Aggregate All Template Outputs[0m
-[0;32m✅ Concatenated 4 values into all_template_outputs[0m
+[1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 4 inputs -> all_template_outputs[0m
-scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1639: {{#condition}}...{{/condition}}: No such file or directory
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1533: {{#condition}}...{{/condition}}: No such file or directory
 # 📝 Template Transform Node Example Results
 
 ## Configuration Summary
@@ -19,14 +19,14 @@ scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1639: {
 - **Template Type:** email
 - **Priority Level:** medium
 - **Include Details:** true
-- **Generated:** 
+- **Generated:** 2026-01-05 11:12:35
 
 ## Template Transformation Results
 
 
 
 ## Operations Summary
-
+Template Transform Summary: 4 templates processed | User: $(get_workflow_var "USER_NAME" "0") | Project: $(get_workflow_var "PROJECT_NAME" "0") | Type: $(get_workflow_var "TEMPLATE_TYPE" "0") | Priority: $(get_workflow_var "URGENCY_LEVEL" "0") | Details: $(get_workflow_var "INCLUDE_DETAILS" "0")
 
 ## Template Transform Node Features Demonstrated
 

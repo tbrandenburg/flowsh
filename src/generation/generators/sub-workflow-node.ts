@@ -115,7 +115,7 @@ EOF
             done
             
             # Execute the sub-workflow
-            if flowsh generate "\$(basename "\$subworkflow_file")" > "\$subworkflow_script" 2>&1; then
+            if flowsh compile "\$(basename "\$subworkflow_file")" > "\$subworkflow_script" 2>&1; then
                 if bash "\$subworkflow_script" 2>&1; then
                     log_success "Sub-workflow executed successfully"
                     

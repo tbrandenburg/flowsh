@@ -161,7 +161,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -245,13 +262,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -358,7 +377,10 @@ execute_fallback_path() {
 # Workflow Execution
 
 # Node: prepare_file_array
-set_var "FILES_ARRAY" "" "prepare_file_array"
+# Node: prepare_file_array
+FILES_ARRAY=$(echo '$(get_workflow_var "FILE_LIST" "0")' | tr ',' '
+')
+set_var "FILES_ARRAY" "$FILES_ARRAY" "prepare_file_array"
 
 # Node: initialize_results
 set_var "PROCESSING_RESULTS" "" "initialize_results"
@@ -463,7 +485,9 @@ execute_iteration_iterate_files
 set_var "CURRENT_FILE" "" "get_current_file"
 
 # Node: analyze_file_type
-set_var "FILE_EXTENSION" "" "analyze_file_type"
+# Node: analyze_file_type
+FILE_EXTENSION=$(echo '$(get_workflow_var "CURRENT_FILE" "0")' | sed 's/.*\.//' | tr '[:upper:]' '[:lower:]')
+set_var "FILE_EXTENSION" "$FILE_EXTENSION" "analyze_file_type"
 
 # Node: process_by_type
 if true; then
@@ -499,7 +523,9 @@ sh -c "echo 'Processing SCRIPT: $(get_var "CURRENT_FILE" "handle_script") - Mode
 sh -c "echo 'Processing OTHER: $(get_var "CURRENT_FILE" "process_other_file") ($(get_var "FILE_EXTENSION" "process_other_file")) - Mode: $(get_var "PROCESSING_MODE" "process_other_file") - Basic file analysis'"
 
 # Node: create_file_report
-set_var "CURRENT_FILE_RESULT" "" "create_file_report"
+# Node: create_file_report
+CURRENT_FILE_RESULT=$(echo 'File: $(get_workflow_var "CURRENT_FILE" "0") | Type: $(get_workflow_var "FILE_EXTENSION" "0") | Mode: $(get_workflow_var "PROCESSING_MODE" "0") | Status: Processed | Timestamp: $(date)')
+set_var "CURRENT_FILE_RESULT" "$CURRENT_FILE_RESULT" "create_file_report"
 
 # Node: collect_iteration_results
 
@@ -507,169 +533,43 @@ set_var "CURRENT_FILE_RESULT" "" "create_file_report"
 execute_aggregation_collect_iteration_results() {
     log_step "📊 Variable Aggregation: Collect All File Results"
 
-    local -a input_vars=("file_processing_results")
+    local -a input_vars=("FILE_PROCESSING_RESULTS")
     local output_var="final_results"
     local method="concat"
     local separator=$'
 '
 
-    case "$method" in
-        "concat")
-            log_debug "Concatenating ${#input_vars[@]} variables with separator"
-            local -a values=()
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && values+=("$value")
-            done
-            
-            if [[ ${#values[@]} -eq 0 ]]; then
-                log_warning "No non-empty values to concatenate"
-                set_workflow_var "$output_var" ""
-            else
-                local result
-                result=$(IFS="$separator"; echo "${values[*]}")
-                set_workflow_var "$output_var" "$result"
-                log_success "Concatenated ${#values[@]} values into $output_var"
-            fi
-            ;;
-
-        "sum")
-            log_debug "Summing numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        # Fallback to integer arithmetic if bc not available
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            set_workflow_var "$output_var" "$total"
-            log_success "Summed $valid_count numeric values, result: $total"
-            ;;
-
-        "avg")
-            log_debug "Calculating average of numeric values from ${#input_vars[@]} variables"
-            local total=0
-            local valid_count=0
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "0")"
-                if [[ "$value" =~ ^[+-]?[0-9]+(.[0-9]+)?$ ]]; then
-                    if command -v bc >/dev/null 2>&1; then
-                        total=$(echo "$total + $value" | bc -l)
-                    else
-                        total=$((total + ${value%.*}))
-                    fi
-                    ((valid_count++))
-                else
-                    log_warning "Skipping non-numeric value in $var_name: $value"
-                fi
-            done
-            
-            if [[ $valid_count -gt 0 ]]; then
-                local average
-                if command -v bc >/dev/null 2>&1; then
-                    average=$(echo "scale=6; $total / $valid_count" | bc -l)
-                else
-                    average=$((total / valid_count))
-                fi
-                set_workflow_var "$output_var" "$average"
-                log_success "Calculated average of $valid_count values: $average"
-            else
-                log_warning "No valid numeric values to average"
-                set_workflow_var "$output_var" "0"
-            fi
-            ;;
-
-        "collect")
-            log_debug "Collecting values into JSON array from ${#input_vars[@]} variables"
-            local -a collected=()
-            
-            for var_name in "${input_vars[@]}"; do
-                local value="$(get_workflow_var "$var_name" "")"
-                [[ -n "$value" ]] && collected+=("$value")
-            done
-            
-            # Store as JSON array for structured access
-            if command -v jq >/dev/null 2>&1; then
-                local json_array
-                json_array=$(printf '%s
-' "${collected[@]}" | jq -R . | jq -s .)
-                set_workflow_var "$output_var" "$json_array"
-                log_success "Collected ${#collected[@]} values into JSON array"
-            else
-                # Fallback: create simple array format
-                local array_string="["
-                local first=true
-                for value in "${collected[@]}"; do
-                    if [[ "$first" == "true" ]]; then
-                        first=false
-                    else
-                        array_string+=", "
-                    fi
-                    array_string+="\"$value\""
-                done
-                array_string+="]"
-                set_workflow_var "$output_var" "$array_string"
-                log_success "Collected ${#collected[@]} values into array (jq not available, using fallback format)"
-            fi
-            ;;
-
-        "merge")
-            log_debug "Merging JSON objects from ${#input_vars[@]} variables"
-            local merged_json="{}"
-            local merge_count=0
-            
-            if command -v jq >/dev/null 2>&1; then
-                for var_name in "${input_vars[@]}"; do
-                    local value="$(get_workflow_var "$var_name" "{}")"
-                    # Validate that value is valid JSON
-                    if echo "$value" | jq -e . >/dev/null 2>&1; then
-                        merged_json=$(jq -s '.[0] * .[1]' <<< "$merged_json $value" 2>/dev/null)
-                        if [[ $? -eq 0 ]]; then
-                            ((merge_count++))
-                        else
-                            log_warning "Failed to merge JSON from $var_name"
-                        fi
-                    else
-                        log_warning "Invalid JSON in variable $var_name, skipping"
-                    fi
-                done
-                
-                set_workflow_var "$output_var" "$merged_json"
-                log_success "Merged $merge_count JSON objects"
-            else
-                log_error "jq is required for merge operation but not available"
-                set_workflow_var "$output_var" "{}"
-                return 1
-            fi
-            ;;
-
-        *)
-            log_error "Unknown aggregation method: $method"
-            return 1
-            ;;
-    esac
+    log_debug "Concatenating ${#input_vars[@]} variables with separator"
+    local -a values=()
+    for var_name in "${input_vars[@]}"; do
+        local value="$(get_workflow_var "$var_name" "")"
+        [[ -n "$value" ]] && values+=("$value")
+    done
+    
+    if [[ ${#values[@]} -eq 0 ]]; then
+        log_warning "No non-empty values to concatenate"
+        set_workflow_var "$output_var" ""
+    else
+        local result
+        result=$(IFS="$separator"; echo "${values[*]}")
+        set_workflow_var "$output_var" "$result"
+        log_success "Concatenated ${#values[@]} values into $output_var"
+    fi
 
     log_success "Variable aggregation completed: ${#input_vars[@]} inputs -> $output_var"
 }
 execute_aggregation_collect_iteration_results
 
 # Node: calculate_statistics
-set_var "TOTAL_FILES_PROCESSED" "" "calculate_statistics"
+# Node: calculate_statistics
+TOTAL_FILES_PROCESSED=$(echo '$(get_workflow_var "FILE_LIST" "0")' | tr ',' '
+' | wc -l)
+set_var "TOTAL_FILES_PROCESSED" "$TOTAL_FILES_PROCESSED" "calculate_statistics"
 
 # Node: create_summary_report
-set_var "PROCESSING_SUMMARY" "" "create_summary_report"
+# Node: create_summary_report
+PROCESSING_SUMMARY=$(echo 'Iteration Summary: $(get_workflow_var "TOTAL_FILES_PROCESSED" "0") files processed in $(get_workflow_var "PROCESSING_MODE" "0") mode. Parallel: $(get_workflow_var "ENABLE_PARALLEL" "0")')
+set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary_report"
 
 # Node: final_results
 echo "# 🔄 Iteration Node Example Results

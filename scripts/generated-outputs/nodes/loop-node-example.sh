@@ -152,7 +152,24 @@ set_workflow_var() {
 get_workflow_var() {
     local var_name="$1"
     local default_value="${2:-}"
-    echo "${workflow_vars[$var_name]:-$default_value}"
+    
+    # First check workflow_vars array
+    local workflow_value="${workflow_vars[$var_name]:-}"
+    if [[ -n "$workflow_value" ]]; then
+        echo "$workflow_value"
+        return
+    fi
+    
+    # Fallback to environment variable (uppercase version)
+    local env_var_name="${var_name^^}"  # Convert to uppercase
+    local env_value="${!env_var_name:-}"
+    if [[ -n "$env_value" ]]; then
+        echo "$env_value"
+        return
+    fi
+    
+    # Finally use default value
+    echo "$default_value"
 }
 
 # State management
@@ -236,13 +253,15 @@ declare -a FLOWSH_ACTIVE_PIDS=()
 register_process() {
     local pid="$1"
     local description="${2:-unknown}"
-    
-    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-        FLOWSH_ACTIVE_PIDS+=("$pid")
-        log_debug "Registered process $pid: $description"
-    else
-        log_warning "Invalid PID for registration: $pid"
-    fi
+     
+     # Use case statement instead of regex for PID validation
+     case "$pid" in
+         ''|*[!0-9]*) log_warning "Invalid PID for registration: $pid" ;;
+         *)
+             FLOWSH_ACTIVE_PIDS+=("$pid")
+             log_debug "Registered process $pid: $description"
+             ;;
+     esac
 }
 
 unregister_process() {
@@ -376,8 +395,8 @@ execute_loop_main_loop() {
         
         # Evaluate loop condition
         local condition_result
-                # Evaluate condition: current_value < ${target_value}
-        if (( $(get_workflow_var "current_value" "0") < $(get_workflow_var "target_value" "0") )); then
+                # Evaluate condition: CURRENT_VALUE < ${target_value}
+        if (( $(get_workflow_var "CURRENT_VALUE" "0") < $(get_var "TARGET_VALUE" "main_loop") )); then
             condition_result="true"
         else
             condition_result="false"
@@ -416,10 +435,14 @@ execute_loop_main_loop() {
 execute_loop_main_loop
 
 # Node: increment_counter
-set_var "CURRENT_VALUE" "" "increment_counter"
+# Node: increment_counter
+CURRENT_VALUE=$(echo $(($(get_workflow_var "CURRENT_VALUE" "0") + $(get_workflow_var "INCREMENT_STEP" "0"))))
+set_var "CURRENT_VALUE" "$CURRENT_VALUE" "increment_counter"
 
 # Node: increment_iteration
-set_var "ITERATION_COUNT" "" "increment_iteration"
+# Node: increment_iteration
+ITERATION_COUNT=$(echo $(($(get_workflow_var "ITERATION_COUNT" "0") + 1)))
+set_var "ITERATION_COUNT" "$ITERATION_COUNT" "increment_iteration"
 
 # Node: log_progress
 echo "Iteration $(get_var "ITERATION_COUNT" "log_progress"): current_value=$(get_var "CURRENT_VALUE" "log_progress"), target=$(get_var "TARGET_VALUE" "log_progress")"
@@ -495,8 +518,8 @@ execute_loop_countdown_loop() {
         
         # Evaluate loop condition
         local condition_result
-                # Evaluate condition: countdown_value > 0
-        if (( $(get_workflow_var "countdown_value" "0") > 0 )); then
+                # Evaluate condition: COUNTDOWN_VALUE > 0
+        if (( $(get_workflow_var "COUNTDOWN_VALUE" "0") > 0 )); then
             condition_result="true"
         else
             condition_result="false"
@@ -535,7 +558,9 @@ execute_loop_countdown_loop() {
 execute_loop_countdown_loop
 
 # Node: decrement_countdown
-set_var "COUNTDOWN_VALUE" "" "decrement_countdown"
+# Node: decrement_countdown
+COUNTDOWN_VALUE=$(echo $(($(get_workflow_var "COUNTDOWN_VALUE" "0") - $(get_workflow_var "INCREMENT_STEP" "0"))))
+set_var "COUNTDOWN_VALUE" "$COUNTDOWN_VALUE" "decrement_countdown"
 
 # Node: countdown_complete
 echo "# 🔄 Both Loop Examples Completed!
