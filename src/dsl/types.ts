@@ -346,6 +346,7 @@ export interface TelegramNodeData extends BaseNodeData {
   max_retries?: number; // Default: 3
   disable_notification?: boolean; // Optional
   reply_to_message_id?: number; // Optional
+  error_handling?: 'fail' | 'ignore' | 'continue'; // Default: fail
 }
 
 // =============================================================================

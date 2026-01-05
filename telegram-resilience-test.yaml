@@ -1,0 +1,180 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: telegram-resilience-test
+  description: 'Tests resilient error handling in Telegram nodes'
+  version: '1.0'
+
+workflow:
+  name: 'Telegram Resilience Test'
+  description: 'Demonstrates different error handling modes for Telegram failures'
+
+environment_variables:
+  - variable: 'workflow_status'
+    name: 'Workflow Status'
+    type: 'text'
+    description: 'Status tracking for the workflow'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Resilience Test Start'
+        description: 'Initialize workflow for testing Telegram resilience'
+        variables:
+          - variable: 'test_scenario'
+            type: 'text'
+            label: 'Test Scenario'
+            description: 'Scenario to test (fail, ignore, continue)'
+            required: true
+            default: 'continue'
+          - variable: 'workflow_name'
+            type: 'text'
+            label: 'Workflow Name'
+            description: 'Name for this test workflow'
+            required: true
+            default: 'Telegram Resilience Test'
+
+    # First telegram node - should fail but continue with "continue" error handling
+    - id: 'telegram_continue'
+      type: 'telegram'
+      data:
+        title: 'Telegram with Continue Error Handling'
+        description: 'This will fail but workflow will continue'
+        message: |
+          🔄 Testing Continue Error Handling
+
+          Workflow: ${workflow_name}
+          Scenario: ${test_scenario}
+
+          This message should fail but workflow continues...
+        chat_id: 'INVALID_CHAT_ID_FOR_TESTING' # This will cause failure
+        bot_token: 'INVALID_TOKEN_FOR_TESTING' # This will cause failure
+        parse_mode: 'HTML'
+        max_retries: 1 # Fail quickly for testing
+        error_handling: 'continue' # Continue despite failure
+
+    # Set status after first telegram
+    - id: 'status_after_first'
+      type: 'variable-assignment'
+      data:
+        title: 'Status After First Telegram'
+        description: 'Record that we made it past the first telegram node'
+        variable: 'workflow_status'
+        assignment_type: 'constant'
+        value: 'Made it past first telegram node with continue error handling'
+
+    # Second telegram node - should fail but be ignored with "ignore" error handling
+    - id: 'telegram_ignore'
+      type: 'telegram'
+      data:
+        title: 'Telegram with Ignore Error Handling'
+        description: 'This will fail but be silently ignored'
+        message: |
+          🙈 Testing Ignore Error Handling
+
+          Workflow: ${workflow_name}
+          Status: ${workflow_status}
+
+          This message should fail but be ignored...
+        chat_id: 'INVALID_CHAT_ID_FOR_TESTING' # This will cause failure
+        bot_token: 'INVALID_TOKEN_FOR_TESTING' # This will cause failure
+        parse_mode: 'HTML'
+        max_retries: 1 # Fail quickly for testing
+        error_handling: 'ignore' # Ignore failure completely
+
+    # Set final status
+    - id: 'final_status'
+      type: 'variable-assignment'
+      data:
+        title: 'Final Status Update'
+        description: 'Record that workflow completed despite telegram failures'
+        variable: 'workflow_status'
+        assignment_type: 'constant'
+        value: 'Workflow completed successfully despite telegram failures!'
+
+    # Final results
+    - id: 'results'
+      type: 'answer'
+      data:
+        title: 'Telegram Resilience Test Results'
+        description: 'Results showing successful workflow continuation despite Telegram failures'
+        answer: |
+          # 🛡️ Telegram Resilience Test Results
+
+          ## Test Configuration
+          - **Scenario**: ${test_scenario}
+          - **Workflow Name**: ${workflow_name}
+          - **Final Status**: ${workflow_status}
+
+          ## Test Results
+
+          ### 1. Continue Error Handling ✅
+          - **Node**: telegram_continue
+          - **Error Handling**: continue
+          - **Expected**: Fail but continue workflow
+          - **Result**: Workflow continued successfully
+
+          ### 2. Ignore Error Handling ✅
+          - **Node**: telegram_ignore  
+          - **Error Handling**: ignore
+          - **Expected**: Fail but be silently ignored
+          - **Result**: Workflow completed successfully
+
+          ## Key Benefits
+
+          ### Before (Default "fail" behavior):
+          ```
+          Telegram API fails → return 1 → set -euo pipefail → Entire workflow stops ❌
+          ```
+
+          ### After (With "continue" or "ignore"):
+          ```
+          Telegram API fails → return 0 → Workflow continues → Subsequent nodes execute ✅
+          ```
+
+          ## Error Handling Options
+
+          ### `error_handling: "fail"` (default)
+          - Stops workflow execution on Telegram failures
+          - Best for critical notifications
+          - Maintains backward compatibility
+
+          ### `error_handling: "continue"`  
+          - Logs error and warning but continues workflow
+          - Sets failure variables for downstream conditional logic
+          - Good for optional notifications
+
+          ### `error_handling: "ignore"`
+          - Logs error as info message but continues silently
+          - Sets failure variables but minimal noise
+          - Best for debug/monitoring messages
+
+          ## Usage Recommendation
+
+          Use `error_handling: "continue"` or `error_handling: "ignore"` for:
+          - Optional notifications
+          - Status updates  
+          - Debug messages
+          - Progress reporting
+
+          Keep default `error_handling: "fail"` for:
+          - Critical alerts
+          - Security notifications
+          - Error conditions requiring immediate attention
+
+          This resilience feature ensures workflows can complete their core logic even when notification delivery fails.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'telegram_continue'
+    - source: 'telegram_continue'
+      target: 'status_after_first'
+    - source: 'status_after_first'
+      target: 'telegram_ignore'
+    - source: 'telegram_ignore'
+      target: 'final_status'
+    - source: 'final_status'
+      target: 'results'

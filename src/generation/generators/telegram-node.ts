@@ -24,6 +24,7 @@ export class TelegramNodeGenerator extends BaseNodeGenerator {
     const maxRetries = data.max_retries || 3;
     const disableNotification = data.disable_notification || false;
     const replyToMessageId = data.reply_to_message_id;
+    const errorHandling = data.error_handling || 'fail';
     const title = data.title || node.id;
 
     // Handle chat_id and bot_token - can come from node data or environment variables
@@ -40,12 +41,25 @@ ${functionName}() {
     local parse_mode="${parseMode}"
     local max_retries=${maxRetries}
     local disable_notification=${disableNotification}
+    local error_handling="${errorHandling}"
     ${replyToMessageId ? `local reply_to_message_id=${replyToMessageId}` : ''}
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
 ${chatIdCode}
@@ -139,7 +153,7 @@ EOF
                 delay=\$((delay * 2))  # Exponential backoff
                 attempt=\$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after \$max_retries attempts"
                 
                 # Set failure variables
@@ -149,7 +163,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "\$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -157,6 +183,7 @@ EOF
   }
 
   private generateChatIdCode(data: TelegramNodeData, nodeId: string): string {
+    const errorHandling = data.error_handling || 'fail';
     if (data.chat_id) {
       // Use chat_id from node configuration
       return `    # Use chat_id from node configuration
@@ -168,12 +195,25 @@ EOF
     
     if [[ -z "\$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "${errorHandling}" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi`;
     }
   }
 
   private generateBotTokenCode(data: TelegramNodeData, nodeId: string): string {
+    const errorHandling = data.error_handling || 'fail';
     if (data.bot_token) {
       // Use bot_token from node configuration
       return `    # Use bot_token from node configuration
@@ -185,7 +225,19 @@ EOF
     
     if [[ -z "\$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "${errorHandling}" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi`;
     }
   }
@@ -279,6 +331,19 @@ EOF
         message: 'reply_to_message_id must be a positive number',
         nodeId: node.id,
       });
+    }
+
+    // Validate error handling
+    if (data.error_handling) {
+      const validErrorHandling = ['fail', 'ignore', 'continue'];
+      if (!validErrorHandling.includes(data.error_handling)) {
+        result.errors.push({
+          type: 'error',
+          code: 'INVALID_ERROR_HANDLING',
+          message: `Invalid error handling "${data.error_handling}". Must be one of: ${validErrorHandling.join(', ')}`,
+          nodeId: node.id,
+        });
+      }
     }
 
     // Warning if neither chat_id nor environment variable pattern is used

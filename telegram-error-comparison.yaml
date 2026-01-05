@@ -1,0 +1,65 @@
+version: '1.0'
+kind: Workflow
+metadata:
+  name: telegram-error-comparison
+  description: 'Compares old vs new telegram error handling behavior'
+  version: '1.0'
+
+workflow:
+  name: 'Telegram Error Handling Comparison'
+  description: 'Shows the difference between fail and continue error handling'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Error Handling Demo'
+
+    # This would have stopped the workflow in the old behavior
+    - id: 'optional_notification'
+      type: 'telegram'
+      data:
+        title: 'Optional Notification'
+        message: |
+          📢 Optional Status Update
+
+          This is a non-critical notification that can fail
+          without stopping the workflow.
+        chat_id: 'INVALID_FOR_DEMO' # Will fail
+        bot_token: 'INVALID_FOR_DEMO' # Will fail
+        max_retries: 1
+        error_handling: 'continue' # 🔑 Key difference!
+
+    # This step would never execute in the old behavior if telegram failed
+    - id: 'critical_business_logic'
+      type: 'variable-assignment'
+      data:
+        title: 'Critical Business Logic'
+        description: 'This represents important work that must complete'
+        variable: 'business_result'
+        assignment_type: 'constant'
+        value: 'Important business logic completed successfully!'
+
+    - id: 'results'
+      type: 'answer'
+      data:
+        title: 'Results'
+        answer: |
+          # Results
+
+          Business Result: ${business_result}
+
+          ## Key Insight
+
+          ❌ **Before**: Telegram failure would stop workflow here
+          ✅ **After**: Business logic executes despite Telegram failure
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'optional_notification'
+    - source: 'optional_notification' # This edge would never execute before!
+      target: 'critical_business_logic'
+    - source: 'critical_business_logic'
+      target: 'results'

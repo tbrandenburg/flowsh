@@ -214,6 +214,27 @@ describe('TelegramNodeGenerator', () => {
       expect(result).toContain('return 1');
     });
 
+    it('should generate message with error handling configuration', () => {
+      const node: WorkflowNode = {
+        id: 'resilient_message',
+        type: 'telegram',
+        data: {
+          message: 'Resilient notification',
+          error_handling: 'continue',
+        } as TelegramNodeData,
+      };
+
+      const result = generator.generate(node, mockContext);
+
+      expect(result).toContain('send_telegram_resilient_message()');
+      expect(result).toContain('local error_handling="continue"');
+      expect(result).toContain('case "$error_handling" in');
+      expect(result).toContain('"ignore")');
+      expect(result).toContain('"continue")');
+      expect(result).toContain('log_info "Ignoring Telegram');
+      expect(result).toContain('log_warning "Continuing despite Telegram');
+    });
+
     it('should include proper API request structure', () => {
       const node: WorkflowNode = {
         id: 'api_test',
@@ -340,6 +361,39 @@ describe('TelegramNodeGenerator', () => {
       const result = generator.validate?.(invalidNode);
       expect(result?.valid).toBe(false);
       expect(result?.errors[0].code).toBe('INVALID_REPLY_MESSAGE_ID');
+    });
+
+    it('should reject invalid error_handling', () => {
+      const invalidNode: WorkflowNode = {
+        id: 'invalid_error_handling',
+        type: 'telegram',
+        data: {
+          message: 'Test message',
+          error_handling: 'INVALID' as any,
+        } as TelegramNodeData,
+      };
+
+      const result = generator.validate?.(invalidNode);
+      expect(result?.valid).toBe(false);
+      expect(result?.errors[0].code).toBe('INVALID_ERROR_HANDLING');
+    });
+
+    it('should validate error_handling options', () => {
+      const validErrorHandling = ['fail', 'ignore', 'continue'];
+
+      validErrorHandling.forEach(errorHandling => {
+        const node: WorkflowNode = {
+          id: 'error_handling_test',
+          type: 'telegram',
+          data: {
+            message: 'Test message',
+            error_handling: errorHandling as any,
+          } as TelegramNodeData,
+        };
+
+        const result = generator.validate?.(node);
+        expect(result?.valid).toBe(true);
+      });
     });
 
     it('should warn about missing configuration', () => {

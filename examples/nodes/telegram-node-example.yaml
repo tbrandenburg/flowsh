@@ -70,6 +70,7 @@ graph:
         chat_id: '${test_chat_id}'
         max_retries: 3
         disable_notification: false
+        error_handling: 'continue'
 
     # Message using environment variables for configuration
     - id: 'env_var_message'
