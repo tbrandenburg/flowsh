@@ -112,6 +112,10 @@ if [[ -z "$llm_content" ]]; then
     log_warning "Using mock response as final fallback"
 fi
 
+# Store the content in workflow variable for other nodes to reference
+set_workflow_var "llm_content" "$llm_content"
+set_workflow_var "llm_success" "true"
+
 # Output the final content
 echo "$llm_content"`;
   }
@@ -145,7 +149,13 @@ echo "$llm_content"`;
   }
 
   getVariables(node: WorkflowNode): string[] {
+    // Extract template variables from prompt
     const prompt = this.getNodeData(node, 'prompt', '');
-    return this.extractTemplateVariables(String(prompt));
+    const templateVars = this.extractTemplateVariables(String(prompt));
+
+    // Add standard output variables that this node creates
+    const outputVars = ['LLM_CONTENT', 'LLM_SUCCESS'];
+
+    return [...templateVars, ...outputVars];
   }
 }
