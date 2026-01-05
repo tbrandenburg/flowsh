@@ -37,7 +37,7 @@ Starting workflow: code-node-example
 File Analysis Summary
 Pattern: *.yaml
 Directory: .
-Generated: Mon Jan  5 12:50:59 PM CET 2026
+Generated: Mon Jan  5 01:53:52 PM CET 2026
 scripts/generated-outputs/nodes/code-node-example.sh: line 415: /tmp/flowsh-code-example: No such file or directory
 scripts/generated-outputs/nodes/code-node-example.sh: line 415: telegram-error-comparison.yaml: command not found
 scripts/generated-outputs/nodes/code-node-example.sh: line 415: .: filename argument required

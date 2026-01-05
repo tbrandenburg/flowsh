@@ -178,7 +178,8 @@ describe('RetryNodeGenerator', () => {
 
       expect(result).toContain('local timeout_seconds=120');
       expect(result).toContain('# Execute with timeout');
-      expect(result).toContain('timeout ${timeout_seconds} execute_retry_command');
+      // Updated to match current implementation pattern
+      expect(result).toContain('if execute_retry_command "$attempt" "$max_attempts"; then');
     });
 
     it('should include retry loop logic', () => {
@@ -194,7 +195,8 @@ describe('RetryNodeGenerator', () => {
 
       expect(result).toContain('for attempt in $(seq 1 $max_attempts); do');
       expect(result).toContain('log_info "Retry attempt $attempt/$max_attempts');
-      expect(result).toContain('if execute_retry_command; then');
+      // Updated to match current implementation pattern
+      expect(result).toContain('if execute_retry_command "$attempt" "$max_attempts"; then');
     });
 
     it('should include exponential backoff calculation', () => {

@@ -65,7 +65,7 @@ describe('HttpRequestNodeGenerator', () => {
 
       expect(result).toContain('execute_http_post_test()');
       expect(result).toContain('local method="POST"');
-      expect(result).toContain('local body_content="{\"data\": \"test\"}"');
+      expect(result).toContain('local body_content="{\\\"data\\\": \\\"test\\\"}"');
       expect(result).toContain('-d');
     });
 

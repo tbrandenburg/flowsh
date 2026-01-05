@@ -18,7 +18,7 @@ Starting workflow: parallel-iteration-node-example
 [0;32m✅ Parallel iteration completed: processed 5 items[0m
 [0;36mℹ️  Results stored in variable: parallel_results[0m
 Starting ...
-Completed  at Mon Jan  5 12:51:12 PM CET 2026
+Completed  at Mon Jan  5 01:54:04 PM CET 2026
 Condition passed
 Complex processing for ...
 Complex task  completed with advanced algorithms

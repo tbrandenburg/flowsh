@@ -19,13 +19,13 @@ scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 415: [
 ## Expression Results
 - **Personalized Greeting**: Hello User! Welcome to the flowsh variable assignment demonstration!
 - **Mathematical Result**: 94
-- **Current Timestamp**: 2026-01-05 12:51:28
+- **Current Timestamp**: 2026-01-05 13:54:19
 - **System Information**: System: Linux, User: tom, Directory: /home/tom/workspace/ai/made/workspace/flowsh
 - **Status Message**: Low value
 
 ## Advanced Operations
 - **Processed Text**: HELLO UNIVERSE
-- **JSON Data**: {"user": "User", "value": 42, "timestamp": "2026-01-05 12:51:28", "status": "Low value"}
+- **JSON Data**: {"user": "User", "value": 42, "timestamp": "2026-01-05 13:54:19", "status": "Low value"}
 - **Environment Summary**: Environment Summary: OS=GNU/Linux, Hostname=tom-nuc7, Shell=/bin/bash, Path=/home/tom/workspace/ai/made/workspace/flowsh
 
 ## Write Mode Operations
