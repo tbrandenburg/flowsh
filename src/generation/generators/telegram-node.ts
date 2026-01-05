@@ -16,7 +16,7 @@ export class TelegramNodeGenerator extends BaseNodeGenerator {
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const data = node.data as TelegramNodeData;
     const nodeId = this.sanitizeVariableName(node.id);
-    const functionName = `send_telegram_${nodeId}`;
+    const functionName = `execute_telegram_${nodeId}`;
 
     // Extract configuration with defaults
     const message = data.message || '';
