@@ -139,13 +139,21 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('escape_html() {');
+      // Check that the new functions exist
+      expect(result).toContain('escape_json() {');
       expect(result).toContain('escape_markdown() {');
-      expect(result).toContain('${text//&/&amp;}');
-      expect(result).toContain('${text//</&lt;}');
-      expect(result).toContain('${text//>/&gt;}');
-      expect(result).toContain('${text//_/\\_}');
-      expect(result).toContain('${text//*/\\*}');
+
+      // Check that JSON escaping is used for HTML mode (not HTML escaping)
+      expect(result).toContain('escaped_message=$(escape_json "$message")');
+
+      // Check that HTML escaping is NOT used anymore
+      expect(result).not.toContain('escape_html');
+      expect(result).not.toContain('${text//&/&amp;}');
+      expect(result).not.toContain('${text//</&lt;}');
+
+      // Check some markdown escaping patterns still exist
+      expect(result).toContain('${text//_/\\_}'); // Markdown escaping
+      expect(result).toContain('${text//*/\\*}'); // Markdown escaping
     });
 
     it('should include retry logic with exponential backoff', () => {

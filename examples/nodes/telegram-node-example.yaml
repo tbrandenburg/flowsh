@@ -67,7 +67,6 @@ graph:
 
           <b>Status:</b> ✅ Initialization Complete
         parse_mode: 'HTML'
-        chat_id: '${test_chat_id}'
         max_retries: 3
         disable_notification: false
         error_handling: 'continue'

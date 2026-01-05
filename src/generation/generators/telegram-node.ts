@@ -68,17 +68,18 @@ ${botTokenCode}
 
 ${escapingCode}
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -244,11 +245,14 @@ EOF
 
   private generateEscapingCode(_parseMode: string): string {
     return `    # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="\$1"
-        text="\${text//&/&amp;}"
-        text="\${text//</&lt;}"
-        text="\${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="\${text//\\\\/\\\\\\\\}"  # Escape backslashes first
+        text="\${text//\"/\\\\\"}"      # Escape double quotes
+        text="\${text//\$'\\n'/\\\\n}"  # Escape newlines
+        text="\${text//\$'\\r'/\\\\r}"  # Escape carriage returns
+        text="\${text//\$'\\t'/\\\\t}"  # Escape tabs
         echo "\$text"
     }
 
@@ -274,7 +278,7 @@ EOF
         text="\${text//./\\.}"
         text="\${text//!/\\!}"
         echo "\$text"
-    }`;
+     }`;
   }
 
   override validate(node: WorkflowNode): ValidationResult {

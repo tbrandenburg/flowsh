@@ -211,31 +211,76 @@ send_telegram_simple_message() {
     local parse_mode="HTML"
     local max_retries=3
     local disable_notification=false
+    local error_handling="continue"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
-    # Use chat_id from node configuration
-    local chat_id="$(get_var "TEST_CHAT_ID" "simple_message")"
+    # Use chat_id from environment variable
+    local chat_id="${TELEGRAM_CHAT_ID:-}"
+    
+    if [[ -z "$chat_id" ]]; then
+        log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
+        case "continue" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    fi
 
     # Use bot_token from environment variable
     local bot_token="${TELEGRAM_BOT_TOKEN:-}"
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "continue" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -261,19 +306,20 @@ send_telegram_simple_message() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -349,7 +395,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -359,7 +405,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -383,12 +441,25 @@ Current time: $(date)
     local parse_mode="HTML"
     local max_retries=2
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -396,7 +467,19 @@ Current time: $(date)
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -404,15 +487,30 @@ Current time: $(date)
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -438,19 +536,20 @@ Current time: $(date)
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -525,7 +624,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -535,7 +634,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -566,12 +677,25 @@ send_telegram_markdown_message() {
     local parse_mode="Markdown"
     local max_retries=3
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -579,7 +703,19 @@ send_telegram_markdown_message() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -587,15 +723,30 @@ send_telegram_markdown_message() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -621,19 +772,20 @@ send_telegram_markdown_message() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -708,7 +860,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -718,7 +870,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -747,12 +911,25 @@ send_telegram_progress_update() {
     local parse_mode="HTML"
     local max_retries=5
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -760,7 +937,19 @@ send_telegram_progress_update() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -768,15 +957,30 @@ send_telegram_progress_update() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -802,19 +1006,20 @@ send_telegram_progress_update() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -889,7 +1094,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -899,7 +1104,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -931,12 +1148,25 @@ send_telegram_error_notification() {
     local parse_mode="HTML"
     local max_retries=1
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -944,7 +1174,19 @@ send_telegram_error_notification() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -952,15 +1194,30 @@ send_telegram_error_notification() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -986,19 +1243,20 @@ send_telegram_error_notification() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -1074,7 +1332,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -1084,7 +1342,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -1113,12 +1383,25 @@ send_telegram_recovery_message() {
     local parse_mode="HTML"
     local max_retries=3
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -1126,7 +1409,19 @@ send_telegram_recovery_message() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -1134,15 +1429,30 @@ send_telegram_recovery_message() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -1168,19 +1478,20 @@ send_telegram_recovery_message() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -1255,7 +1566,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -1265,7 +1576,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -1296,12 +1619,25 @@ send_telegram_special_characters() {
     local parse_mode="HTML"
     local max_retries=2
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -1309,7 +1645,19 @@ send_telegram_special_characters() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -1317,15 +1665,30 @@ send_telegram_special_characters() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -1351,19 +1714,20 @@ send_telegram_special_characters() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -1438,7 +1802,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -1448,7 +1812,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -1506,12 +1882,25 @@ send_telegram_detailed_completion() {
     local parse_mode="HTML"
     local max_retries=3
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -1519,7 +1908,19 @@ send_telegram_detailed_completion() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -1527,15 +1928,30 @@ send_telegram_detailed_completion() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -1561,19 +1977,20 @@ send_telegram_detailed_completion() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -1648,7 +2065,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -1658,7 +2075,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
@@ -1682,12 +2111,25 @@ send_telegram_simple_completion() {
     local parse_mode="HTML"
     local max_retries=2
     local disable_notification=false
+    local error_handling="fail"
     
 
     # Validate message is not empty
     if [[ -z "$message" ]]; then
         log_error "Telegram message content is empty"
-        return 1
+        case "$error_handling" in
+            "ignore")
+                log_info "Ignoring Telegram error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use chat_id from environment variable
@@ -1695,7 +2137,19 @@ send_telegram_simple_completion() {
     
     if [[ -z "$chat_id" ]]; then
         log_error "Telegram chat_id is required - set TELEGRAM_CHAT_ID environment variable or provide chat_id in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Use bot_token from environment variable
@@ -1703,15 +2157,30 @@ send_telegram_simple_completion() {
     
     if [[ -z "$bot_token" ]]; then
         log_error "Telegram bot token is required - set TELEGRAM_BOT_TOKEN environment variable or provide bot_token in node configuration"
-        return 1
+        case "fail" in
+            "ignore")
+                log_info "Ignoring Telegram configuration error as configured"
+                return 0
+                ;;
+            "continue")
+                log_warning "Continuing despite Telegram configuration error"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
     fi
 
     # Character escaping functions for Telegram
-    escape_html() {
+    escape_json() {
         local text="$1"
-        text="${text//&/&amp;}"
-        text="${text//</&lt;}"
-        text="${text//>/&gt;}"
+        # Escape characters that would break JSON payload
+        text="${text//\\/\\\\}"  # Escape backslashes first
+        text="${text//"/\\"}"      # Escape double quotes
+        text="${text//$'\n'/\\n}"  # Escape newlines
+        text="${text//$'\r'/\\r}"  # Escape carriage returns
+        text="${text//$'\t'/\\t}"  # Escape tabs
         echo "$text"
     }
 
@@ -1737,19 +2206,20 @@ send_telegram_simple_completion() {
         text="${text//./\.}"
         text="${text//!/\!}"
         echo "$text"
-    }
+     }
 
-    # Escape message content based on parse mode
+    # Escape message content for JSON payload (but preserve formatting tags)
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            escaped_message=$(escape_html "$message")
+            # For HTML mode, only escape JSON special characters, not HTML formatting tags
+            escaped_message=$(escape_json "$message")
             ;;
         "Markdown"|"MarkdownV2")
             escaped_message=$(escape_markdown "$message")
             ;;
         *)
-            escaped_message="$message"
+            escaped_message=$(escape_json "$message")
             ;;
     esac
 
@@ -1824,7 +2294,7 @@ EOF
                 delay=$((delay * 2))  # Exponential backoff
                 attempt=$((attempt + 1))
             else
-                # Final failure
+                # Final failure - handle based on error_handling setting
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
@@ -1834,7 +2304,19 @@ EOF
                 set_workflow_var "telegram_message_sent" "false"
                 set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
                 
-                return 1
+                case "$error_handling" in
+                    "ignore")
+                        log_info "Ignoring Telegram failure as configured"
+                        return 0
+                        ;;
+                    "continue")
+                        log_warning "Continuing despite Telegram failure"
+                        return 0
+                        ;;
+                    *)
+                        return 1
+                        ;;
+                esac
             fi
         fi
     done
