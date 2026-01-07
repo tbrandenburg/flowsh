@@ -7,6 +7,7 @@ Add a new `flowsh init` command to the flowsh CLI that enables users to easily c
 **Command Interface:**
 
 - `flowsh init` - Display available templates in hierarchical format for discovery
+- `flowsh init --help` - Display available templates and usage (same as above)
 - `flowsh init [TEMPLATE] [TARGET_FILE]` - Create workflow file from template
 
 **Template Selection Design:**
@@ -72,6 +73,9 @@ Add a new `flowsh init` command to the flowsh CLI that enables users to easily c
 # List all available templates
 flowsh init
 
+# Show help and available templates (same as above)
+flowsh init --help
+
 # Create workflow from enhanced template
 flowsh init ai-to-telegram-simple my-bot.yaml
 
@@ -86,6 +90,9 @@ flowsh init automated-testing-monitoring ci-pipeline.yaml
 
 ```
 $ flowsh init
+# or
+$ flowsh init --help
+
 Usage:
   flowsh init [TEMPLATE] [TARGET_FILE]
 
