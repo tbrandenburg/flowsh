@@ -7,11 +7,14 @@ flowsh converts YAML workflow definitions into clean, readable shell scripts. Th
 ## What flowsh does
 
 ```bash
+# Start with a template (NEW!)
+flowsh init ai-to-telegram-simple my-workflow.yaml
+
 # Compile workflow to shell script
-flowsh compile workflow.yaml > script.sh
+flowsh compile my-workflow.yaml > script.sh
 
 # Validate workflow syntax
-flowsh validate workflow.yaml
+flowsh validate my-workflow.yaml
 
 # Execute the generated script
 bash script.sh
@@ -19,7 +22,8 @@ bash script.sh
 
 ## Why flowsh?
 
-- **Simple** - Two commands: `compile` and `validate`
+- **Template-Based** - 14 production-ready templates to get started instantly
+- **Simple** - Three core commands: `init`, `compile`, and `validate`
 - **Clean Output** - Generates readable shell scripts under 100 lines
 - **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
 - **Unix Philosophy** - Does one thing well, plays nicely with other tools
@@ -98,6 +102,39 @@ npm install -g flowsh
 
 ## Commands
 
+### init (NEW!)
+
+Initialize workflow from production-ready templates:
+
+```bash
+# List all available templates
+flowsh init
+
+# Create workflow from template
+flowsh init ai-to-telegram-simple my-workflow.yaml
+flowsh init circuit-breaker api-protection.yaml
+flowsh init data-pipeline-simple processor.yaml
+
+# Get help with templates
+flowsh init --help
+```
+
+**Available Template Categories:**
+
+- **Enhanced (4 templates)** - Ready-to-use workflows for common patterns
+  - `ai-to-telegram-simple` - AI content generation with Telegram delivery
+  - `data-pipeline-simple` - Multi-source data aggregation with error handling
+  - `ai-to-telegram` - Production-ready AI content generation
+  - `data-pipeline` - Advanced data processing pipeline
+
+- **Advanced (10 templates)** - Complex workflows organized by use case:
+  - **AI Workflows**: `ai-chat-memory`, `multi-stage-ai-workflows`
+  - **Content Distribution**: `content-moderation`, `multi-format-distribution`, `scheduled-content-generation`
+  - **Data Processing**: `data-validation-cleanup`, `parallel-processing-aggregation`
+  - **DevOps**: `automated-testing-monitoring`
+  - **Meta**: `interactive-workflow-builder`
+  - **Reliability**: `circuit-breaker`
+
 ### compile
 
 Convert YAML workflow to shell script (outputs to stdout):
@@ -174,10 +211,21 @@ flowsh is the `jq` of this space - focused, simple, and extremely good at its on
 
 ## Examples
 
-See the `examples/` directory for sample workflows:
+**Quick Start with Templates:**
+
+```bash
+# Get started in 30 seconds
+flowsh init ai-to-telegram-simple my-bot.yaml
+flowsh validate my-bot.yaml
+flowsh compile my-bot.yaml > my-bot.sh
+bash my-bot.sh
+```
+
+See the `examples/` directory for sample workflows and the `templates/` directory for all 14 production-ready templates:
 
 - `hello-world.yaml` - Basic greeting workflow
 - `simple-workflow.yaml` - Agent orchestration example
+- **Templates** - 14 ready-to-use workflows covering AI, data processing, DevOps, and more
 
 ## Contributing
 

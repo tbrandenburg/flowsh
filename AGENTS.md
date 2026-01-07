@@ -22,7 +22,7 @@ flowsh is "The jq of Workflows" - a simple YAML workflow to shell script compile
 - Avoid speculative refactors unless explicitly requested
 - Maintain the registry-based plugin system architecture
 - Preserve the security validation and input sanitization layers
-- Keep the CLI interface simple (only `compile` and `validate` commands)
+- Keep the CLI interface simple (only `compile`, `validate`, and `init` commands)
 
 ---
 
@@ -61,6 +61,7 @@ Agents should not introduce new dependencies without explicit instruction. The p
 flowsh/
 ├── src/                     # TypeScript source code
 │   ├── cli/                 # Command-line interface (entry point)
+│   ├── templates/          # Template system for workflow initialization
 │   ├── parsing/            # YAML workflow parsing with security validation
 │   ├── dsl/                # Domain-specific language types (workflow definitions)
 │   ├── generation/         # Shell script generation engine
@@ -72,6 +73,9 @@ flowsh/
 │   ├── config/             # Configuration management
 │   ├── logging/            # Logging utilities
 │   └── errors/             # Error handling and custom error types
+├── templates/              # 14 production-ready workflow templates
+│   ├── enhanced/           # Simple, ready-to-use templates (4)
+│   └── advanced/          # Complex workflows by category (10)
 ├── examples/               # Example workflows and node demonstrations
 │   ├── nodes/              # Individual node type examples (19+ types)
 │   └── *.yaml              # Complete workflow examples
@@ -111,6 +115,8 @@ make validate               # Validate example workflows
 make clean                  # Remove build artifacts
 
 # flowsh CLI usage
+flowsh init                             # List available templates
+flowsh init [template] [target.yaml]   # Create workflow from template
 flowsh compile workflow.yaml > script.sh    # Compile workflow to shell
 flowsh validate workflow.yaml               # Validate workflow syntax
 ```
@@ -226,7 +232,7 @@ Agents must NOT:
 - Delete files without explicit instruction
 - Commit secrets or credentials
 - Perform large refactors unless requested
-- Break the simple two-command CLI interface (`compile`, `validate`)
+- Break the simple three-command CLI interface (`init`, `compile`, `validate`)
 - Add complexity that violates the Unix philosophy
 - Modify the core security validation without careful review
 - Change the registry architecture without understanding implications
@@ -240,7 +246,51 @@ Agents must NOT:
 
 ---
 
-## 11. flowsh-Specific Context
+## 11. Template System
+
+**Agent Priority: Use templates first when creating workflows**
+
+flowsh includes a comprehensive template system with 14 production-ready workflows. Agents should **always start with templates** rather than creating workflows from scratch.
+
+**Template Discovery:**
+
+```bash
+flowsh init                    # Show all available templates hierarchically
+flowsh init --help            # Same as above
+```
+
+**Template Categories:**
+
+- **Enhanced (4)**: Simple, ready-to-use templates
+  - `ai-to-telegram-simple`, `data-pipeline-simple`, `ai-to-telegram`, `data-pipeline`
+- **Advanced (10)**: Complex workflows by subcategory
+  - `ai-workflows/`: `ai-chat-memory`, `multi-stage-ai-workflows`
+  - `content-distribution/`: `content-moderation`, `multi-format-distribution`, `scheduled-content-generation`
+  - `data-processing/`: `data-validation-cleanup`, `parallel-processing-aggregation`
+  - `devops-automation/`: `automated-testing-monitoring`
+  - `meta-workflows/`: `interactive-workflow-builder`
+  - `reliability/`: `circuit-breaker`
+
+**Template Usage Pattern for Agents:**
+
+1. **Always check templates first**: `flowsh init` to see available options
+2. **Choose appropriate template**: Match user requirements to template categories
+3. **Create from template**: `flowsh init [template-name] [output-file]`
+4. **Validate**: `flowsh validate [output-file]`
+5. **Customize if needed**: Edit the generated workflow file
+6. **Test compile**: `flowsh compile [output-file]`
+
+**Template File Locations:**
+
+- Templates: `templates/enhanced/` and `templates/advanced/[category]/`
+- All templates validate and compile successfully
+- Templates include comprehensive examples of node usage patterns
+
+**Security Note**: Template system includes path traversal protection and input sanitization.
+
+---
+
+## 12. flowsh-Specific Context
 
 **Core Workflow Node Types** (19+ supported):
 
@@ -271,7 +321,7 @@ Agents must NOT:
 
 ---
 
-## 12. Final Reminder
+## 13. Final Reminder
 
 This repository values **predictability, readability, and safety** above all else. The Unix philosophy guides all decisions: flowsh should remain a focused, simple tool that does one thing extremely well - converting YAML workflows into clean shell scripts.
 
