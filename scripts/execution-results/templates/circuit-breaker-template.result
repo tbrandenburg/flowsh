@@ -1,0 +1,9 @@
+Starting workflow: Circuit Breaker API Protection - Production Ready
+⚡ Initializing Circuit Breaker...
+🔧 Configuration:
+  Primary: https://httpbin.org/status/200
+  Fallback: https://httpbin.org/json
+  Failure Threshold: 3
+  Recovery Timeout: s
+✅ Circuit breaker initialized - State: CLOSED
+scripts/generated-outputs/templates/circuit-breaker-template.sh: line 387: CURRENT_TIME: unbound variable

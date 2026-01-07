@@ -8,6 +8,7 @@
  */
 
 import { generateShellScript } from '../generation/shell-generator.js';
+import { initCommand } from '../templates/init-command.js';
 import { parseWorkflowFile } from '../parsing/parser.js';
 import { Command } from 'commander';
 import * as path from 'path';
@@ -180,6 +181,17 @@ program
     await validateCommand(workflowFile);
   });
 
+// Init command - initialize workflow from template
+program
+  .command('init')
+  .description('Initialize workflow from template')
+  .argument('[template]', 'Template name to use')
+  .argument('[target]', 'Target workflow file path')
+  .option('--help', 'Display available templates and usage')
+  .action(async (template?: string, target?: string, options?: { help?: boolean }) => {
+    await initCommand(template, target, options);
+  });
+
 // Show simple help when no arguments
 if (process.argv.length <= 2) {
   console.log('flowsh - The jq of Workflows');
@@ -188,6 +200,7 @@ if (process.argv.length <= 2) {
   console.log('  flowsh compile workflow.yaml > script.sh');
   console.log('  flowsh compile workflow.yaml -o script.sh');
   console.log('  flowsh validate workflow.yaml');
+  console.log('  flowsh init [template] [target.yaml]');
   console.log('');
   console.log('Run --help for more options');
   process.exit(0);
@@ -195,7 +208,7 @@ if (process.argv.length <= 2) {
 
 // Handle unknown commands simply
 program.on('command:*', () => {
-  console.error(`❌ Unknown command. Available commands: compile, validate`);
+  console.error(`❌ Unknown command. Available commands: compile, validate, init`);
   console.error('💡 Run --help to see usage');
   process.exit(1);
 });

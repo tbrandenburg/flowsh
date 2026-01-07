@@ -1,0 +1,44 @@
+Starting workflow: Multi-Stage AI Workflows - Complex AI Processing Chains
+🤖 Initializing Multi-Stage AI Processing Pipeline
+===============================================
+🆔 Pipeline ID: $PIPELINE_ID
+⏰ Start Time: $START_TIME
+📝 Input Content Length: 1 characters
+🔄 Processing Stages: 
+🧠 AI Models Config: 
+📊 Output Format: 
+🎯 Quality Threshold: /10
+⚡ Parallel Processing: 
+📋 Parsed AI Models:
+   Analysis Model: $ANALYSIS_MODEL
+   Generation Model: $GENERATION_MODEL
+   Validation Model: $VALIDATION_MODEL
+✅ AI processing pipeline initialized successfully
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[0;36mℹ️  LLMv7 API successful[0m
+Hey there! How’s it going?
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[1;33m⚠️  LLMv7 API also failed, using mock response[0m
+[1;33m⚠️  Using mock response as final fallback[0m
+Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[1;33m⚠️  LLMv7 API also failed, using mock response[0m
+[1;33m⚠️  Using mock response as final fallback[0m
+Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[0;36mℹ️  LLMv7 API successful[0m
+Hello! 👋 How can I assist you today? Feel free to ask me anything—I'm here to help with information, problem-solving, creative tasks, or just a friendly chat. What's on your mind?
+🎯 Checking Quality Threshold
+==========================
+📊 Quality Threshold Analysis:
+   Required Threshold: /10
+   Achieved Score: 0/10
+scripts/generated-outputs/templates/multi-stage-ai-workflows-template.sh: line 696: [: $OVERALL_SCORE: integer expression expected
+❌ Quality threshold FAILED (0 < )
+   Quality Level: $QUALITY_LEVEL
+   Status: $THRESHOLD_STATUS
+THRESHOLD_STATUS=$THRESHOLD_STATUS
+QUALITY_SCORE=0/10
+QUALITY_LEVEL=$QUALITY_LEVEL
+[0;36m🚀 🔧 Template Transform: Generate Final Structured Output[0m
+[0;31m❌ Failed to resolve template content[0m

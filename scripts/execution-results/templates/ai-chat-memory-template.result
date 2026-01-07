@@ -1,0 +1,2 @@
+Starting workflow: AI Chat with Memory - Stateful Conversations
+scripts/generated-outputs/templates/ai-chat-memory-template.sh: line 369: SYSTEM_PROMPT: unbound variable

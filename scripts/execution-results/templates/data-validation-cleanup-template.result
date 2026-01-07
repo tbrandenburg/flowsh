@@ -1,0 +1,36 @@
+Starting workflow: Data Validation & Cleanup - Input Sanitization and Quality Assurance
+🔍 Initializing Data Validation & Cleanup System
+=========================================
+🆔 Validation ID: $VALIDATION_ID
+⏰ Start Time: $CURRENT_TIME
+📊 Data Source: 
+🔧 Validation Rules: 
+🧹 Cleanup Actions: 
+📝 Output Format: 
+🚫 Error Threshold: %
+✅ Validation environment initialized successfully
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[0;36mℹ️  LLMv7 API successful[0m
+Hello! How can I assist you today? If you're up for it, let's play a quick game. I'll say a word, and you respond with the first word that comes to your mind. Let's start:
+
+Me: Cat
+
+You: ?
+🔍 Performing Initial Data Validation
+=====================================
+📊 Total Records Found: $TOTAL_RECORDS
+scripts/generated-outputs/templates/data-validation-cleanup-template.sh: line 517: [: $TOTAL_RECORDS: integer expression expected
+scripts/generated-outputs/templates/data-validation-cleanup-template.sh: line 523: 0
+1: syntax error in expression (error token is "1")
+
+📊 Validation Summary:
+   Total Records: $TOTAL_RECORDS
+   Valid Records: $VALID_RECORDS
+   Errors Found: $ERROR_COUNT
+   Warnings: $WARNINGS_COUNT
+   Error Rate: 100%
+   Error Threshold: %
+scripts/generated-outputs/templates/data-validation-cleanup-template.sh: line 540: [: $ERROR_PERCENTAGE: integer expression expected
+✅ Error rate within acceptable threshold
+🧹 Starting Data Cleaning and Normalization
+===========================================
