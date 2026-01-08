@@ -188,9 +188,12 @@ program
   .argument('[template]', 'Template name to use')
   .argument('[target]', 'Target workflow file path')
   .option('--help', 'Display available templates and usage')
-  .action(async (template?: string, target?: string, options?: { help?: boolean }) => {
-    await initCommand(template, target, options);
-  });
+  .option('-p, --preview', 'Display template content without creating files')
+  .action(
+    async (template?: string, target?: string, options?: { help?: boolean; preview?: boolean }) => {
+      await initCommand(template, target, options);
+    }
+  );
 
 // Show simple help when no arguments
 if (process.argv.length <= 2) {

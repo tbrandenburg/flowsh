@@ -13,7 +13,7 @@ import { TemplateDisplay } from './display.js';
 export async function initCommand(
   template?: string,
   target?: string,
-  options?: { help?: boolean }
+  options?: { help?: boolean; preview?: boolean }
 ): Promise<void> {
   const discovery = new TemplateDiscovery();
 
@@ -28,14 +28,37 @@ export async function initCommand(
       return;
     }
 
-    // Case 2: Missing target argument
+    // Case 2: Preview mode - show template content without creating files
+    if (options?.preview) {
+      const templateInfo = discovery.getTemplateByName(template);
+      if (!templateInfo) {
+        const availableTemplates = discovery.getAvailableTemplateNames();
+        TemplateDisplay.displayTemplateNotFound(template, availableTemplates);
+        process.exit(1);
+      }
+
+      // Import preview functionality dynamically to avoid circular imports during build
+      const { previewTemplate, displayTemplatePreview } = await import('./preview.js');
+
+      try {
+        const preview = await previewTemplate(templateInfo);
+        displayTemplatePreview(preview);
+        return;
+      } catch (previewError: any) {
+        console.error(`❌ Preview failed: ${previewError.message}`);
+        process.exit(1);
+      }
+    }
+
+    // Case 3: Missing target argument (when not in preview mode)
     if (!target) {
       console.error('❌ Error: Missing required parameter TARGET_FILE');
       console.error('Usage: flowsh init [TEMPLATE] [TARGET_FILE]');
+      console.error('       flowsh init [TEMPLATE] --preview');
       process.exit(1);
     }
 
-    // Case 3: Template creation workflow
+    // Case 4: Template creation workflow
     const templateInfo = discovery.getTemplateByName(template);
     if (!templateInfo) {
       const availableTemplates = discovery.getAvailableTemplateNames();

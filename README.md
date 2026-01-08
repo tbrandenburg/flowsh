@@ -23,6 +23,7 @@ bash script.sh
 ## Why flowsh?
 
 - **Template-Based** - 14 production-ready templates to get started instantly
+- **Template Preview** - Explore template content and metadata before creating files
 - **Simple** - Three core commands: `init`, `compile`, and `validate`
 - **Clean Output** - Generates readable shell scripts under 100 lines
 - **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
@@ -109,6 +110,10 @@ Initialize workflow from production-ready templates:
 ```bash
 # List all available templates
 flowsh init
+
+# Explore templates before creating (NEW!)
+flowsh init ai-to-telegram-simple --preview
+flowsh init circuit-breaker --preview
 
 # Create workflow from template
 flowsh init ai-to-telegram-simple my-workflow.yaml

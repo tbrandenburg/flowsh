@@ -274,11 +274,23 @@ flowsh init --help            # Same as above
 **Template Usage Pattern for Agents:**
 
 1. **Always check templates first**: `flowsh init` to see available options
-2. **Choose appropriate template**: Match user requirements to template categories
-3. **Create from template**: `flowsh init [template-name] [output-file]`
-4. **Validate**: `flowsh validate [output-file]`
-5. **Customize if needed**: Edit the generated workflow file
-6. **Test compile**: `flowsh compile [output-file]`
+2. **Preview template content**: Use `flowsh init [template-name] --preview` to evaluate template suitability
+3. **Choose appropriate template**: Match user requirements to template categories based on preview
+4. **Create from template**: `flowsh init [template-name] [output-file]`
+5. **Validate**: `flowsh validate [output-file]`
+6. **Customize if needed**: Edit the generated workflow file
+7. **Test compile**: `flowsh compile [output-file]`
+
+**Template Preview Guidelines for AI Agents:**
+
+- Use `--preview` for template evaluation before creating files
+- Parse preview output for template suitability assessment:
+  - Check complexity level (low/medium/high) against user requirements
+  - Verify required environment variables are available
+  - Confirm node types match the intended functionality
+  - Review estimated script length for appropriateness
+- Consider template complexity in selection (prefer simpler templates when possible)
+- Preview multiple templates to compare options before deciding
 
 **Template File Locations:**
 
