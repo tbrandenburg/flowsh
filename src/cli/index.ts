@@ -7,8 +7,10 @@
  * Does one thing well: converts workflow YAML files into clean, executable shell scripts.
  */
 
+import { createDefaultRegistry } from '../generation/generators/index.js';
 import { generateShellScript } from '../generation/shell-generator.js';
 import { initCommand } from '../templates/init-command.js';
+import { DSLIntrospector } from '../dsl/introspection.js';
 import { parseWorkflowFile } from '../parsing/parser.js';
 import { Command } from 'commander';
 import * as path from 'path';
@@ -118,8 +120,25 @@ async function compileCommand(
 }
 
 /**
- * Validate command: Check workflow YAML for errors
+ * DSL command: Show flowsh DSL structure and node types
  */
+async function dslCommand(
+  options: { format: 'text' | 'json' } = { format: 'text' }
+): Promise<void> {
+  try {
+    const registry = createDefaultRegistry();
+    const introspector = new DSLIntrospector(registry);
+    const overview = introspector.getOverview();
+
+    if (options.format === 'json') {
+      console.log(introspector.formatAsJSON(overview));
+    } else {
+      console.log(introspector.formatAsText(overview));
+    }
+  } catch (error) {
+    handleError(error, 'DSL exploration');
+  }
+}
 async function validateCommand(workflowFile: string): Promise<void> {
   try {
     const parseResult = await parseWorkflowFile(workflowFile, {
@@ -181,6 +200,15 @@ program
     await validateCommand(workflowFile);
   });
 
+// DSL command - explore flowsh DSL types and properties
+program
+  .command('dsl')
+  .description('Explore flowsh DSL node types and properties')
+  .option('--format <format>', 'Output format: text | json', 'text')
+  .action(async (options: { format: 'text' | 'json' }) => {
+    await dslCommand(options);
+  });
+
 // Init command - initialize workflow from template
 program
   .command('init')
@@ -204,6 +232,7 @@ if (process.argv.length <= 2) {
   console.log('  flowsh compile workflow.yaml -o script.sh');
   console.log('  flowsh validate workflow.yaml');
   console.log('  flowsh init [template] [target.yaml]');
+  console.log('  flowsh dsl [--format json]');
   console.log('');
   console.log('Run --help for more options');
   process.exit(0);
@@ -211,7 +240,7 @@ if (process.argv.length <= 2) {
 
 // Handle unknown commands simply
 program.on('command:*', () => {
-  console.error(`❌ Unknown command. Available commands: compile, validate, init`);
+  console.error(`❌ Unknown command. Available commands: compile, validate, init, dsl`);
   console.error('💡 Run --help to see usage');
   process.exit(1);
 });

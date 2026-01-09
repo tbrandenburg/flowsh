@@ -22,7 +22,7 @@ flowsh is "The jq of Workflows" - a simple YAML workflow to shell script compile
 - Avoid speculative refactors unless explicitly requested
 - Maintain the registry-based plugin system architecture
 - Preserve the security validation and input sanitization layers
-- Keep the CLI interface simple (only `compile`, `validate`, and `init` commands)
+- Keep the CLI interface simple (only `compile`, `validate`, `init`, and `dsl` commands)
 
 ---
 
@@ -119,6 +119,7 @@ flowsh init                             # List available templates
 flowsh init [template] [target.yaml]   # Create workflow from template
 flowsh compile workflow.yaml > script.sh    # Compile workflow to shell
 flowsh validate workflow.yaml               # Validate workflow syntax
+flowsh dsl [--format json]                  # Explore flowsh DSL structure and node types
 ```
 
 ---
@@ -232,7 +233,7 @@ Agents must NOT:
 - Delete files without explicit instruction
 - Commit secrets or credentials
 - Perform large refactors unless requested
-- Break the simple three-command CLI interface (`init`, `compile`, `validate`)
+- Break the simple four-command CLI interface (`init`, `compile`, `validate`, `dsl`)
 - Add complexity that violates the Unix philosophy
 - Modify the core security validation without careful review
 - Change the registry architecture without understanding implications

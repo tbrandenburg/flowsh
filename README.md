@@ -10,6 +10,9 @@ flowsh converts YAML workflow definitions into clean, readable shell scripts. Th
 # Start with a template (NEW!)
 flowsh init ai-to-telegram-simple my-workflow.yaml
 
+# Explore DSL structure and node types (NEW!)
+flowsh dsl
+
 # Compile workflow to shell script
 flowsh compile my-workflow.yaml > script.sh
 
@@ -24,7 +27,7 @@ bash script.sh
 
 - **Template-Based** - 14 production-ready templates to get started instantly
 - **Template Preview** - Explore template content and metadata before creating files
-- **Simple** - Three core commands: `init`, `compile`, and `validate`
+- **Simple** - Four core commands: `init`, `compile`, `validate`, and `dsl`
 - **Clean Output** - Generates readable shell scripts under 100 lines
 - **Zero Dependencies** - Generated scripts run anywhere with bash/zsh
 - **Unix Philosophy** - Does one thing well, plays nicely with other tools
@@ -162,6 +165,32 @@ Check workflow YAML for syntax errors:
 flowsh validate workflow.yaml
 # ✅ workflow.yaml is valid (3 nodes, 2 edges)
 ```
+
+### dsl (NEW!)
+
+Explore flowsh DSL structure and discover node types:
+
+```bash
+# Show complete DSL structure overview
+flowsh dsl
+
+# Get machine-readable JSON format
+flowsh dsl --format json
+
+# Get help with DSL exploration
+flowsh dsl --help
+```
+
+The DSL command provides comprehensive information about:
+
+- **ROOT STRUCTURE** - Workflow schema components (metadata, graph, variables)
+- **GRAPH COMPONENTS** - Nodes and edges structure
+- **EDGE PROPERTIES** - Connection capabilities and routing
+- **VARIABLE TYPES** - All 7 supported variable types with descriptions
+- **NODE TYPES** - All 19+ available node types with descriptions
+- **SUPPORTING TYPES** - Model providers and template sources
+
+Perfect for discovering capabilities and for AI agents working with flowsh workflows.
 
 ## Supported Node Types
 
