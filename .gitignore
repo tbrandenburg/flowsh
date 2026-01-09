@@ -164,3 +164,6 @@ backup/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Temporary workspace for development and testing
+workspace/
