@@ -7,6 +7,7 @@ import {
   ParsedCondition,
   ExpressionAST,
 } from './types.js';
+import * as fs from 'fs';
 import jsep from 'jsep';
 
 /**
@@ -111,7 +112,6 @@ export class SecureExpressionEvaluator implements ConditionEvaluator {
       (path: unknown) => {
         // Security: Only allow checking if files exist, no file system modification
         try {
-          const fs = require('fs');
           return fs.existsSync(String(path));
         } catch {
           return false;

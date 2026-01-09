@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+
 /**
  * Resource Management Utilities for Phase 2C
  *
@@ -625,8 +627,6 @@ init_resource_management`;
    * Clean up temporary files
    */
   private cleanupTempFiles(): void {
-    const fs = require('fs');
-
     for (const filePath of this.tempFiles) {
       try {
         if (fs.existsSync(filePath)) {

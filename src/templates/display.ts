@@ -1,4 +1,5 @@
 import type { HierarchicalTemplates, TemplateInfo } from './types.js';
+import * as path from 'path';
 
 /**
  * Template display system that formats templates for CLI output
@@ -197,7 +198,7 @@ export class TemplateDisplay {
     if (targetFile) {
       console.error('');
       console.error('Troubleshooting:');
-      console.error(`   → Check if directory exists: ${require('path').dirname(targetFile)}`);
+      console.error(`   → Check if directory exists: ${path.dirname(targetFile)}`);
       console.error(`   → Verify write permissions for: ${targetFile}`);
       console.error('   → Ensure sufficient disk space');
     }
