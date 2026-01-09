@@ -48,29 +48,6 @@ graph:
             fi
             echo "✅ Environment validated"
 
-    - id: setup_workspace
-      type: code
-      data:
-        title: 'Setup Workspace'
-        description: 'Create working directory and set variables for agents'
-        command: '/bin/bash'
-        args:
-          - '-c'
-          - |
-            # Create fixed working directory
-            work_dir="/tmp/flowsh_essay_work"
-            mkdir -p "$work_dir"
-
-            # Set workflow variables that code nodes can handle
-            echo "export work_dir=\"$work_dir\"" > "$work_dir/workflow_vars.sh"
-            echo "export topic=\"{{user_topic}}\"" >> "$work_dir/workflow_vars.sh"
-            echo "export max_parts=\"{{max_parts}}\"" >> "$work_dir/workflow_vars.sh"
-            echo "export research_date=\"$(date +%Y-%m-%d)\"" >> "$work_dir/workflow_vars.sh"
-
-            echo "✅ Workspace created: $work_dir"
-            echo "📝 Topic: {{user_topic}}"
-            echo "📊 Sections: {{max_parts}}"
-
     - id: research_planner
       type: agent
       data:
@@ -95,16 +72,14 @@ graph:
                - Structural outline
                - Target word count (300-500 words per section)
 
-            Save research files to fixed directory: /tmp/flowsh_essay_work/
-            Required output files:
-            - /tmp/flowsh_essay_work/research_summary.md (overall findings)
-            - /tmp/flowsh_essay_work/Part_01.md (first section plan)
-            - /tmp/flowsh_essay_work/Part_02.md (second section plan)
-            {{#if (eq max_parts "3")}}
-            - /tmp/flowsh_essay_work/Part_03.md (third section plan)
-            {{/if}}
+            Create working directory: /tmp/essay_{{user_topic | replace(' ', '_') | lower}}
+            Save each plan as: /tmp/essay_{{user_topic | replace(' ', '_') | lower}}/Part_0X.md (where X = 1,2,3...)
 
-            NOTE: Agents cannot set shell environment variables. Only create the specified files.
+            Set these variables for next stages:
+            - work_dir: /tmp/essay_{{user_topic | replace(' ', '_') | lower}}
+            - topic_short: {{user_topic | replace(' ', '_') | truncate(20)}}
+            - research_date: $(date +%Y-%m-%d)
+            - part_count: {{max_parts}}
 
     - id: find_plan_files
       type: variable-assignment
@@ -113,7 +88,7 @@ graph:
         description: 'Dynamically find all Part_*.md files'
         variable: 'planning_files'
         assignment_type: 'expression'
-        value: '$(find /tmp/flowsh_essay_work -name "Part_*.md" | sort)'
+        value: '$(find ${work_dir} -name "Part_*.md" | sort)'
 
     - id: content_iterator
       type: iteration
@@ -143,7 +118,7 @@ graph:
             1. Read the planning document thoroughly
             2. Write comprehensive, engaging content (400-600 words)
             3. Maintain academic quality while being accessible
-            4. APPEND your section to: /tmp/flowsh_essay_work/Raw_Content.md
+            4. APPEND your section to: ${work_dir}/Raw_Content.md
             5. Use clear section headers and smooth transitions
             6. Incorporate research findings naturally
 
@@ -163,7 +138,7 @@ graph:
           content: |
             You are a professional editor.
 
-            Raw content file: /tmp/flowsh_essay_work/Raw_Content.md
+            Raw content file: ${work_dir}/Raw_Content.md
             Topic: {{user_topic}}
 
             Tasks:
@@ -175,7 +150,7 @@ graph:
                - Smooth transitions between sections
                - Strong introduction and conclusion
             3. Create the final polished essay
-            4. Save final essay as: /tmp/flowsh_essay_work/Final_Essay.md
+            4. Save final essay as: ${work_dir}/Final_Essay.md
             5. Ensure publication-ready quality
 
             Target audience: Educated general readers
@@ -194,7 +169,7 @@ graph:
             echo "📱 Preparing Telegram message with essay content..."
 
             # Check if essay file exists
-            ESSAY_FILE="/tmp/flowsh_essay_work/Final_Essay.md"
+            ESSAY_FILE="${work_dir}/Final_Essay.md"
             if [ ! -f "$ESSAY_FILE" ]; then
               echo "⚠️ Essay file not found at $ESSAY_FILE"
               echo "📝 Creating basic completion message instead..."
@@ -206,7 +181,6 @@ graph:
             fi
 
             # Export for telegram node (note: this won't work as expected due to variable scoping)
-            # This is a template limitation that needs to be addressed in flowsh
             export ESSAY_CONTENT
 
     - id: telegram_delivery
@@ -241,8 +215,6 @@ graph:
     - source: start
       target: validate_env
     - source: validate_env
-      target: setup_workspace
-    - source: setup_workspace
       target: research_planner
     - source: research_planner
       target: find_plan_files

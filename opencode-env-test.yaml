@@ -1,0 +1,54 @@
+workflow:
+  name: 'OpenCode Variable Test'
+  description: 'Test environment variable usage in OpenCode agents'
+
+graph:
+  nodes:
+    - id: start
+      type: start
+
+    - id: research_with_env
+      type: agent
+      data:
+        title: 'Research Test with Environment Variables'
+        command: 'opencode'
+        args: ['run']
+        timeout: 120
+        prompt_template:
+          type: prompt
+          source: inline
+          content: |
+            You are a research specialist. 
+
+            Research the topic: "AI Code Generation Tools 2025" 
+
+            Tasks:
+            1. Conduct brief web research on this topic
+            2. Create a 150-word summary of current trends
+            3. Include 2-3 specific tools or statistics
+            4. Save your findings to a file called "research_summary.md"
+
+            Focus on recent developments and current market leaders.
+
+    - id: show_results
+      type: code
+      data:
+        title: 'Show Results'
+        command: '/bin/bash'
+        args:
+          - '-c'
+          - |
+            echo "✅ Research completed!"
+            echo "Files created:"
+            ls -la *.md 2>/dev/null || echo "No .md files found"
+
+    - id: end
+      type: end
+
+  edges:
+    - source: start
+      target: research_with_env
+    - source: research_with_env
+      target: show_results
+    - source: show_results
+      target: end

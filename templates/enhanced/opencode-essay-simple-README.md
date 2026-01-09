@@ -14,17 +14,28 @@ The **OpenCode Essay Writing Template** is a simple, production-ready workflow t
 ## Key Features
 
 - **Multi-agent collaboration** with specialized roles (Researcher, Writer, Editor)
-- **Dynamic file discovery** using iteration nodes - no hardcoded file lists!
+- **File-based data flow** using fixed paths for agent communication
 - **Conversation variables** for user interaction (topic, section count)
 - **Production-ready Telegram integration** with proper error handling
-- **Simple architecture** - under 150 lines, easy to understand and modify
+- **Fixed workspace design** - uses /tmp/flowsh_essay_work/ for reliable file handling
 
 ## Template Specification
 
 - **Category**: Enhanced (simple templates)
 - **Complexity**: Medium
 - **Estimated Runtime**: 3-5 minutes
-- **Node Count**: 9 nodes, 8 edges
+- **Node Count**: 11 nodes, 10 edges
+- **Agent Timeouts**: Research (180s), Writing (120s), Editorial (120s)
+
+## Critical Design Principles
+
+⚠️ **IMPORTANT**: This template follows corrected design patterns for AI agent workflows:
+
+1. **Agents CANNOT set environment variables** - they only work with files, stdin/stdout
+2. **Use `code` nodes to set workflow variables** between agent steps
+3. **Use fixed file paths** instead of dynamic variable-based paths
+4. **Structure agent output as files** for reliable data passing between nodes
+5. **Set appropriate timeouts** - research agents need 120-180 seconds minimum
 
 ## Required Environment Variables
 
@@ -203,6 +214,53 @@ flowsh init opencode-essay-simple    # Use this template
 - **Expected**: OpenCode with MCP server configuration (firecrawl for research)
 - **Required**: Telegram bot credentials
 - **Optional**: Custom working directory (defaults to /tmp)
+
+## Troubleshooting & Known Issues
+
+### Agent Timeout Issues
+
+**Problem**: Agents fail with "execution timed out after 30s"  
+**Solution**: This template includes appropriate timeouts:
+
+- Research agents: 180s (web research takes time)
+- Writing agents: 120s
+- Editorial agents: 120s
+
+### Variable Substitution Issues
+
+**Problem**: Agents see empty `{{user_topic}}` instead of actual values  
+**Solution**: This occurs when conversation variables aren't properly initialized. Use environment variables directly:
+
+```bash
+export user_topic="My Essay Topic"
+export max_parts="2"
+./essay-script.sh
+```
+
+### File Path Issues
+
+**Problem**: Agents create files in wrong locations  
+**Solution**: This template uses fixed paths `/tmp/flowsh_essay_work/` for reliability. Agents may use relative paths in workspace.
+
+### Environment Variable Setting
+
+**Problem**: Trying to make agents set shell variables fails  
+**ROOT CAUSE**: **AI agents cannot set environment variables** - they only work with:
+
+- Files (read/write)
+- stdout/stdin
+- Command-line parameters
+
+**Solution**: Use `code` nodes to set variables between agent steps, as this template demonstrates.
+
+### Research Capability Issues
+
+**Problem**: Research agents don't find web content  
+**Solution**: Ensure OpenCode has MCP servers configured:
+
+```bash
+opencode install firecrawl  # For web research
+```
 
 ## Development
 
