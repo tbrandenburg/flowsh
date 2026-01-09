@@ -33,6 +33,8 @@ export interface GenerationOptions {
   shell?: 'bash' | 'zsh';
   /** Include verbose debugging output */
   verbose?: boolean;
+  /** Enable debug mode with enhanced tracing */
+  debug?: boolean;
   /** Default timeout for agent calls */
   defaultTimeout?: number;
   /** Compilation timeout in milliseconds */

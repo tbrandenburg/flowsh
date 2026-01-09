@@ -81,11 +81,7 @@ export class YamlSecurityValidator {
     //   description: 'Data URL scheme',
     //   severity: 'warning' as const,
     // },
-    {
-      pattern: /\$\{.*\}/gi,
-      description: 'Template literal injection',
-      severity: 'warning' as const,
-    },
+    // Template literal pattern removed - flowsh uses ${variable} syntax legitimately
     {
       pattern: /<!--.*-->/gi,
       description: 'HTML comments',

@@ -117,7 +117,7 @@ export class AgentNodeGenerator extends BaseNodeGenerator {
         // Create a temporary file for the prompt (if needed by the command)
         parts.push('    # Prepare agent prompt');
         parts.push('    local prompt_content');
-        parts.push(`    read -r -d '' prompt_content << 'AGENT_PROMPT_EOF' || true`);
+        parts.push(`    read -r -d '' prompt_content << AGENT_PROMPT_EOF || true`);
         parts.push(promptContent);
         parts.push('AGENT_PROMPT_EOF');
         parts.push('');
@@ -207,38 +207,6 @@ export class AgentNodeGenerator extends BaseNodeGenerator {
     parts.push(`${functionName}`);
 
     return parts.join('\n');
-  }
-
-  /**
-   * Smart shell value escaping that preserves get_var call integrity
-   */
-  private escapeShellValueSmart(value: string): string {
-    // Split on get_var calls to handle them separately
-    const parts = value.split(/(get_var "[^"]*" "[^"]*")/);
-
-    return parts
-      .map((part, index) => {
-        // Even indices are regular text, odd indices are get_var calls
-        if (index % 2 === 0) {
-          // Regular text - escape only unescaped quotes
-          return part.replace(/([^\\])"/g, '$1\\"').replace(/^"/g, '\\"');
-        } else {
-          // get_var call - don't escape quotes inside
-          return part;
-        }
-      })
-      .join('');
-  }
-
-  private needsQuoting(arg: string): boolean {
-    // Quote if contains spaces, special chars, or is a command substitution result
-    return (
-      arg.includes(' ') ||
-      arg.includes('*') ||
-      arg.includes('?') ||
-      arg.includes('$(') ||
-      arg.includes('`')
-    );
   }
 
   override validate(node: WorkflowNode): ValidationResult {

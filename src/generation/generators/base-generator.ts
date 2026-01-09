@@ -4,6 +4,13 @@
  * Provides common functionality for all node generators
  */
 
+import {
+  escapeShellValue as escapeShellValueUtil,
+  escapeShellValueSmart as escapeShellValueSmartUtil,
+  quoteShellArgumentIfNeeded as quoteShellArgumentIfNeededUtil,
+  needsQuoting as needsQuotingUtil,
+  sanitizeVariableName as sanitizeVariableNameUtil,
+} from '../shell-scripting/shell-escaping.js';
 import { NodeGenerator, GenerationContext } from '../registry/types.js';
 import { ValidationResult } from '../../dsl/validation.js';
 import { WorkflowNode } from '../../dsl/types.js';
@@ -67,25 +74,35 @@ export abstract class BaseNodeGenerator implements NodeGenerator {
    * Sanitize shell variable names to prevent injection
    */
   protected sanitizeVariableName(varName: string): string {
-    // Defensive programming: ensure varName is a string
-    if (typeof varName !== 'string') {
-      varName = String(varName || 'var');
-    }
-
-    // Only allow alphanumeric and underscore, starting with letter/underscore
-    const sanitized = varName.replace(/[^a-zA-Z0-9_]/g, '_');
-    if (!/^[a-zA-Z_]/.test(sanitized)) {
-      return `VAR_${sanitized}`;
-    }
-    return sanitized;
+    return sanitizeVariableNameUtil(varName);
   }
 
   /**
    * Escape shell value to prevent injection
    */
   protected escapeShellValue(value: string): string {
-    // Escape double quotes and backslashes
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    return escapeShellValueUtil(value);
+  }
+
+  /**
+   * Smart shell value escaping that preserves get_var call integrity
+   */
+  protected escapeShellValueSmart(value: string): string {
+    return escapeShellValueSmartUtil(value);
+  }
+
+  /**
+   * Quote shell argument if it needs quoting
+   */
+  protected quoteShellArgumentIfNeeded(value: string): string {
+    return quoteShellArgumentIfNeededUtil(value);
+  }
+
+  /**
+   * Check if a value needs shell quoting
+   */
+  protected needsQuoting(value: string): boolean {
+    return needsQuotingUtil(value);
   }
 
   /**

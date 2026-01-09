@@ -57,7 +57,7 @@ async function writeScriptToFile(script: string, outputFile: string): Promise<vo
  */
 async function compileCommand(
   workflowFile: string,
-  options: { verbose?: boolean; output?: string } = {}
+  options: { verbose?: boolean; debug?: boolean; dryRun?: boolean; output?: string } = {}
 ): Promise<void> {
   try {
     if (options.verbose) {
@@ -87,7 +87,8 @@ async function compileCommand(
     const generateResult = generateShellScript(parseResult.workflow, {
       includeMocks: false,
       shell: 'bash',
-      verbose: false,
+      verbose: options.verbose || false,
+      debug: options.debug || false,
       defaultTimeout: 60,
     });
 
@@ -105,6 +106,28 @@ async function compileCommand(
       );
       console.error(`📊 Complexity: ${generateResult.metadata.estimatedComplexity}`);
       console.error('');
+    }
+
+    // Dry-run mode: validate and compile but don't output
+    if (options.dryRun) {
+      const nodeCount = parseResult.workflow?.graph?.nodes?.length || 0;
+      const edgeCount = parseResult.workflow?.graph?.edges?.length || 0;
+      const scriptLines = generateResult.script.split('\n').length;
+
+      console.log(`✅ Dry-run successful for ${workflowFile}`);
+      console.log(`   Nodes: ${nodeCount}, Edges: ${edgeCount}`);
+      console.log(`   Generated script: ${scriptLines} lines`);
+      console.log(`   Estimated complexity: ${generateResult.metadata.estimatedComplexity}`);
+
+      if (generateResult.warnings && generateResult.warnings.length > 0) {
+        console.log(`   Warnings: ${generateResult.warnings.length}`);
+        if (options.verbose) {
+          generateResult.warnings.forEach(warning => {
+            console.log(`     → ${warning}`);
+          });
+        }
+      }
+      return; // Exit without outputting script
     }
 
     // Output to file or stdout
@@ -206,10 +229,17 @@ program
   .description('Convert YAML workflow to shell script (outputs to stdout)')
   .argument('<workflow-file>', 'Path to workflow YAML file')
   .option('-v, --verbose', 'Show detailed progress and performance information')
+  .option('-d, --debug', 'Enable debug mode with enhanced tracing and variable inspection')
+  .option('--dry-run', 'Validate and compile without outputting script or writing files')
   .option('-o, --output <file>', 'output generated script to file')
-  .action(async (workflowFile: string, options: { verbose?: boolean; output?: string }) => {
-    await compileCommand(workflowFile, options);
-  });
+  .action(
+    async (
+      workflowFile: string,
+      options: { verbose?: boolean; debug?: boolean; dryRun?: boolean; output?: string }
+    ) => {
+      await compileCommand(workflowFile, options);
+    }
+  );
 
 // Validate command - check for errors only
 program

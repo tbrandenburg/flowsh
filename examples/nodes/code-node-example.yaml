@@ -49,7 +49,7 @@ graph:
         title: 'List Files with Pattern'
         description: 'Find files matching the specified pattern'
         command: 'find'
-        args: ['${target_directory}', '-name', '${file_pattern}', '-type', 'f']
+        args: ['{{target_directory}}', '-name', '{{file_pattern}}', '-type', 'f']
         working_directory: '.'
         timeout: 30
 
@@ -62,7 +62,7 @@ graph:
         args:
           [
             '-c',
-            "find ${target_directory} -name '${file_pattern}' -type f -exec wc -l {} + | tail -1 | awk '{print $1}' || echo '0'",
+            "find {{target_directory}} -name '{{file_pattern}}' -type f -exec wc -l {} + | tail -1 | awk '{print $1}' || echo '0'",
           ]
         working_directory: '.'
         timeout: 30
@@ -76,7 +76,7 @@ graph:
         args:
           [
             '-c',
-            "find ${target_directory} -name '${file_pattern}' -type f -exec du -ch {} + | tail -1 | cut -f1 || echo '0B'",
+            "find {{target_directory}} -name '{{file_pattern}}' -type f -exec du -ch {} + | tail -1 | cut -f1 || echo '0B'",
           ]
         working_directory: '.'
         timeout: 30
@@ -90,12 +90,12 @@ graph:
         args:
           [
             '-c',
-            'echo "File Analysis Summary" > /tmp/flowsh-code-example/summary.txt && echo "Pattern: ${file_pattern}" >> /tmp/flowsh-code-example/summary.txt && echo "Directory: ${target_directory}" >> /tmp/flowsh-code-example/summary.txt && echo "Generated: $(date)" >> /tmp/flowsh-code-example/summary.txt',
+            'echo "File Analysis Summary" > /tmp/flowsh-code-example/summary.txt && echo "Pattern: {{file_pattern}}" >> /tmp/flowsh-code-example/summary.txt && echo "Directory: {{target_directory}}" >> /tmp/flowsh-code-example/summary.txt && echo "Generated: $(date)" >> /tmp/flowsh-code-example/summary.txt',
           ]
         working_directory: '/tmp/flowsh-code-example'
         environment_variables:
-          ANALYSIS_PATTERN: '${file_pattern}'
-          ANALYSIS_DIR: '${target_directory}'
+          ANALYSIS_PATTERN: '{{file_pattern}}'
+          ANALYSIS_DIR: '{{target_directory}}'
         timeout: 10
 
     - id: 'read_summary'
@@ -131,8 +131,8 @@ graph:
              - Set environment variables for tracking
 
           2. **File Discovery** 📁
-             - Searched for pattern: `${file_pattern}`
-             - Target directory: `${target_directory}`
+              - Searched for pattern: `{{file_pattern}}`
+              - Target directory: `{{target_directory}}`
 
           3. **Analysis Operations** 📊
              - Counted lines in matched files
