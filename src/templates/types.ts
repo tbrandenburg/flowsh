@@ -66,6 +66,58 @@ export function createSuccessResult(filePath: string): ProcessResult {
 }
 
 /**
+ * Preview information for a template
+ */
+export interface TemplatePreview {
+  /** Template identifier */
+  templateId: string;
+
+  /** Template category (enhanced/advanced) */
+  category: string;
+
+  /** Template subcategory if applicable */
+  subcategory?: string;
+
+  /** Template description */
+  description: string;
+
+  /** Raw template content */
+  content: string;
+
+  /** Template metadata */
+  metadata: TemplateMetadata;
+
+  /** Placeholder variables found in template */
+  placeholders: string[];
+
+  /** Required environment variables */
+  requiredVariables: string[];
+}
+
+/**
+ * Metadata about a template
+ */
+export interface TemplateMetadata {
+  /** Complexity level based on node count and types */
+  complexity: 'low' | 'medium' | 'high';
+
+  /** Number of workflow nodes */
+  nodeCount: number;
+
+  /** Number of workflow edges */
+  edgeCount: number;
+
+  /** Types of nodes used in the workflow */
+  nodeTypes: string[];
+
+  /** Estimated lines in generated shell script */
+  estimatedScriptLines: number;
+
+  /** Required environment variables extracted from template */
+  requiredEnvironmentVars: string[];
+}
+
+/**
  * Create a failed process result
  */
 export function createErrorResult(error: string, validationErrors?: string[]): ProcessResult {

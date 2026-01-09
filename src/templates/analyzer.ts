@@ -3,27 +3,30 @@
  * from flowsh workflow templates
  */
 
+import { TemplateMetadata } from './types.js';
+
 /**
- * Template metadata and complexity information
+ * Extract placeholder variables from template content
  */
-export interface TemplateMetadata {
-  /** Complexity level based on node count and types */
-  complexity: 'low' | 'medium' | 'high';
+export function extractPlaceholders(content: string): string[] {
+  const placeholderPattern = /\{\{([^}]+)\}\}/g;
+  const placeholders = new Set<string>();
 
-  /** Number of workflow nodes */
-  nodeCount: number;
+  let match;
+  while ((match = placeholderPattern.exec(content)) !== null) {
+    if (match[1]) {
+      placeholders.add(match[1]);
+    }
+  }
 
-  /** Number of workflow edges */
-  edgeCount: number;
+  return Array.from(placeholders).sort();
+}
 
-  /** List of node types used */
-  nodeTypes: string[];
-
-  /** Estimated script length in lines */
-  estimatedScriptLines: number;
-
-  /** Required environment variables */
-  requiredEnvironmentVars: string[];
+/**
+ * Highlight placeholder variables in template content for display
+ */
+export function highlightPlaceholders(content: string): string {
+  return content.replace(/\{\{([^}]+)\}\}/g, '{{$1}} # ← Placeholder variable');
 }
 
 /**

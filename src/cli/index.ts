@@ -238,8 +238,13 @@ program
   .argument('[target]', 'Target workflow file path')
   .option('--help', 'Display available templates and usage')
   .option('-p, --preview', 'Display template content without creating files')
+  .option('--format <format>', 'Output format for preview (text|json)', 'text')
   .action(
-    async (template?: string, target?: string, options?: { help?: boolean; preview?: boolean }) => {
+    async (
+      template?: string,
+      target?: string,
+      options?: { help?: boolean; preview?: boolean; format?: string }
+    ) => {
       await initCommand(template, target, options);
     }
   );

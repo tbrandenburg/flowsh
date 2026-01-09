@@ -285,6 +285,7 @@ flowsh init --help            # Same as above
 **Template Preview Guidelines for AI Agents:**
 
 - Use `--preview` for template evaluation before creating files
+- Use `--preview --format json` for machine-readable template analysis
 - Parse preview output for template suitability assessment:
   - Check complexity level (low/medium/high) against user requirements
   - Verify required environment variables are available
@@ -292,6 +293,21 @@ flowsh init --help            # Same as above
   - Review estimated script length for appropriateness
 - Consider template complexity in selection (prefer simpler templates when possible)
 - Preview multiple templates to compare options before deciding
+
+**Preview Command Examples for AI Agents:**
+
+```bash
+# Human-readable preview for analysis
+flowsh init ai-to-telegram-simple --preview
+
+# Machine-readable JSON for programmatic parsing
+flowsh init circuit-breaker --preview --format json
+
+# Compare multiple templates programmatically
+for template in ai-to-telegram-simple data-pipeline circuit-breaker; do
+  flowsh init $template --preview --format json > "${template}-preview.json"
+done
+```
 
 **Template File Locations:**
 

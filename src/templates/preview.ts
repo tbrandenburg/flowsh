@@ -5,35 +5,30 @@
  * and metadata without creating files or directories.
  */
 
-import { TemplateAnalyzer, TemplateMetadata } from './analyzer.js';
-import { TemplateInfo } from './types.js';
+import { TemplateAnalyzer, extractPlaceholders, highlightPlaceholders } from './analyzer.js';
+import { TemplateInfo, TemplatePreview } from './types.js';
+import { TemplateDiscovery } from './discovery.js';
 import * as yaml from 'js-yaml';
+import chalk from 'chalk';
 import * as fs from 'fs';
 
 /**
- * Interface for template preview data
+ * Preview a template by its ID
  */
-export interface TemplatePreview {
-  /** Template identifier */
-  templateId: string;
+export async function previewTemplateById(templateId: string): Promise<TemplatePreview> {
+  const discovery = new TemplateDiscovery();
+  await discovery.scanTemplates();
 
-  /** Template category (enhanced/advanced) */
-  category: string;
+  // Find the template by display name
+  const template = discovery.getTemplateByName(templateId);
+  if (!template) {
+    const available = discovery.getAvailableTemplateNames();
+    throw new Error(
+      `Template '${templateId}' not found. Available templates: ${available.join(', ')}`
+    );
+  }
 
-  /** Template description from metadata */
-  description: string;
-
-  /** Raw template content */
-  content: string;
-
-  /** Template metadata and statistics */
-  metadata: TemplateMetadata;
-
-  /** List of placeholder variables found in template */
-  placeholders: string[];
-
-  /** Required environment variables */
-  requiredVariables: string[];
+  return previewTemplate(template);
 }
 
 /**
@@ -59,9 +54,12 @@ export async function previewTemplate(templateInfo: TemplateInfo): Promise<Templ
 
     return {
       templateId: templateInfo.displayName,
-      category:
-        templateInfo.category + (templateInfo.subcategory ? `/${templateInfo.subcategory}` : ''),
-      description: templateInfo.description || 'No description available',
+      category: templateInfo.category,
+      ...(templateInfo.subcategory && { subcategory: templateInfo.subcategory }),
+      description:
+        templateInfo.description ||
+        templateData?.workflow?.description ||
+        'No description available',
       content,
       metadata,
       placeholders,
@@ -73,92 +71,70 @@ export async function previewTemplate(templateInfo: TemplateInfo): Promise<Templ
 }
 
 /**
- * Display template preview in a formatted, readable way
+ * Format template preview as human-readable text
  */
-export function displayTemplatePreview(preview: TemplatePreview): void {
-  console.log(`# Template: ${preview.templateId}`);
-  console.log(`# Category: ${preview.category}`);
-  console.log(`# Description: ${preview.description}`);
-  console.log(
-    `# Complexity: ${capitalizeFirst(preview.metadata.complexity)} (${preview.metadata.nodeCount} nodes, ${preview.metadata.edgeCount} edges)`
+export function formatPreviewAsText(preview: TemplatePreview): string {
+  const lines: string[] = [];
+
+  // Header
+  lines.push(chalk.cyan(`# Template: ${preview.templateId}`));
+  lines.push(
+    chalk.gray(
+      `# Category: ${preview.category}${preview.subcategory ? ` > ${preview.subcategory}` : ''}`
+    )
+  );
+  lines.push(chalk.gray(`# Description: ${preview.description}`));
+
+  // Metadata
+  lines.push(
+    chalk.gray(
+      `# Complexity: ${preview.metadata.complexity.toUpperCase()} (${preview.metadata.nodeCount} nodes, ${preview.metadata.edgeCount} edges)`
+    )
   );
 
-  if (preview.requiredVariables.length > 0) {
-    console.log(`# Required Variables: ${preview.requiredVariables.join(', ')}`);
-  }
-
-  console.log(`# Estimated Script Length: ~${preview.metadata.estimatedScriptLines} lines`);
-
   if (preview.metadata.nodeTypes.length > 0) {
-    console.log(`# Node Types: ${preview.metadata.nodeTypes.join(', ')}`);
+    lines.push(chalk.gray(`# Node Types: ${preview.metadata.nodeTypes.join(', ')}`));
   }
 
-  console.log('');
-  console.log(highlightPlaceholders(preview.content, preview.placeholders));
-}
-
-/**
- * Extract placeholder variables from template content ({{variable}} and ${variable} formats)
- */
-function extractPlaceholders(content: string): string[] {
-  const placeholders: Set<string> = new Set();
-
-  // Extract {{variable}} format
-  const doubleBraceRegex = /\{\{([^}]+)\}\}/g;
-  let match;
-  while ((match = doubleBraceRegex.exec(content)) !== null) {
-    if (match[1]) {
-      placeholders.add(match[1].trim());
-    }
+  if (preview.requiredVariables.length > 0) {
+    lines.push(chalk.gray(`# Required Variables: ${preview.requiredVariables.join(', ')}`));
   }
 
-  // Extract ${variable} format
-  const dollarBraceRegex = /\$\{([^}]+)\}/g;
-  while ((match = dollarBraceRegex.exec(content)) !== null) {
-    if (match[1]) {
-      placeholders.add(match[1].trim());
-    }
-  }
+  lines.push(
+    chalk.gray(`# Estimated Script Length: ~${preview.metadata.estimatedScriptLines} lines`)
+  );
+  lines.push('');
 
-  return Array.from(placeholders);
+  // Content with highlighted placeholders
+  const highlighted = highlightPlaceholders(preview.content);
+  lines.push(highlighted);
+
+  return lines.join('\n');
 }
 
 /**
- * Highlight placeholder variables in template content for preview display
+ * Format template preview as JSON
  */
-function highlightPlaceholders(content: string, placeholders: string[]): string {
-  let highlighted = content;
+export function formatPreviewAsJSON(preview: TemplatePreview): string {
+  const jsonData = {
+    templateId: preview.templateId,
+    category: preview.category,
+    subcategory: preview.subcategory,
+    description: preview.description,
+    metadata: preview.metadata,
+    placeholders: preview.placeholders,
+    requiredVariables: preview.requiredVariables,
+    contentLength: preview.content.length,
+    // Note: we don't include full content in JSON mode to keep output manageable
+    // Users can use text mode to see full content
+  };
 
-  // Add comments to highlight placeholders - handle both {{}} and ${} formats
-  placeholders.forEach(placeholder => {
-    // Handle {{placeholder}} format
-    const doubleBraceRegex = new RegExp(`\\{\\{${escapeRegex(placeholder)}\\}\\}`, 'g');
-    highlighted = highlighted.replace(
-      doubleBraceRegex,
-      `{{${placeholder}}} # ← Placeholder variable`
-    );
-
-    // Handle ${placeholder} format
-    const dollarBraceRegex = new RegExp(`\\$\\{${escapeRegex(placeholder)}\\}`, 'g');
-    highlighted = highlighted.replace(
-      dollarBraceRegex,
-      `\${${placeholder}} # ← Placeholder variable`
-    );
-  });
-
-  return highlighted;
+  return JSON.stringify(jsonData, null, 2);
 }
 
 /**
- * Escape regex special characters
+ * Display template preview in a formatted, readable way (legacy function)
  */
-function escapeRegex(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Capitalize first letter of a string
- */
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+export function displayTemplatePreview(preview: TemplatePreview): void {
+  console.log(formatPreviewAsText(preview));
 }
