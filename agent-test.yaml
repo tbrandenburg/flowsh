@@ -1,0 +1,208 @@
+workflow:
+  name: 'OpenCode Poem to Telegram - Creative Automation'
+  description: 'Production-ready template combining OpenCode agent orchestration with creative poem generation and Telegram delivery'
+
+environment_variables:
+  - variable: 'poem_type'
+    name: 'Poem Type'
+    type: 'select'
+    description: 'Type of poem to generate'
+    options: ['haiku', 'sonnet', 'limerick', 'free-verse', 'acrostic', 'ballad']
+    default: 'haiku'
+  - variable: 'poem_theme'
+    name: 'Poem Theme'
+    type: 'text'
+    description: 'Theme or topic for the poem (e.g., "nature", "technology", "friendship")'
+    default: 'nature and technology harmony'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'OpenCode Poem Generator'
+        description: 'Creative poetry automation with Telegram delivery'
+
+    - id: 'validate_env'
+      type: 'code'
+      data:
+        title: 'Environment Validation'
+        description: 'Validate required environment variables and OpenCode availability'
+        command: '/bin/bash'
+        args:
+          - '-c'
+          - |
+            set -euo pipefail
+            echo "🔍 Validating environment for OpenCode Poem Generator..."
+
+            # Check Telegram environment variables
+            if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+              echo "❌ ERROR: TELEGRAM_BOT_TOKEN not set (get from @BotFather)"
+              exit 1
+            fi
+
+            if [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+              echo "❌ ERROR: TELEGRAM_CHAT_ID not set (use @userinfobot)"
+              exit 1
+            fi
+
+            # Validate Telegram token format
+            if [[ ! "$TELEGRAM_BOT_TOKEN" =~ ^[0-9]+:[a-zA-Z0-9_-]+$ ]]; then
+              echo "⚠️  WARNING: Token format looks incorrect"
+            fi
+
+            # Check if OpenCode is available
+            if ! command -v opencode &> /dev/null; then
+              echo "⚠️  WARNING: opencode command not found in PATH"
+              echo "    Poem generation will use fallback content"
+            else
+              echo "✅ OpenCode agent available: $(which opencode)"
+            fi
+
+            echo "✅ Environment validation passed"
+            echo "🤖 Bot: ${TELEGRAM_BOT_TOKEN:0:10}..."
+            echo "💬 Chat: $TELEGRAM_CHAT_ID"
+            echo "🎭 Poem Type: ${poem_type}"
+            echo "🎨 Theme: ${poem_theme}"
+
+    - id: 'generate_poem'
+      type: 'agent'
+      data:
+        title: 'OpenCode Poetry Generator'
+        description: 'Generate creative poem using OpenCode agent'
+        command: 'opencode'
+        args: ['run']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            Create a ${poem_type:-haiku} poem about "${poem_theme:-nature and technology harmony}".
+
+            Make it beautiful, creative, and emotionally resonant.
+            Use vivid imagery and thoughtful word choices.
+            Keep it appropriate for all audiences.
+
+            Output only the poem itself, without additional commentary or explanations.
+        template_parameters:
+          type: '${poem_type:-haiku}'
+          theme: '${poem_theme:-nature and technology harmony}'
+        timeout: 45
+        working_directory: '/tmp'
+        environment_variables:
+          POEM_TYPE: '${poem_type:-haiku}'
+          POEM_THEME: '${poem_theme:-nature and technology harmony}'
+
+    - id: 'prepare_fallback'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Fallback Poem'
+        description: 'Create fallback poem content if OpenCode generation fails'
+        variable: 'fallback_poem'
+        assignment_type: 'constant'
+        value: |
+          🌟 **Digital Haiku** 🌟
+
+          Code flows like water,
+          Through circuits of silicon dreams—
+          Beauty in logic.
+
+          ⚡ **Tech Limerick** ⚡
+
+          There once was a bot very bright,
+          Who wrote poems both day and night,
+          With algorithms fine,
+          Each verse, every line,
+          Made readers' hearts truly take flight!
+
+          💭 *This is fallback content - configure OpenCode for AI-generated poems*
+
+    - id: 'select_poem_content'
+      type: 'variable-assignment'
+      data:
+        title: 'Select Poem Content'
+        description: 'Use generated poem or fallback if generation failed'
+        variable: 'final_poem'
+        assignment_type: 'expression'
+        expression: 'if [ -n "${agent_output:-}" ]; then echo "${agent_output}"; else echo "${fallback_poem:-Default fallback poem}"; fi'
+
+    - id: 'format_telegram_message'
+      type: 'variable-assignment'
+      data:
+        title: 'Format Telegram Message'
+        description: 'Create beautifully formatted message for Telegram'
+        variable: 'telegram_message'
+        assignment_type: 'constant'
+        value: |
+          🎭 <b>Poem of the Day</b> 🎭
+
+          <b>Type:</b> <code>${poem_type:-haiku}</code>
+          <b>Theme:</b> <code>${poem_theme:-nature and technology harmony}</code>
+
+          ${final_poem:-A beautiful poem about harmony between nature and technology}
+
+          ---
+          ✨ <i>Created with OpenCode poetry magic</i>
+          🤖 <i>Delivered by flowsh automation</i>
+
+          <i>Generated on $(date '+%Y-%m-%d at %H:%M')</i>
+
+    - id: 'send_poem_telegram'
+      type: 'telegram'
+      data:
+        title: 'Send Poem to Telegram'
+        description: 'Deliver the generated poem via Telegram'
+        bot_token_env: 'TELEGRAM_BOT_TOKEN'
+        chat_id_env: 'TELEGRAM_CHAT_ID'
+        message: '${telegram_message}'
+        parse_mode: 'HTML'
+        max_retries: 3
+        timeout: 30
+        disable_notification: false
+
+    - id: 'completion_report'
+      type: 'answer'
+      data:
+        title: 'Poetry Generation Complete'
+        description: 'Final report of poem generation and delivery'
+        answer: |
+          # 🎭 OpenCode Poem to Telegram - COMPLETE!
+
+          ## 📊 Generation Summary
+          - **Poem Type**: ${poem_type}
+          - **Theme**: ${poem_theme}  
+          - **Agent Status**: ${agent_output:+✅ OpenCode Generated}${agent_output:-⚡ Fallback Used}
+          - **Telegram Delivery**: ${telegram_success}
+          - **Environment**: ✅ Validated
+
+          ## 🎨 Generated Content
+          ${final_poem}
+
+          ## 🚀 Features Demonstrated
+          - OpenCode agent integration for creative content generation
+          - Intelligent fallback system for reliability
+          - Environment validation with comprehensive error handling
+          - HTML-formatted Telegram delivery with retry logic  
+          - Customizable poem types and themes
+          - Production-ready automation workflow
+
+          ## ✅ Production Ready
+          This template combines the power of OpenCode's AI capabilities with flowsh's workflow automation, demonstrating creative content generation with reliable delivery mechanisms.
+
+          **Delivery Status**: ${telegram_success}
+          **Generated**: $(date)
+
+  edges:
+    - source: 'start'
+      target: 'validate_env'
+    - source: 'validate_env'
+      target: 'generate_poem'
+    - source: 'generate_poem'
+      target: 'prepare_fallback'
+    - source: 'prepare_fallback'
+      target: 'select_poem_content'
+    - source: 'select_poem_content'
+      target: 'format_telegram_message'
+    - source: 'format_telegram_message'
+      target: 'send_poem_telegram'
+    - source: 'send_poem_telegram'
+      target: 'completion_report'
