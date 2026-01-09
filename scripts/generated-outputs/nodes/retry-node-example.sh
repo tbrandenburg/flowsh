@@ -428,7 +428,7 @@ execute_retry_retry_network_operation() {
 execute_retry_retry_network_operation
 
 # Node: simulate_network_call
-sh -c "echo 'Attempting network operation...' && if [ '$(get_var "FAILURE_SIMULATION" "simulate_network_call")' = 'intermittent' ] && [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Network operation failed' && exit 1; else echo 'Network operation successful' && exit 0; fi"
+sh -c "echo 'Attempting network operation...' && if [ '\${failure_simulation}' = 'intermittent' ] && [ \$(( RANDOM % 3 )) -eq 0 ]; then echo 'Network operation failed' && exit 1; else echo 'Network operation successful' && exit 0; fi"
 
 # Node: record_network_success
 set_var "NETWORK_OPERATION_RESULT" "Network operation completed successfully after retries" "record_network_success"
@@ -490,7 +490,7 @@ execute_retry_retry_timeout_operation() {
 execute_retry_retry_timeout_operation
 
 # Node: simulate_timeout_operation
-sh -c "echo 'Starting timeout-prone operation...' && if [ '$(get_var "FAILURE_SIMULATION" "simulate_timeout_operation")' = 'timeout' ]; then sleep 15 && echo 'Operation timed out'; else echo 'Operation completed within timeout' && exit 0; fi"
+sh -c "echo 'Starting timeout-prone operation...' && if [ '\${failure_simulation}' = 'timeout' ]; then sleep 15 && echo 'Operation timed out'; else echo 'Operation completed within timeout' && exit 0; fi"
 
 # Node: record_timeout_success
 set_var "TIMEOUT_OPERATION_RESULT" "Timeout operation completed successfully" "record_timeout_success"
@@ -555,7 +555,7 @@ execute_retry_retry_network_only() {
 execute_retry_retry_network_only
 
 # Node: simulate_network_specific
-sh -c "echo 'Network-specific operation starting...' && if [ '$(get_var "FAILURE_SIMULATION" "simulate_network_specific")' = 'network' ] && [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Network connectivity issue' && exit 2; else echo 'Network operation successful' && exit 0; fi"
+sh -c "echo 'Network-specific operation starting...' && if [ '\${failure_simulation}' = 'network' ] && [ \$(( RANDOM % 2 )) -eq 0 ]; then echo 'Network connectivity issue' && exit 2; else echo 'Network operation successful' && exit 0; fi"
 
 # Node: record_network_specific_success
 set_var "NETWORK_SPECIFIC_RESULT" "Network-specific operation completed after appropriate retries" "record_network_specific_success"
@@ -612,16 +612,16 @@ execute_retry_advanced_retry_operation() {
 execute_retry_advanced_retry_operation
 
 # Node: complex_operation_simulation
-sh -c "echo 'Complex operation attempt...' && case '$(get_var "FAILURE_SIMULATION" "complex_operation_simulation")' in 'none') echo 'Success on first try' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Success after intermittent failure' && exit 0; else echo 'Intermittent failure' && exit 1; fi ;; 'timeout') sleep 2 && echo 'Complex operation success' && exit 0 ;; 'network') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Network success' && exit 0; else echo 'Network failure' && exit 1; fi ;; esac"
+sh -c "echo 'Complex operation attempt...' && case '\${failure_simulation}' in 'none') echo 'Success on first try' && exit 0 ;; 'intermittent') if [ \$(( RANDOM % 4 )) -eq 0 ]; then echo 'Success after intermittent failure' && exit 0; else echo 'Intermittent failure' && exit 1; fi ;; 'timeout') sleep 2 && echo 'Complex operation success' && exit 0 ;; 'network') if [ \$(( RANDOM % 3 )) -eq 0 ]; then echo 'Network success' && exit 0; else echo 'Network failure' && exit 1; fi ;; esac"
 
 # Node: record_complex_success
 # Node: record_complex_success
-COMPLEX_OPERATION_RESULT=$(echo 'Complex operation succeeded with '"$(get_workflow_var "FAILURE_SIMULATION" "default")"' simulation mode after retry logic')
+COMPLEX_OPERATION_RESULT=$(echo 'Complex operation succeeded with $(get_workflow_var "FAILURE_SIMULATION" "default") simulation mode after retry logic')
 set_var "COMPLEX_OPERATION_RESULT" "$COMPLEX_OPERATION_RESULT" "record_complex_success"
 
 # Node: calculate_retry_statistics
 # Node: calculate_retry_statistics
-RETRY_STATISTICS=$(echo 'Retry Statistics: Max attempts='"$(get_workflow_var "MAX_RETRY_ATTEMPTS" "default")"', Base delay='"$(get_workflow_var "BASE_DELAY" "default")"'s, Backoff='"$(get_workflow_var "BACKOFF_MULTIPLIER" "default")"'x, Timeout='"$(get_workflow_var "OPERATION_TIMEOUT" "default")"'s, Simulation='"$(get_workflow_var "FAILURE_SIMULATION" "default")"'')
+RETRY_STATISTICS=$(echo 'Retry Statistics: Max attempts=$(get_workflow_var "MAX_RETRY_ATTEMPTS" "default"), Base delay=$(get_workflow_var "BASE_DELAY" "default")s, Backoff=$(get_workflow_var "BACKOFF_MULTIPLIER" "default")x, Timeout=$(get_workflow_var "OPERATION_TIMEOUT" "default")s, Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default")')
 set_var "RETRY_STATISTICS" "$RETRY_STATISTICS" "calculate_retry_statistics"
 
 # Node: aggregate_all_results

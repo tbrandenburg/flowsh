@@ -66,6 +66,8 @@ RESPONSE_STYLE=${RESPONSE_STYLE:-"educational"}
 MAX_LENGTH=${MAX_LENGTH:-"medium"}
 INCLUDE_EXAMPLES=${INCLUDE_EXAMPLES:-"true"}
 CONTEXT_INFO=${CONTEXT_INFO:-""}
+LLM_CONTENT=${LLM_CONTENT:-""}
+LLM_SUCCESS=${LLM_SUCCESS:-""}
 COMBINED_ANALYSIS=${COMBINED_ANALYSIS:-""}
 
 # =============================================================================
@@ -365,7 +367,7 @@ execute_fallback_path() {
 
 # Node: prepare_context
 # Node: prepare_context
-CONTEXT_INFO=$(echo "Current workflow: LLM Node Example. User preferences: Style='"$(get_workflow_var "RESPONSE_STYLE" "default")"', Length='"$(get_workflow_var "MAX_LENGTH" "default")"', Examples='"$(get_workflow_var "INCLUDE_EXAMPLES" "default")"'")
+CONTEXT_INFO=$(echo "Current workflow: LLM Node Example. User preferences: Style=$(get_workflow_var "RESPONSE_STYLE" "default"), Length=$(get_workflow_var "MAX_LENGTH" "default"), Examples=$(get_workflow_var "INCLUDE_EXAMPLES" "default")")
 set_var "CONTEXT_INFO" "$CONTEXT_INFO" "prepare_context"
 
 # Node: basic_llm_chat
@@ -424,9 +426,12 @@ if [[ -z "$llm_content" ]]; then
     log_warning "Using mock response as final fallback"
 fi
 
+# Store the content in workflow variable for other nodes to reference
+set_workflow_var "llm_content" "$llm_content"
+set_workflow_var "llm_success" "true"
+
 # Output the final content
 echo "$llm_content"
-extract_llm_content
 
 # Node: advanced_llm_template
 # Function to validate and extract content from API response
@@ -484,9 +489,12 @@ if [[ -z "$llm_content" ]]; then
     log_warning "Using mock response as final fallback"
 fi
 
+# Store the content in workflow variable for other nodes to reference
+set_workflow_var "llm_content" "$llm_content"
+set_workflow_var "llm_success" "true"
+
 # Output the final content
 echo "$llm_content"
-extract_llm_content
 
 # Node: llm_with_vision
 # Function to validate and extract content from API response
@@ -544,9 +552,12 @@ if [[ -z "$llm_content" ]]; then
     log_warning "Using mock response as final fallback"
 fi
 
+# Store the content in workflow variable for other nodes to reference
+set_workflow_var "llm_content" "$llm_content"
+set_workflow_var "llm_success" "true"
+
 # Output the final content
 echo "$llm_content"
-extract_llm_content
 
 # Node: completion_mode_llm
 # Function to validate and extract content from API response
@@ -604,9 +615,12 @@ if [[ -z "$llm_content" ]]; then
     log_warning "Using mock response as final fallback"
 fi
 
+# Store the content in workflow variable for other nodes to reference
+set_workflow_var "llm_content" "$llm_content"
+set_workflow_var "llm_success" "true"
+
 # Output the final content
 echo "$llm_content"
-extract_llm_content
 
 # Node: aggregate_responses
 

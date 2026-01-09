@@ -1,0 +1,50 @@
+Starting workflow: OpenCode Poem to Telegram - Creative Automation
+🔍 Validating environment for OpenCode Poem Generator...
+⚠️  WARNING: Token format looks incorrect
+✅ OpenCode agent available: /home/tom/.opencode/bin/opencode
+✅ Environment validation passed
+🤖 Bot: 8404738211...
+💬 Chat: $TELEGRAM_CHAT_ID
+/bin/bash: line 31: get_var: command not found
+🎭 Poem Type: 
+/bin/bash: line 32: get_var: command not found
+🎨 Theme: 
+[0;36m🚀 🤖 Executing agent: OpenCode Poetry Generator[0m
+[0;32m✅ Agent execution completed successfully[0m
+Silicon roots spread deep,
+Through ancient earth's digital veins—
+Circuits bloom as one.
+[0;36m🚀 🤖 Executing agent: OpenCode Poetry Generator[0m
+[0;32m✅ Agent execution completed successfully[0m
+Digital roots grow deep,
+Silicon dreams meet morning dew—
+Code blooms with the sun.
+[0;36m🚀 📱 Sending Telegram message: Send Poem to Telegram[0m
+[0;32m✅ Telegram message sent successfully (HTTP 200)[0m
+# 🎭 OpenCode Poem to Telegram - COMPLETE!
+
+## 📊 Generation Summary
+- **Poem Type**: haiku
+- **Theme**: nature and technology harmony  
+- **Agent Status**: ⚡ Fallback Used
+- **Telegram Delivery**: 
+- **Environment**: ✅ Validated
+
+## 🎨 Generated Content
+'default'
+
+## 🚀 Features Demonstrated
+- OpenCode agent integration for creative content generation
+- Intelligent fallback system for reliability
+- Environment validation with comprehensive error handling
+- HTML-formatted Telegram delivery with retry logic  
+- Customizable poem types and themes
+- Production-ready automation workflow
+
+## ✅ Production Ready
+This template combines the power of OpenCode's AI capabilities with flowsh's workflow automation, demonstrating creative content generation with reliable delivery mechanisms.
+
+**Delivery Status**: 
+**Generated**: Fri Jan  9 12:00:38 PM CET 2026
+
+Workflow completed successfully

@@ -379,7 +379,7 @@ set_var "FAILURE_COUNT" "0" "initialize_failure_count"
 
 # Node: setup_monitoring_context
 # Node: setup_monitoring_context
-MONITORING_CONTEXT=$(echo 'Circuit Breaker Monitor: Threshold='"$(get_workflow_var "FAILURE_THRESHOLD" "default")"', Timeout='"$(get_workflow_var "TIMEOUT_DURATION" "default")"'s, Success='"$(get_workflow_var "SUCCESS_THRESHOLD" "default")"', Window='"$(get_workflow_var "MONITOR_WINDOW" "default")"'s')
+MONITORING_CONTEXT=$(echo 'Circuit Breaker Monitor: Threshold=$(get_workflow_var "FAILURE_THRESHOLD" "default"), Timeout=$(get_workflow_var "TIMEOUT_DURATION" "default")s, Success=$(get_workflow_var "SUCCESS_THRESHOLD" "default"), Window=$(get_workflow_var "MONITOR_WINDOW" "default")s')
 set_var "MONITORING_CONTEXT" "$MONITORING_CONTEXT" "setup_monitoring_context"
 
 # Node: basic_circuit_breaker
@@ -556,11 +556,11 @@ EOF
 execute_circuit_breaker_basic_circuit_breaker
 
 # Node: protected_service_call
-sh -c "echo 'Calling protected service: $(get_var "SERVICE_ENDPOINT" "protected_service_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "protected_service_call")' in 'stable') echo 'Service response: SUCCESS' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Service response: SUCCESS' && exit 0; else echo 'Service temporarily unavailable' && exit 1; fi ;; 'degraded') if [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Service response: DEGRADED SUCCESS' && exit 0; else echo 'Service degraded response failure' && exit 1; fi ;; 'failing') echo 'Service completely down' && exit 1 ;; 'recovering') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Service response: RECOVERY SUCCESS' && exit 0; else echo 'Service still recovering' && exit 1; fi ;; esac"
+sh -c "echo 'Calling protected service: \${service_endpoint}' && case '\${failure_simulation_mode}' in 'stable') echo 'Service response: SUCCESS' && exit 0 ;; 'intermittent') if [ \$(( RANDOM % 3 )) -eq 0 ]; then echo 'Service response: SUCCESS' && exit 0; else echo 'Service temporarily unavailable' && exit 1; fi ;; 'degraded') if [ \$(( RANDOM % 2 )) -eq 0 ]; then echo 'Service response: DEGRADED SUCCESS' && exit 0; else echo 'Service degraded response failure' && exit 1; fi ;; 'failing') echo 'Service completely down' && exit 1 ;; 'recovering') if [ \$(( RANDOM % 4 )) -eq 0 ]; then echo 'Service response: RECOVERY SUCCESS' && exit 0; else echo 'Service still recovering' && exit 1; fi ;; esac"
 
 # Node: record_basic_result
 # Node: record_basic_result
-BASIC_CIRCUIT_RESULT=$(echo 'Basic circuit breaker completed for '"$(get_workflow_var "SERVICE_ENDPOINT" "default")"' with '"$(get_workflow_var "FAILURE_SIMULATION_MODE" "default")"' simulation')
+BASIC_CIRCUIT_RESULT=$(echo 'Basic circuit breaker completed for $(get_workflow_var "SERVICE_ENDPOINT" "default") with $(get_workflow_var "FAILURE_SIMULATION_MODE" "default") simulation')
 set_var "BASIC_CIRCUIT_RESULT" "$BASIC_CIRCUIT_RESULT" "record_basic_result"
 
 # Node: high_frequency_circuit_breaker
@@ -737,7 +737,7 @@ EOF
 execute_circuit_breaker_high_frequency_circuit_breaker
 
 # Node: high_frequency_operation
-sh -c "echo 'High-frequency operation batch processing...' && for i in 1 2 3 4 5; do echo \"Processing batch \$i\"; if [ '$(get_var "FAILURE_SIMULATION_MODE" "high_frequency_operation")' = 'failing' ] && [ \$i -gt 2 ]; then echo \"Batch \$i failed\" && exit 1; elif [ '$(get_var "FAILURE_SIMULATION_MODE" "high_frequency_operation")' = 'degraded' ] && [ $(( RANDOM % 2 )) -eq 0 ]; then echo \"Batch \$i degraded\" && exit 1; else echo \"Batch \$i success\"; fi; done && echo 'All batches completed successfully' && exit 0"
+sh -c "echo 'High-frequency operation batch processing...' && for i in 1 2 3 4 5; do echo \"Processing batch \$i\"; if [ '\${failure_simulation_mode}' = 'failing' ] && [ \$i -gt 2 ]; then echo \"Batch \$i failed\" && exit 1; elif [ '\${failure_simulation_mode}' = 'degraded' ] && [ \$(( RANDOM % 2 )) -eq 0 ]; then echo \"Batch \$i degraded\" && exit 1; else echo \"Batch \$i success\"; fi; done && echo 'All batches completed successfully' && exit 0"
 
 # Node: database_circuit_breaker
 # Node: database_circuit_breaker (database_circuit_breaker)
@@ -913,7 +913,7 @@ EOF
 execute_circuit_breaker_database_circuit_breaker
 
 # Node: database_operation
-sh -c "echo 'Executing database query...' && case '$(get_var "FAILURE_SIMULATION_MODE" "database_operation")' in 'stable') echo 'DB Query: SELECT * FROM users - SUCCESS (150 rows returned)' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'DB Query: Connection timeout' && exit 1; else echo 'DB Query: SUCCESS (data retrieved)' && exit 0; fi ;; 'degraded') sleep 2 && echo 'DB Query: SLOW SUCCESS (degraded performance)' && exit 0 ;; 'failing') echo 'DB Query: Connection refused' && exit 1 ;; 'recovering') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'DB Query: RECOVERY SUCCESS' && exit 0; else echo 'DB Query: Still unstable' && exit 1; fi ;; esac"
+sh -c "echo 'Executing database query...' && case '\${failure_simulation_mode}' in 'stable') echo 'DB Query: SELECT * FROM users - SUCCESS (150 rows returned)' && exit 0 ;; 'intermittent') if [ \$(( RANDOM % 4 )) -eq 0 ]; then echo 'DB Query: Connection timeout' && exit 1; else echo 'DB Query: SUCCESS (data retrieved)' && exit 0; fi ;; 'degraded') sleep 2 && echo 'DB Query: SLOW SUCCESS (degraded performance)' && exit 0 ;; 'failing') echo 'DB Query: Connection refused' && exit 1 ;; 'recovering') if [ \$(( RANDOM % 3 )) -eq 0 ]; then echo 'DB Query: RECOVERY SUCCESS' && exit 0; else echo 'DB Query: Still unstable' && exit 1; fi ;; esac"
 
 # Node: external_api_circuit_breaker
 # Node: external_api_circuit_breaker (external_api_circuit_breaker)
@@ -1089,16 +1089,16 @@ EOF
 execute_circuit_breaker_external_api_circuit_breaker
 
 # Node: external_api_call
-sh -c "echo 'Calling external API: $(get_var "SERVICE_ENDPOINT" "external_api_call")' && case '$(get_var "FAILURE_SIMULATION_MODE" "external_api_call")' in 'stable') echo 'API Response: {\"status\": \"success\", \"data\": \"external data\"}' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'API Error: Rate limit exceeded' && exit 1; else echo 'API Response: {\"status\": \"success\"}' && exit 0; fi ;; 'degraded') sleep 3 && echo 'API Response: {\"status\": \"success\", \"warning\": \"slow response\"}' && exit 0 ;; 'failing') echo 'API Error: Service unavailable (503)' && exit 1 ;; 'recovering') if [ $(( RANDOM % 5 )) -eq 0 ]; then echo 'API Response: {\"status\": \"success\", \"note\": \"service recovered\"}' && exit 0; else echo 'API Error: Service still unstable' && exit 1; fi ;; esac"
+sh -c "echo 'Calling external API: \${service_endpoint}' && case '\${failure_simulation_mode}' in 'stable') echo 'API Response: {\"status\": \"success\", \"data\": \"external data\"}' && exit 0 ;; 'intermittent') if [ \$(( RANDOM % 3 )) -eq 0 ]; then echo 'API Error: Rate limit exceeded' && exit 1; else echo 'API Response: {\"status\": \"success\"}' && exit 0; fi ;; 'degraded') sleep 3 && echo 'API Response: {\"status\": \"success\", \"warning\": \"slow response\"}' && exit 0 ;; 'failing') echo 'API Error: Service unavailable (503)' && exit 1 ;; 'recovering') if [ \$(( RANDOM % 5 )) -eq 0 ]; then echo 'API Response: {\"status\": \"success\", \"note\": \"service recovered\"}' && exit 0; else echo 'API Error: Service still unstable' && exit 1; fi ;; esac"
 
 # Node: monitor_circuit_states
 # Node: monitor_circuit_states
-CIRCUIT_STATES_SUMMARY=$(echo 'Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold='"$(get_workflow_var "FAILURE_THRESHOLD" "default")"'')
+CIRCUIT_STATES_SUMMARY=$(echo 'Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold=$(get_workflow_var "FAILURE_THRESHOLD" "default")')
 set_var "CIRCUIT_STATES_SUMMARY" "$CIRCUIT_STATES_SUMMARY" "monitor_circuit_states"
 
 # Node: generate_health_metrics
 # Node: generate_health_metrics
-HEALTH_METRICS=$(echo 'Health Metrics: Simulation='"$(get_workflow_var "FAILURE_SIMULATION_MODE" "default")"', Thresholds configured, Recovery patterns active, Monitoring window='"$(get_workflow_var "MONITOR_WINDOW" "default")"'s')
+HEALTH_METRICS=$(echo 'Health Metrics: Simulation=$(get_workflow_var "FAILURE_SIMULATION_MODE" "default"), Thresholds configured, Recovery patterns active, Monitoring window=$(get_workflow_var "MONITOR_WINDOW" "default")s')
 set_var "HEALTH_METRICS" "$HEALTH_METRICS" "generate_health_metrics"
 
 # Node: aggregate_circuit_results
@@ -1137,7 +1137,7 @@ execute_aggregation_aggregate_circuit_results
 
 # Node: generate_circuit_summary
 # Node: generate_circuit_summary
-CIRCUIT_SUMMARY=$(echo 'Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: '"$(get_workflow_var "FAILURE_THRESHOLD" "default")"' | Timeout: '"$(get_workflow_var "TIMEOUT_DURATION" "default")"'s | Success threshold: '"$(get_workflow_var "SUCCESS_THRESHOLD" "default")"' | Monitor window: '"$(get_workflow_var "MONITOR_WINDOW" "default")"'s | Simulation: '"$(get_workflow_var "FAILURE_SIMULATION_MODE" "default")"'')
+CIRCUIT_SUMMARY=$(echo 'Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: $(get_workflow_var "FAILURE_THRESHOLD" "default") | Timeout: $(get_workflow_var "TIMEOUT_DURATION" "default")s | Success threshold: $(get_workflow_var "SUCCESS_THRESHOLD" "default") | Monitor window: $(get_workflow_var "MONITOR_WINDOW" "default")s | Simulation: $(get_workflow_var "FAILURE_SIMULATION_MODE" "default")')
 set_var "CIRCUIT_SUMMARY" "$CIRCUIT_SUMMARY" "generate_circuit_summary"
 
 # Node: final_report

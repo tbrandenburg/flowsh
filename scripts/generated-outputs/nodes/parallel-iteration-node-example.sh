@@ -373,7 +373,7 @@ execute_fallback_path() {
 
 # Node: prepare_task_array
 # Node: prepare_task_array
-TASKS_ARRAY=$(echo ''"$(get_workflow_var "TASK_LIST" "default")"'' | tr ',' '
+TASKS_ARRAY=$(echo '$(get_workflow_var "TASK_LIST" "default")' | tr ',' '
 ')
 set_var "TASKS_ARRAY" "$TASKS_ARRAY" "prepare_task_array"
 
@@ -414,11 +414,11 @@ execute_parallel_iteration_parallel_task_processor
 set_var "CURRENT_TASK" "" "process_individual_task"
 
 # Node: simulate_task_work
-sh -c "echo 'Starting $(get_var "CURRENT_TASK" "simulate_task_work")...' && sleep $(( (RANDOM % 3) + 1 )) && echo 'Completed $(get_var "CURRENT_TASK" "simulate_task_work") at $(date)'"
+sh -c "echo 'Starting \${current_task}...' && sleep \$(( (RANDOM % 3) + 1 )) && echo 'Completed \${current_task} at \$(date)'"
 
 # Node: generate_task_result
 # Node: generate_task_result
-TASK_RESULT=$(echo 'Task: '"$(get_workflow_var "CURRENT_TASK" "default")"' | Status: SUCCESS | Worker: '"$(get_workflow_var "PARALLEL_WORKER_ID" "default")"' | Duration: 2s | Output: Task completed successfully')
+TASK_RESULT=$(echo 'Task: $(get_workflow_var "CURRENT_TASK" "default") | Status: SUCCESS | Worker: $(get_workflow_var "PARALLEL_WORKER_ID" "default") | Duration: 2s | Output: Task completed successfully')
 set_var "TASK_RESULT" "$TASK_RESULT" "generate_task_result"
 
 # Node: task_complexity_check
@@ -429,10 +429,10 @@ else
 fi
 
 # Node: process_complex_task
-sh -c "echo 'Complex processing for $(get_var "CURRENT_TASK" "process_complex_task")...' && sleep 2 && echo 'Complex task $(get_var "CURRENT_TASK" "process_complex_task") completed with advanced algorithms'"
+sh -c "echo 'Complex processing for \${current_task}...' && sleep 2 && echo 'Complex task \${current_task} completed with advanced algorithms'"
 
 # Node: process_simple_task
-sh -c "echo 'Standard processing for $(get_var "CURRENT_TASK" "process_simple_task")...' && sleep 1 && echo 'Standard task $(get_var "CURRENT_TASK" "process_simple_task") completed'"
+sh -c "echo 'Standard processing for \${current_task}...' && sleep 1 && echo 'Standard task \${current_task} completed'"
 
 # Node: aggregate_results
 
@@ -479,13 +479,13 @@ set_var "EXECUTION_DURATION" "$EXECUTION_DURATION" "compute_execution_stats"
 
 # Node: count_processed_tasks
 # Node: count_processed_tasks
-TOTAL_TASKS=$(echo ''"$(get_workflow_var "TASK_LIST" "default")"'' | tr ',' '
+TOTAL_TASKS=$(echo '$(get_workflow_var "TASK_LIST" "default")' | tr ',' '
 ' | wc -l)
 set_var "TOTAL_TASKS" "$TOTAL_TASKS" "count_processed_tasks"
 
 # Node: calculate_throughput
 # Node: calculate_throughput
-THROUGHPUT=$(if [ '"$(get_workflow_var "EXECUTION_DURATION" "default")"' -gt 0 ]; then echo 'scale=2; '"$(get_workflow_var "TOTAL_TASKS" "default")"' / '"$(get_workflow_var "EXECUTION_DURATION" "default")"'' | bc 2>/dev/null || echo '0'; else echo ''"$(get_workflow_var "TOTAL_TASKS" "default")"''; fi)
+THROUGHPUT=$(if [ $(get_workflow_var "EXECUTION_DURATION" "default") -gt 0 ]; then echo 'scale=2; $(get_workflow_var "TOTAL_TASKS" "default") / $(get_workflow_var "EXECUTION_DURATION" "default")' | bc 2>/dev/null || echo '0'; else echo '$(get_workflow_var "TOTAL_TASKS" "default")'; fi)
 set_var "THROUGHPUT" "$THROUGHPUT" "calculate_throughput"
 
 # Node: final_report

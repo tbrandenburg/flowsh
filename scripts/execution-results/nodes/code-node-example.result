@@ -1,5 +1,5 @@
 Starting workflow: code-node-example
-./telegram-resilience-test.yaml
+./agent-test.yaml
 ./examples/file-processing-iteration.yaml
 ./examples/large-test-workflow.yaml
 ./examples/nodes/agent-node-example.yaml
@@ -31,16 +31,32 @@ Starting workflow: code-node-example
 ./examples/phase2b-feature-showcase.yaml
 ./examples/api-data-aggregation.yaml
 ./examples/flowsh-workflow-example.yaml
-./telegram-error-comparison.yaml
-10692
-424K
+./test-agent-args.yaml
+./templates/advanced/devops-automation/automated-testing-monitoring-template.yaml
+./templates/advanced/ai-workflows/multi-stage-ai-workflows-template.yaml
+./templates/advanced/ai-workflows/ai-chat-memory-template.yaml
+./templates/advanced/content-distribution/multi-format-distribution-template.yaml
+./templates/advanced/content-distribution/content-moderation-template.yaml
+./templates/advanced/content-distribution/scheduled-content-generation-template.yaml
+./templates/advanced/data-processing/parallel-processing-aggregation-template.yaml
+./templates/advanced/data-processing/data-validation-cleanup-template.yaml
+./templates/advanced/reliability/circuit-breaker-template.yaml
+./templates/advanced/meta-workflows/interactive-workflow-builder-template.yaml
+./templates/enhanced/ai-to-telegram-template.yaml
+./templates/enhanced/data-pipeline-template.yaml
+./templates/enhanced/ai-to-telegram-simple.yaml
+./templates/enhanced/data-pipeline-simple.yaml
+./templates/enhanced/opencode-poem-telegram-template.yaml
+./test-variable-assignment.yaml
+16423
+692K
 File Analysis Summary
 Pattern: *.yaml
 Directory: .
-Generated: Mon Jan  5 02:50:40 PM CET 2026
-scripts/generated-outputs/nodes/code-node-example.sh: line 415: /tmp/flowsh-code-example: No such file or directory
-scripts/generated-outputs/nodes/code-node-example.sh: line 415: telegram-error-comparison.yaml: command not found
-scripts/generated-outputs/nodes/code-node-example.sh: line 415: .: filename argument required
+Generated: Fri Jan  9 12:44:34 PM CET 2026
+scripts/generated-outputs/nodes/code-node-example.sh: line 431: /tmp/flowsh-code-example: No such file or directory
+scripts/generated-outputs/nodes/code-node-example.sh: line 431: agent-test.yaml: command not found
+scripts/generated-outputs/nodes/code-node-example.sh: line 431: .: filename argument required
 .: usage: . filename [arguments]
 # 🔧 Code Node Example Completed Successfully!
 
@@ -51,8 +67,8 @@ scripts/generated-outputs/nodes/code-node-example.sh: line 415: .: filename argu
    - Set environment variables for tracking
 
 2. **File Discovery** 📁
-   - Searched for pattern: 
-   - Target directory: 
+    - Searched for pattern: 
+    - Target directory: 
 
 3. **Analysis Operations** 📊
    - Counted lines in matched files

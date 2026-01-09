@@ -65,6 +65,18 @@ TASK_DESCRIPTION=${TASK_DESCRIPTION:-"Create a simple text file with current sys
 OUTPUT_FORMAT=${OUTPUT_FORMAT:-"detailed"}
 SAFETY_MODE=${SAFETY_MODE:-"true"}
 AGENT_INSTRUCTIONS=${AGENT_INSTRUCTIONS:-""}
+AGENT_SYSTEM_INFO_AGENT_OUTPUT=${AGENT_SYSTEM_INFO_AGENT_OUTPUT:-""}
+AGENT_SYSTEM_INFO_AGENT_EXIT_CODE=${AGENT_SYSTEM_INFO_AGENT_EXIT_CODE:-""}
+AGENT_SYSTEM_INFO_AGENT_SUCCESS=${AGENT_SYSTEM_INFO_AGENT_SUCCESS:-""}
+AGENT_FILE_OPERATIONS_AGENT_OUTPUT=${AGENT_FILE_OPERATIONS_AGENT_OUTPUT:-""}
+AGENT_FILE_OPERATIONS_AGENT_EXIT_CODE=${AGENT_FILE_OPERATIONS_AGENT_EXIT_CODE:-""}
+AGENT_FILE_OPERATIONS_AGENT_SUCCESS=${AGENT_FILE_OPERATIONS_AGENT_SUCCESS:-""}
+AGENT_VALIDATION_AGENT_OUTPUT=${AGENT_VALIDATION_AGENT_OUTPUT:-""}
+AGENT_VALIDATION_AGENT_EXIT_CODE=${AGENT_VALIDATION_AGENT_EXIT_CODE:-""}
+AGENT_VALIDATION_AGENT_SUCCESS=${AGENT_VALIDATION_AGENT_SUCCESS:-""}
+AGENT_CLEANUP_AGENT_OUTPUT=${AGENT_CLEANUP_AGENT_OUTPUT:-""}
+AGENT_CLEANUP_AGENT_EXIT_CODE=${AGENT_CLEANUP_AGENT_EXIT_CODE:-""}
+AGENT_CLEANUP_AGENT_SUCCESS=${AGENT_CLEANUP_AGENT_SUCCESS:-""}
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -363,20 +375,337 @@ execute_fallback_path() {
 
 # Node: prepare_agent_prompt
 # Node: prepare_agent_prompt
-AGENT_INSTRUCTIONS=$(echo 'Task: '"$(get_workflow_var "TASK_DESCRIPTION" "default")"'. Format: '"$(get_workflow_var "OUTPUT_FORMAT" "default")"'. Safety: '"$(get_workflow_var "SAFETY_MODE" "default")"'. Generate safe shell commands only.')
+AGENT_INSTRUCTIONS=$(echo 'Task: $(get_workflow_var "TASK_DESCRIPTION" "default"). Format: $(get_workflow_var "OUTPUT_FORMAT" "default"). Safety: $(get_workflow_var "SAFETY_MODE" "default"). Generate safe shell commands only.')
 set_var "AGENT_INSTRUCTIONS" "$AGENT_INSTRUCTIONS" "prepare_agent_prompt"
 
 # Node: system_info_agent
-sh
+# Node: system_info_agent (System Information Agent)
+execute_agent_system_info_agent() {
+    log_step "🤖 Executing agent: System Information Agent"
+
+    local original_dir="$PWD"
+    local working_dir="/tmp"
+    if [[ -d "$working_dir" ]]; then
+        cd "$working_dir" || { log_error "Failed to change to directory: $working_dir"; return 1; }
+        log_debug "Changed to working directory: $working_dir"
+    else
+        log_warning "Working directory does not exist, using current: $working_dir"
+    fi
+
+    # Set up environment variables
+    export AGENT_TASK="$(get_var "TASK_DESCRIPTION" "system_info_agent")"
+    export OUTPUT_FORMAT="$(get_var "OUTPUT_FORMAT" "system_info_agent")"
+    export SAFETY_MODE="$(get_var "SAFETY_MODE" "system_info_agent")"
+
+    # Prepare agent prompt
+    local prompt_content
+    read -r -d '' prompt_content << AGENT_PROMPT_EOF || true
+You are a helpful system administrator agent. Your task is to generate safe shell commands to complete the user's request.
+
+User Request: $(get_var "TASK_DESCRIPTION" "system_info_agent")
+Output Format: $(get_var "OUTPUT_FORMAT" "system_info_agent")
+Safety Mode: $(get_var "SAFETY_MODE" "system_info_agent")
+
+Guidelines:
+- Only use safe, read-only commands if safety_mode is true
+- Generate commands that gather system information
+- Format output according to the requested format
+- Avoid any destructive operations
+- Use common Unix/Linux commands (ls, cat, date, whoami, uname, etc.)
+
+Generate a single shell command or pipe chain to complete this task safely.
+
+AGENT_PROMPT_EOF
+
+    # Execute agent command
+    local exit_code=0
+    local agent_output=""
+
+    # Execute with 30s timeout
+    if command -v timeout >/dev/null 2>&1; then
+        agent_output=$(timeout 30 sh -c "$prompt_content" 2>&1) || exit_code=$?
+    else
+        # Fallback for systems without timeout command
+        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+    fi
+
+    # Store agent execution results
+    set_workflow_var "agent_system_info_agent_output" "$agent_output"
+    set_workflow_var "agent_system_info_agent_exit_code" "$exit_code"
+    set_workflow_var "agent_system_info_agent_success" "false"
+
+    # Handle execution result
+    if [[ $exit_code -eq 0 ]]; then
+        set_workflow_var "agent_system_info_agent_success" "true"
+        log_success "Agent execution completed successfully"
+        echo "$agent_output"
+    else
+        case $exit_code in
+            124)
+                log_error "Agent execution timed out after 30s"
+                ;;
+            127)
+                log_error "Agent command not found: sh"
+                ;;
+            *)
+                log_error "Agent execution failed with exit code: $exit_code"
+                ;;
+        esac
+        echo "$agent_output" >&2
+    fi
+
+    # Restore original directory
+    if [[ -n "${original_dir:-}" ]]; then
+        cd "$original_dir" || log_warning "Failed to restore original directory"
+    fi
+
+    return $exit_code
+}
+
+# Execute agent function
+execute_agent_system_info_agent
+execute_agent_system_info_agent
 
 # Node: file_operations_agent
-sh
+# Node: file_operations_agent (File Operations Agent)
+execute_agent_file_operations_agent() {
+    log_step "🤖 Executing agent: File Operations Agent"
+
+    local original_dir="$PWD"
+    local working_dir="/tmp"
+    if [[ -d "$working_dir" ]]; then
+        cd "$working_dir" || { log_error "Failed to change to directory: $working_dir"; return 1; }
+        log_debug "Changed to working directory: $working_dir"
+    else
+        log_warning "Working directory does not exist, using current: $working_dir"
+    fi
+
+    # Prepare agent prompt
+    local prompt_content
+    read -r -d '' prompt_content << AGENT_PROMPT_EOF || true
+You are a file operations specialist agent. Create safe commands for file manipulation.
+
+Context: The previous agent completed: $(get_var "TASK_DESCRIPTION" "file_operations_agent")
+
+Your task: Create a summary file of the system information gathered.
+- Create a file at /tmp/agent-example-output.txt
+- Include timestamp and basic system info
+- Use only safe file operations (echo, cat, date, etc.)
+- Make the output $(get_var "OUTPUT_FORMAT" "file_operations_agent") format
+
+Generate the appropriate shell commands to create this summary file.
+
+AGENT_PROMPT_EOF
+
+    # Execute agent command
+    local exit_code=0
+    local agent_output=""
+
+    # Execute with 20s timeout
+    if command -v timeout >/dev/null 2>&1; then
+        agent_output=$(timeout 20 sh -c "$prompt_content" 2>&1) || exit_code=$?
+    else
+        # Fallback for systems without timeout command
+        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+    fi
+
+    # Store agent execution results
+    set_workflow_var "agent_file_operations_agent_output" "$agent_output"
+    set_workflow_var "agent_file_operations_agent_exit_code" "$exit_code"
+    set_workflow_var "agent_file_operations_agent_success" "false"
+
+    # Handle execution result
+    if [[ $exit_code -eq 0 ]]; then
+        set_workflow_var "agent_file_operations_agent_success" "true"
+        log_success "Agent execution completed successfully"
+        echo "$agent_output"
+    else
+        case $exit_code in
+            124)
+                log_error "Agent execution timed out after 20s"
+                ;;
+            127)
+                log_error "Agent command not found: sh"
+                ;;
+            *)
+                log_error "Agent execution failed with exit code: $exit_code"
+                ;;
+        esac
+        echo "$agent_output" >&2
+    fi
+
+    # Restore original directory
+    if [[ -n "${original_dir:-}" ]]; then
+        cd "$original_dir" || log_warning "Failed to restore original directory"
+    fi
+
+    return $exit_code
+}
+
+# Execute agent function
+execute_agent_file_operations_agent
+execute_agent_file_operations_agent
 
 # Node: validation_agent
-sh
+# Node: validation_agent (Output Validation Agent)
+execute_agent_validation_agent() {
+    log_step "🤖 Executing agent: Output Validation Agent"
+
+    local original_dir="$PWD"
+    local working_dir="/tmp"
+    if [[ -d "$working_dir" ]]; then
+        cd "$working_dir" || { log_error "Failed to change to directory: $working_dir"; return 1; }
+        log_debug "Changed to working directory: $working_dir"
+    else
+        log_warning "Working directory does not exist, using current: $working_dir"
+    fi
+
+    # Prepare agent prompt
+    local prompt_content
+    read -r -d '' prompt_content << AGENT_PROMPT_EOF || true
+You are a validation agent. Your job is to verify the output file exists and display its contents appropriately.
+
+Task: Check if /tmp/agent-example-output.txt exists and display it
+Format: $(get_var "OUTPUT_FORMAT" "validation_agent")
+
+Commands to generate:
+1. Check if the file exists
+2. Display its contents with appropriate formatting
+3. Add a validation timestamp
+
+Use commands like: test -f, cat, echo, date
+
+AGENT_PROMPT_EOF
+
+    # Execute agent command
+    local exit_code=0
+    local agent_output=""
+
+    # Execute with 10s timeout
+    if command -v timeout >/dev/null 2>&1; then
+        agent_output=$(timeout 10 sh -c "$prompt_content" 2>&1) || exit_code=$?
+    else
+        # Fallback for systems without timeout command
+        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+    fi
+
+    # Store agent execution results
+    set_workflow_var "agent_validation_agent_output" "$agent_output"
+    set_workflow_var "agent_validation_agent_exit_code" "$exit_code"
+    set_workflow_var "agent_validation_agent_success" "false"
+
+    # Handle execution result
+    if [[ $exit_code -eq 0 ]]; then
+        set_workflow_var "agent_validation_agent_success" "true"
+        log_success "Agent execution completed successfully"
+        echo "$agent_output"
+    else
+        case $exit_code in
+            124)
+                log_error "Agent execution timed out after 10s"
+                ;;
+            127)
+                log_error "Agent command not found: sh"
+                ;;
+            *)
+                log_error "Agent execution failed with exit code: $exit_code"
+                ;;
+        esac
+        echo "$agent_output" >&2
+    fi
+
+    # Restore original directory
+    if [[ -n "${original_dir:-}" ]]; then
+        cd "$original_dir" || log_warning "Failed to restore original directory"
+    fi
+
+    return $exit_code
+}
+
+# Execute agent function
+execute_agent_validation_agent
+execute_agent_validation_agent
 
 # Node: cleanup_agent
-sh
+# Node: cleanup_agent (Cleanup Agent)
+execute_agent_cleanup_agent() {
+    log_step "🤖 Executing agent: Cleanup Agent"
+
+    local original_dir="$PWD"
+    local working_dir="/tmp"
+    if [[ -d "$working_dir" ]]; then
+        cd "$working_dir" || { log_error "Failed to change to directory: $working_dir"; return 1; }
+        log_debug "Changed to working directory: $working_dir"
+    else
+        log_warning "Working directory does not exist, using current: $working_dir"
+    fi
+
+    # Prepare agent prompt
+    local prompt_content
+    read -r -d '' prompt_content << AGENT_PROMPT_EOF || true
+You are a cleanup agent. Generate commands to safely clean up the temporary files created during this workflow.
+
+Files to clean:
+- /tmp/agent-example-output.txt
+- Any other temporary files created
+
+Safety requirements:
+- Only remove files we created in /tmp/agent-example-*
+- Use safe removal commands
+- Confirm files exist before removing
+
+Generate the appropriate cleanup commands.
+
+AGENT_PROMPT_EOF
+
+    # Execute agent command
+    local exit_code=0
+    local agent_output=""
+
+    # Execute with 10s timeout
+    if command -v timeout >/dev/null 2>&1; then
+        agent_output=$(timeout 10 sh -c "$prompt_content" 2>&1) || exit_code=$?
+    else
+        # Fallback for systems without timeout command
+        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+    fi
+
+    # Store agent execution results
+    set_workflow_var "agent_cleanup_agent_output" "$agent_output"
+    set_workflow_var "agent_cleanup_agent_exit_code" "$exit_code"
+    set_workflow_var "agent_cleanup_agent_success" "false"
+
+    # Handle execution result
+    if [[ $exit_code -eq 0 ]]; then
+        set_workflow_var "agent_cleanup_agent_success" "true"
+        log_success "Agent execution completed successfully"
+        echo "$agent_output"
+    else
+        case $exit_code in
+            124)
+                log_error "Agent execution timed out after 10s"
+                ;;
+            127)
+                log_error "Agent command not found: sh"
+                ;;
+            *)
+                log_error "Agent execution failed with exit code: $exit_code"
+                ;;
+        esac
+        echo "$agent_output" >&2
+    fi
+
+    # Restore original directory
+    if [[ -n "${original_dir:-}" ]]; then
+        cd "$original_dir" || log_warning "Failed to restore original directory"
+    fi
+
+    return $exit_code
+}
+
+# Execute agent function
+execute_agent_cleanup_agent
+execute_agent_cleanup_agent
 
 # Node: final_report
 echo "# 🤖 Agent Node Example Completed!

@@ -13,7 +13,12 @@ import { TemplateDisplay } from './display.js';
 export async function initCommand(
   template?: string,
   target?: string,
-  options?: { help?: boolean; preview?: boolean }
+  options?: {
+    help?: boolean;
+    preview?: boolean;
+    listTemplates?: boolean;
+    search?: string;
+  }
 ): Promise<void> {
   const discovery = new TemplateDiscovery();
 
@@ -21,14 +26,28 @@ export async function initCommand(
     // Always scan templates first to ensure we have the latest
     await discovery.scanTemplates();
 
-    // Case 1: No arguments or --help - show template listing
+    // Case 1: List templates mode
+    if (options?.listTemplates) {
+      const templates = discovery.getAllTemplates();
+      TemplateDisplay.displayDetailedList(templates);
+      return;
+    }
+
+    // Case 2: Search templates mode
+    if (options?.search) {
+      const templates = discovery.searchTemplates(options.search);
+      TemplateDisplay.displaySearchResults(options.search, templates);
+      return;
+    }
+
+    // Case 3: No arguments or --help - show template listing
     if (!template || options?.help) {
       const hierarchical = discovery.getHierarchicalDisplay();
       TemplateDisplay.displayHelp(hierarchical);
       return;
     }
 
-    // Case 2: Preview mode - show template content without creating files
+    // Case 4: Preview mode - show template content without creating files
     if (options?.preview) {
       const templateInfo = discovery.getTemplateByName(template);
       if (!templateInfo) {
@@ -50,15 +69,17 @@ export async function initCommand(
       }
     }
 
-    // Case 3: Missing target argument (when not in preview mode)
+    // Case 5: Missing target argument (when not in preview mode)
     if (!target) {
       console.error('❌ Error: Missing required parameter TARGET_FILE');
       console.error('Usage: flowsh init [TEMPLATE] [TARGET_FILE]');
       console.error('       flowsh init [TEMPLATE] --preview');
+      console.error('       flowsh init --list-templates');
+      console.error('       flowsh init --search <query>');
       process.exit(1);
     }
 
-    // Case 4: Template creation workflow
+    // Case 6: Template creation workflow
     const templateInfo = discovery.getTemplateByName(template);
     if (!templateInfo) {
       const availableTemplates = discovery.getAvailableTemplateNames();

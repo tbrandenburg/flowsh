@@ -372,7 +372,7 @@ set_var "FALLBACK_ATTEMPT_COUNT" "0" "initialize_tracking"
 
 # Node: setup_fallback_context
 # Node: setup_fallback_context
-FALLBACK_CONTEXT=$(echo 'Fallback context: Strategy='"$(get_workflow_var "FALLBACK_STRATEGY" "default")"', Max time='"$(get_workflow_var "MAX_FALLBACK_TIME" "default")"'s, Continue='"$(get_workflow_var "CONTINUE_ON_SUCCESS" "default")"', Simulation='"$(get_workflow_var "FAILURE_SIMULATION" "default")"'')
+FALLBACK_CONTEXT=$(echo 'Fallback context: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default")')
 set_var "FALLBACK_CONTEXT" "$FALLBACK_CONTEXT" "setup_fallback_context"
 
 # Node: primary_service_fallback
@@ -494,20 +494,20 @@ execute_fallback_primary_service_fallback() {
 execute_fallback_primary_service_fallback
 
 # Node: primary_service_call
-sh -c "echo 'Attempting primary service: $(get_var "PRIMARY_SERVICE_URL" "primary_service_call")' && if [ '$(get_var "FAILURE_SIMULATION" "primary_service_call")' = 'primary_fail' ] || [ '$(get_var "FAILURE_SIMULATION" "primary_service_call")' = 'all_fail' ]; then echo 'Primary service unavailable' && exit 1; else echo 'Primary service response: SUCCESS - Data from primary API' && exit 0; fi"
+sh -c "echo 'Attempting primary service: \${primary_service_url}' && if [ '\${failure_simulation}' = 'primary_fail' ] || [ '\${failure_simulation}' = 'all_fail' ]; then echo 'Primary service unavailable' && exit 1; else echo 'Primary service response: SUCCESS - Data from primary API' && exit 0; fi"
 
 # Node: secondary_service_call
-sh -c "echo 'Attempting secondary service fallback...' && if [ '$(get_var "FAILURE_SIMULATION" "secondary_service_call")' = 'first_fallback_fail' ] || [ '$(get_var "FAILURE_SIMULATION" "secondary_service_call")' = 'all_fail' ]; then echo 'Secondary service also unavailable' && exit 1; else echo 'Secondary service response: SUCCESS - Data from backup API' && exit 0; fi"
+sh -c "echo 'Attempting secondary service fallback...' && if [ '\${failure_simulation}' = 'first_fallback_fail' ] || [ '\${failure_simulation}' = 'all_fail' ]; then echo 'Secondary service also unavailable' && exit 1; else echo 'Secondary service response: SUCCESS - Data from backup API' && exit 0; fi"
 
 # Node: cache_fallback_call
-sh -c "echo 'Attempting cache fallback...' && if [ '$(get_var "FAILURE_SIMULATION" "cache_fallback_call")' = 'all_fail' ]; then echo 'Cache unavailable' && exit 1; else echo 'Cache response: SUCCESS - Cached data from local storage (may be stale)' && exit 0; fi"
+sh -c "echo 'Attempting cache fallback...' && if [ '\${failure_simulation}' = 'all_fail' ]; then echo 'Cache unavailable' && exit 1; else echo 'Cache response: SUCCESS - Cached data from local storage (may be stale)' && exit 0; fi"
 
 # Node: default_response_call
 sh -c "echo 'Using default response fallback...' && echo 'Default response: LIMITED - Basic functionality available with default data' && exit 0"
 
 # Node: record_primary_fallback_result
 # Node: record_primary_fallback_result
-PRIMARY_FALLBACK_RESULT=$(echo 'Primary fallback completed with strategy: '"$(get_workflow_var "FALLBACK_STRATEGY" "default")"'')
+PRIMARY_FALLBACK_RESULT=$(echo 'Primary fallback completed with strategy: $(get_workflow_var "FALLBACK_STRATEGY" "default")')
 set_var "PRIMARY_FALLBACK_RESULT" "$PRIMARY_FALLBACK_RESULT" "record_primary_fallback_result"
 
 # Node: database_fallback_example
@@ -629,7 +629,7 @@ execute_fallback_database_fallback_example() {
 execute_fallback_database_fallback_example
 
 # Node: primary_database_call
-sh -c "echo 'Querying primary database...' && if [ '$(get_var "FAILURE_SIMULATION" "primary_database_call")' = 'all_fail' ]; then echo 'Database connection failed' && exit 1; else echo 'Database result: User data retrieved from primary DB' && exit 0; fi"
+sh -c "echo 'Querying primary database...' && if [ '\${failure_simulation}' = 'all_fail' ]; then echo 'Database connection failed' && exit 1; else echo 'Database result: User data retrieved from primary DB' && exit 0; fi"
 
 # Node: read_replica_call
 sh -c "echo 'Querying read replica...' && echo 'Replica result: User data from read replica (may be slightly stale)' && exit 0"
@@ -800,7 +800,7 @@ execute_aggregation_aggregate_fallback_results
 
 # Node: generate_fallback_statistics
 # Node: generate_fallback_statistics
-FALLBACK_STATISTICS=$(echo 'Fallback Statistics: Strategy='"$(get_workflow_var "FALLBACK_STRATEGY" "default")"', Max time='"$(get_workflow_var "MAX_FALLBACK_TIME" "default")"'s, Continue='"$(get_workflow_var "CONTINUE_ON_SUCCESS" "default")"', Simulation='"$(get_workflow_var "FAILURE_SIMULATION" "default")"', Completion='$(date))
+FALLBACK_STATISTICS=$(echo 'Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default"), Completion='$(date))
 set_var "FALLBACK_STATISTICS" "$FALLBACK_STATISTICS" "generate_fallback_statistics"
 
 # Node: final_report

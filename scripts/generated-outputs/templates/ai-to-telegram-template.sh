@@ -373,38 +373,38 @@ execute_fallback_path() {
 echo \"🔍 Validating environment setup...\"
 
 # Check Telegram Bot Token
-if [ -z \"${TELEGRAM_BOT_TOKEN:-}\" ]; then
+if [ -z \"\${TELEGRAM_BOT_TOKEN:-}\" ]; then
   echo \"❌ ERROR: TELEGRAM_BOT_TOKEN not set\"
   echo \"   Get one from @BotFather on Telegram\"
   exit 1
 fi
 
 # Check Chat ID
-if [ -z \"${TELEGRAM_CHAT_ID:-}\" ]; then
+if [ -z \"\${TELEGRAM_CHAT_ID:-}\" ]; then
   echo \"❌ ERROR: TELEGRAM_CHAT_ID not set\"
   echo \"   Use @userinfobot on Telegram to find your chat ID\"
   exit 1
 fi
 
 # Validate token format (number:alphanumeric)
-if [[ ! \"\$TELEGRAM_BOT_TOKEN\" =~ ^[0-9]+:[a-zA-Z0-9_-]+\$ ]]; then
+if [[ ! \"\\\$TELEGRAM_BOT_TOKEN\" =~ ^[0-9]+:[a-zA-Z0-9_-]+\\\$ ]]; then
   echo \"⚠️  WARNING: TELEGRAM_BOT_TOKEN format looks incorrect\"
   echo \"   Should be format: 123456789:ABCdef123...\"
 fi
 
 # Check OpenAI key if provided
-if [ -n \"${OPENAI_API_KEY:-}\" ]; then
-  if [[ ! \"\$OPENAI_API_KEY\" =~ ^sk- ]]; then
+if [ -n \"\${OPENAI_API_KEY:-}\" ]; then
+  if [[ ! \"\\\$OPENAI_API_KEY\" =~ ^sk- ]]; then
     echo \"⚠️  WARNING: OPENAI_API_KEY should start with 'sk-'\"
   fi
-  echo \"🧠 OpenAI API: Configured (${OPENAI_API_KEY:0:7}...)\"
+  echo \"🧠 OpenAI API: Configured (\${OPENAI_API_KEY:0:7}...)\"
 else
   echo \"🧠 OpenAI API: Not configured, will use LLM v7 fallback\"
 fi
 
 echo \"✅ Environment validation passed\"
-echo \"🤖 Bot Token: ${TELEGRAM_BOT_TOKEN:0:10}...\"
-echo \"💬 Chat ID: \$TELEGRAM_CHAT_ID\"
+echo \"🤖 Bot Token: \${TELEGRAM_BOT_TOKEN:0:10}...\"
+echo \"💬 Chat ID: \\\$TELEGRAM_CHAT_ID\"
 "
 
 # Node: generate_content
@@ -501,9 +501,9 @@ set_workflow_var "llm_success" "true"
 echo "$llm_content"
 
 # Node: format_message
-set_var "TELEGRAM_MESSAGE" "🎯 <b>${content_type} Challenge</b> 🎯
+set_var "TELEGRAM_MESSAGE" "🎯 <b>\${content_type} Challenge</b> 🎯
 
-${llm_content}
+\${llm_content}
 
 💭 <i>What do you think? Share your thoughts!</i>
 
@@ -740,25 +740,25 @@ execute_telegram_send_telegram
 echo \"🔍 Checking delivery status...\"
 
 # Check if telegram_success variable exists and is true
-if [ \"${telegram_success:-false}\" = \"true\" ]; then
+if [ \"\${telegram_success:-false}\" = \"true\" ]; then
   echo \"✅ SUCCESS: Message delivered to Telegram!\"
-  echo \"📱 Chat ID: \$TELEGRAM_CHAT_ID\"
-  echo \"📊 Content Type: $(get_var "CONTENT_TYPE" "verify_delivery")\"
-  echo \"🎯 Topic: $(get_var "CONTENT_TOPIC" "verify_delivery")\"
-  echo \"📝 Message Length: $(echo $(get_var "TELEGRAM_MESSAGE" "verify_delivery") | wc -c) characters\"
+  echo \"📱 Chat ID: \\\$TELEGRAM_CHAT_ID\"
+  echo \"📊 Content Type: \$(get_var "CONTENT_TYPE" "verify_delivery")\"
+  echo \"🎯 Topic: \$(get_var "CONTENT_TOPIC" "verify_delivery")\"
+  echo \"📝 Message Length: \$(echo \$(get_var "TELEGRAM_MESSAGE" "verify_delivery") | wc -c) characters\"
 else
   echo \"❌ DELIVERY FAILED\"
-  echo \""
+  echo \"\"
   echo \"🔧 Troubleshooting steps:\"
   echo \"1. Verify TELEGRAM_BOT_TOKEN is correct (from @BotFather)\"
   echo \"2. Verify TELEGRAM_CHAT_ID is correct (use @userinfobot)\"
   echo \"3. Check that bot has permission to send messages to this chat\"
   echo \"4. Test bot manually by sending it a message first\"
   echo \"5. For groups/channels, ensure bot is added as admin\"
-  echo \""
+  echo \"\"
   echo \"Current configuration:\"
-  echo \"  Bot Token: ${TELEGRAM_BOT_TOKEN:0:10}...\"
-  echo \"  Chat ID: \$TELEGRAM_CHAT_ID\"
+  echo \"  Bot Token: \${TELEGRAM_BOT_TOKEN:0:10}...\"
+  echo \"  Chat ID: \\\$TELEGRAM_CHAT_ID\"
   exit 1
 fi
 "

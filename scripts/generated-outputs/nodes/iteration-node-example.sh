@@ -378,7 +378,7 @@ execute_fallback_path() {
 
 # Node: prepare_file_array
 # Node: prepare_file_array
-FILES_ARRAY=$(echo ''"$(get_workflow_var "FILE_LIST" "default")"'' | tr ',' '
+FILES_ARRAY=$(echo '$(get_workflow_var "FILE_LIST" "default")' | tr ',' '
 ')
 set_var "FILES_ARRAY" "$FILES_ARRAY" "prepare_file_array"
 
@@ -486,7 +486,7 @@ set_var "CURRENT_FILE" "" "get_current_file"
 
 # Node: analyze_file_type
 # Node: analyze_file_type
-FILE_EXTENSION=$(echo ''"$(get_workflow_var "CURRENT_FILE" "default")"'' | sed 's/.*\.//' | tr '[:upper:]' '[:lower:]')
+FILE_EXTENSION=$(echo '$(get_workflow_var "CURRENT_FILE" "default")' | sed 's/.*\.//' | tr '[:upper:]' '[:lower:]')
 set_var "FILE_EXTENSION" "$FILE_EXTENSION" "analyze_file_type"
 
 # Node: process_by_type
@@ -497,7 +497,7 @@ else
 fi
 
 # Node: process_yaml_file
-sh -c "echo 'Processing YAML: $(get_var "CURRENT_FILE" "process_yaml_file") - Mode: $(get_var "PROCESSING_MODE" "process_yaml_file") - Structure validation and syntax check'"
+sh -c "echo 'Processing YAML: \${current_file} - Mode: \${processing_mode} - Structure validation and syntax check'"
 
 # Node: process_json_file
 if true; then
@@ -507,7 +507,7 @@ else
 fi
 
 # Node: handle_json
-sh -c "echo 'Processing JSON: $(get_var "CURRENT_FILE" "handle_json") - Mode: $(get_var "PROCESSING_MODE" "handle_json") - Schema validation and formatting'"
+sh -c "echo 'Processing JSON: \${current_file} - Mode: \${processing_mode} - Schema validation and formatting'"
 
 # Node: process_script_file
 if true; then
@@ -517,14 +517,14 @@ else
 fi
 
 # Node: handle_script
-sh -c "echo 'Processing SCRIPT: $(get_var "CURRENT_FILE" "handle_script") - Mode: $(get_var "PROCESSING_MODE" "handle_script") - Syntax check and permissions'"
+sh -c "echo 'Processing SCRIPT: \${current_file} - Mode: \${processing_mode} - Syntax check and permissions'"
 
 # Node: process_other_file
-sh -c "echo 'Processing OTHER: $(get_var "CURRENT_FILE" "process_other_file") ($(get_var "FILE_EXTENSION" "process_other_file")) - Mode: $(get_var "PROCESSING_MODE" "process_other_file") - Basic file analysis'"
+sh -c "echo 'Processing OTHER: \${current_file} (\${file_extension}) - Mode: \${processing_mode} - Basic file analysis'"
 
 # Node: create_file_report
 # Node: create_file_report
-CURRENT_FILE_RESULT=$(echo 'File: '"$(get_workflow_var "CURRENT_FILE" "default")"' | Type: '"$(get_workflow_var "FILE_EXTENSION" "default")"' | Mode: '"$(get_workflow_var "PROCESSING_MODE" "default")"' | Status: Processed | Timestamp: $(date)')
+CURRENT_FILE_RESULT=$(echo 'File: $(get_workflow_var "CURRENT_FILE" "default") | Type: $(get_workflow_var "FILE_EXTENSION" "default") | Mode: $(get_workflow_var "PROCESSING_MODE" "default") | Status: Processed | Timestamp: $(date)')
 set_var "CURRENT_FILE_RESULT" "$CURRENT_FILE_RESULT" "create_file_report"
 
 # Node: collect_iteration_results
@@ -562,13 +562,13 @@ execute_aggregation_collect_iteration_results
 
 # Node: calculate_statistics
 # Node: calculate_statistics
-TOTAL_FILES_PROCESSED=$(echo ''"$(get_workflow_var "FILE_LIST" "default")"'' | tr ',' '
+TOTAL_FILES_PROCESSED=$(echo '$(get_workflow_var "FILE_LIST" "default")' | tr ',' '
 ' | wc -l)
 set_var "TOTAL_FILES_PROCESSED" "$TOTAL_FILES_PROCESSED" "calculate_statistics"
 
 # Node: create_summary_report
 # Node: create_summary_report
-PROCESSING_SUMMARY=$(echo 'Iteration Summary: '"$(get_workflow_var "TOTAL_FILES_PROCESSED" "default")"' files processed in '"$(get_workflow_var "PROCESSING_MODE" "default")"' mode. Parallel: '"$(get_workflow_var "ENABLE_PARALLEL" "default")"'')
+PROCESSING_SUMMARY=$(echo 'Iteration Summary: $(get_workflow_var "TOTAL_FILES_PROCESSED" "default") files processed in $(get_workflow_var "PROCESSING_MODE" "default") mode. Parallel: $(get_workflow_var "ENABLE_PARALLEL" "default")')
 set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary_report"
 
 # Node: final_results

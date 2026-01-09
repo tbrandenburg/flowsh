@@ -64,7 +64,7 @@ Condition passed
 - **Content**: Detailed vs simple completion reports
 
 ## Summary
-Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: FlowshUser | Level: standard
+Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: $(get_workflow_var "USER_NAME" "default") | Level: $(get_workflow_var "NOTIFICATION_LEVEL" "default")
 
 ## Telegram Node Features Demonstrated
 

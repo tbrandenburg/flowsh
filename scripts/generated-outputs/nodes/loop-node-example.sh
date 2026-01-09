@@ -409,7 +409,7 @@ ITERATION_COUNT=$(echo $(($(get_workflow_var "ITERATION_COUNT" "0") + 1)))
 set_var "ITERATION_COUNT" "$ITERATION_COUNT" "increment_iteration"
 
 # Node: log_progress
-echo "Iteration $(get_var "ITERATION_COUNT" "log_progress"): current_value=$(get_var "CURRENT_VALUE" "log_progress"), target=$(get_var "TARGET_VALUE" "log_progress")"
+echo "Iteration \${iteration_count}: current_value=\${current_value}, target=\${target_value}"
 
 # Node: check_early_termination
 if true; then

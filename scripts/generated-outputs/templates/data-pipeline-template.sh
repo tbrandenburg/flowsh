@@ -380,8 +380,8 @@ if ! curl -s --connect-timeout 5 https://httpbin.org/status/200 > /dev/null; the
 fi
 
 echo \"✅ Network connectivity verified\"
-if [ -n \"${API_KEY:-}\" ]; then
-  echo \"🔑 API Key: ${API_KEY:0:7}...\"
+if [ -n \"\${API_KEY:-}\" ]; then
+  echo \"🔑 API Key: \${API_KEY:0:7}...\"
 else
   echo \"🔑 API Key: Not provided (using public endpoints)\"
 fi

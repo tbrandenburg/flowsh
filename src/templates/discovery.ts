@@ -119,6 +119,47 @@ export class TemplateDiscovery {
   }
 
   /**
+   * Get all templates with full details for listing
+   */
+  getAllTemplates(): TemplateInfo[] {
+    return this.getUniqueTemplates();
+  }
+
+  /**
+   * Search templates by keyword in name, category, or description
+   */
+  searchTemplates(query: string): TemplateInfo[] {
+    const searchTerm = query.toLowerCase().trim();
+    if (!searchTerm) {
+      return this.getAllTemplates();
+    }
+
+    return this.getUniqueTemplates().filter(template => {
+      // Search in display name
+      if (template.displayName.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+
+      // Search in category
+      if (template.category?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+
+      // Search in subcategory
+      if (template.subcategory?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+
+      // Search in description
+      if (template.description?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+
+      return false;
+    });
+  }
+
+  /**
    * Recursively find all .yaml files in a directory
    */
   private async findYamlFiles(dir: string): Promise<string[]> {

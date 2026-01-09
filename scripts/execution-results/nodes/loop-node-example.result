@@ -12,7 +12,7 @@ Starting workflow: loop-node-example
 [0;36mℹ️  Loop iteration 9/10[0m
 [0;36mℹ️  Loop iteration 10/10[0m
 [0;32m✅ Loop completed after 10 iterations[0m
-Iteration 1: current_value=5, target=50
+Iteration ${iteration_count}: current_value=${current_value}, target=${target_value}
 Condition passed
 # ⚠️ Loop Terminated - Maximum Iterations Reached
 

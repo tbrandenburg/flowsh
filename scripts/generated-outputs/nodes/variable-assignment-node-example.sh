@@ -392,7 +392,7 @@ set_var "CALCULATION_BASE" "" "copy_number_variable"
 
 # Node: string_concatenation
 # Node: string_concatenation
-PERSONALIZED_GREETING=$(echo 'Hello '"$(get_workflow_var "USER_NAME" "default")"'! '"$(get_workflow_var "WELCOME_MESSAGE" "default")"'')
+PERSONALIZED_GREETING=$(echo 'Hello $(get_workflow_var "USER_NAME" "default")! $(get_workflow_var "WELCOME_MESSAGE" "default")')
 set_var "PERSONALIZED_GREETING" "$PERSONALIZED_GREETING" "string_concatenation"
 
 # Node: mathematical_calculation
@@ -412,7 +412,7 @@ set_var "SYSTEM_INFO" "$SYSTEM_INFO" "file_operation"
 
 # Node: conditional_expression
 # Node: conditional_expression
-STATUS_MESSAGE=$(if [ '"$(get_workflow_var "NUMBER_INPUT" "default")"' -gt 50 ]; then echo 'High value'; else echo 'Low value'; fi)
+STATUS_MESSAGE=$(if [ $(get_workflow_var "NUMBER_INPUT" "default") -gt 50 ]; then echo 'High value'; else echo 'Low value'; fi)
 set_var "STATUS_MESSAGE" "$STATUS_MESSAGE" "conditional_expression"
 
 # Node: initialize_log
@@ -425,22 +425,22 @@ set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_to_log_1"
 
 # Node: append_to_log_2
 # Node: append_to_log_2
-ACTIVITY_LOG=$(echo ' | Entry 2: Timestamp - '"$(get_workflow_var "CURRENT_TIMESTAMP" "default")"'')
+ACTIVITY_LOG=$(echo ' | Entry 2: Timestamp - $(get_workflow_var "CURRENT_TIMESTAMP" "default")')
 set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_to_log_2"
 
 # Node: append_calculation
 # Node: append_calculation
-ACTIVITY_LOG=$(echo ' | Entry 3: Calculation result - '"$(get_workflow_var "CALCULATED_RESULT" "default")"'')
+ACTIVITY_LOG=$(echo ' | Entry 3: Calculation result - $(get_workflow_var "CALCULATED_RESULT" "default")')
 set_var "ACTIVITY_LOG" "$ACTIVITY_LOG" "append_calculation"
 
 # Node: complex_string_manipulation
 # Node: complex_string_manipulation
-PROCESSED_TEXT=$(echo ''"$(get_workflow_var "BASE_VALUE" "default")"'' | tr '[:lower:]' '[:upper:]' | sed 's/WORLD/UNIVERSE/g')
+PROCESSED_TEXT=$(echo '$(get_workflow_var "BASE_VALUE" "default")' | tr '[:lower:]' '[:upper:]' | sed 's/WORLD/UNIVERSE/g')
 set_var "PROCESSED_TEXT" "$PROCESSED_TEXT" "complex_string_manipulation"
 
 # Node: json_creation
 # Node: json_creation
-JSON_DATA=$(echo '{"user": "'"$(get_workflow_var "USER_NAME" "default")"'", "value": '"$(get_workflow_var "NUMBER_INPUT" "default")"', "timestamp": "'"$(get_workflow_var "CURRENT_TIMESTAMP" "default")"'", "status": "'"$(get_workflow_var "STATUS_MESSAGE" "default")"'"}')
+JSON_DATA=$(echo '{"user": "$(get_workflow_var "USER_NAME" "default")", "value": $(get_workflow_var "NUMBER_INPUT" "default"), "timestamp": "$(get_workflow_var "CURRENT_TIMESTAMP" "default")", "status": "$(get_workflow_var "STATUS_MESSAGE" "default")"}')
 set_var "JSON_DATA" "$JSON_DATA" "json_creation"
 
 # Node: environment_info

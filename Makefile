@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate
+.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate test-templates
 
 # Default target
 help:
@@ -33,6 +33,7 @@ help:
 	@echo "🎯 Template Operations:"
 	@echo "  make templates-all    Generate and execute scripts from all 14 production templates"
 	@echo "  make templates-validate  Validate all template workflows"
+	@echo "  make test-templates   Basic compilation testing for all templates"
 	@echo
 	@echo "🧪 Testing Generated Scripts:"
 	@echo "  make test-generated   Test generated shell scripts"
@@ -224,6 +225,33 @@ templates-validate: build
 		echo "🎉 All templates are valid!"; \
 	else \
 		echo "⚠️  Some templates have validation errors"; \
+		exit 1; \
+	fi
+
+# Basic compilation testing for templates (lightweight validation)
+test-templates: build
+	@echo "Running basic compilation tests on all templates..."
+	@success=0; total=0; \
+	for template in templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
+		if [ -f "$$template" ]; then \
+			total=$$((total + 1)); \
+			template_name=$$(basename "$$template"); \
+			echo "Testing compilation: $$template_name"; \
+			if node dist/cli/index.js compile "$$template" --dry-run >/dev/null 2>&1; then \
+				echo "  ✅ Compiles successfully"; \
+				success=$$((success + 1)); \
+			else \
+				echo "  ❌ Compilation failed"; \
+				node dist/cli/index.js compile "$$template" --dry-run 2>&1 | head -3 | sed 's/^/    /'; \
+			fi; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📊 Results: $$success/$$total templates compile successfully"; \
+	if [ $$success -eq $$total ]; then \
+		echo "🎉 All templates compile successfully!"; \
+	else \
+		echo "⚠️  Some templates failed compilation - this indicates potential issues"; \
 		exit 1; \
 	fi
 

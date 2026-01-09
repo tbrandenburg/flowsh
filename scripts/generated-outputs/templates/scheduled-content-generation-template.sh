@@ -374,16 +374,16 @@ execute_fallback_path() {
 echo \"⏰ Initializing Scheduled Content Generation...\"
 
 # Configuration validation
-TOPIC=\"$(get_var "CONTENT_TOPIC" "initialize_scheduler")\"
-TYPE=\"${CONTENT_TYPE:-newsletter}\"
-AUDIENCE=\"${TARGET_AUDIENCE:-technical professionals}\"
-LENGTH=\"${CONTENT_LENGTH:-medium}\"
+TOPIC=\"\$(get_var "CONTENT_TOPIC" "initialize_scheduler")\"
+TYPE=\"\${CONTENT_TYPE:-newsletter}\"
+AUDIENCE=\"\${TARGET_AUDIENCE:-technical professionals}\"
+LENGTH=\"\${CONTENT_LENGTH:-medium}\"
 
 echo \"🔧 Content Generation Configuration:\"
-echo \"  Topic: ${TOPIC:0:50}${TOPIC:50:+...}\"
-echo \"  Content Type: \$TYPE\"
-echo \"  Target Audience: \$AUDIENCE\"
-echo \"  Content Length: \$LENGTH\"
+echo \"  Topic: \${TOPIC:0:50}\${TOPIC:50:+...}\"
+echo \"  Content Type: \\\$TYPE\"
+echo \"  Target Audience: \\\$AUDIENCE\"
+echo \"  Content Length: \\\$LENGTH\"
 
 # Create content generation workspace
 mkdir -p /tmp/scheduled_content
@@ -391,17 +391,17 @@ mkdir -p /tmp/scheduled_content/generation
 mkdir -p /tmp/scheduled_content/publishing
 
 # Initialize scheduling metadata
-GENERATION_ID=\"content_$(date +%s)\"
-CURRENT_TIME=$(date -Iseconds)
+GENERATION_ID=\"content_\$(date +%s)\"
+CURRENT_TIME=\$(date -Iseconds)
 
 echo \"📅 Scheduling Information:\"
-echo \"  Generation ID: \$GENERATION_ID\"
-echo \"  Current Time: \$CURRENT_TIME\"
+echo \"  Generation ID: \\\$GENERATION_ID\"
+echo \"  Current Time: \\\$CURRENT_TIME\"
 
 # Save configuration
-echo \"\$GENERATION_ID\" > /tmp/scheduled_content/generation_id.txt
-echo \"\$TOPIC\" > /tmp/scheduled_content/topic.txt
-echo \"\$TYPE\" > /tmp/scheduled_content/type.txt
+echo \"\\\$GENERATION_ID\" > /tmp/scheduled_content/generation_id.txt
+echo \"\\\$TOPIC\" > /tmp/scheduled_content/topic.txt
+echo \"\\\$TYPE\" > /tmp/scheduled_content/type.txt
 
 echo \"✅ Content scheduler initialized successfully\"
 "
@@ -537,43 +537,43 @@ echo "$llm_content"
 echo \"💾 Saving generated content...\"
 
 # Get generated content
-MAIN_CONTENT=\"$(get_var "LLM_CONTENT" "save_generated_content")\"
-GENERATION_ID=$(cat /tmp/scheduled_content/generation_id.txt)
-TOPIC=$(cat /tmp/scheduled_content/topic.txt)
-TYPE=$(cat /tmp/scheduled_content/type.txt)
+MAIN_CONTENT=\"\$(get_var "LLM_CONTENT" "save_generated_content")\"
+GENERATION_ID=\$(cat /tmp/scheduled_content/generation_id.txt)
+TOPIC=\$(cat /tmp/scheduled_content/topic.txt)
+TYPE=\$(cat /tmp/scheduled_content/type.txt)
 
 # Save the main content
-echo \"\$MAIN_CONTENT\" > /tmp/scheduled_content/generation/main_content.txt
+echo \"\\\$MAIN_CONTENT\" > /tmp/scheduled_content/generation/main_content.txt
 
 echo \"📊 Content Statistics:\"
-echo \"  Content Type: \$TYPE\"
-echo \"  Topic: ${TOPIC:0:40}${TOPIC:40:+...}\"
-echo \"  Content Length: $(echo \"\$MAIN_CONTENT\" | wc -w) words\"
-echo \"  Content ID: \$GENERATION_ID\"
+echo \"  Content Type: \\\$TYPE\"
+echo \"  Topic: \${TOPIC:0:40}\${TOPIC:40:+...}\"
+echo \"  Content Length: \$(echo \"\\\$MAIN_CONTENT\" | wc -w) words\"
+echo \"  Content ID: \\\$GENERATION_ID\"
 
 # Create file format
-echo \"# \$TOPIC\" > /tmp/scheduled_content/publishing/content.md
-echo \"" >> /tmp/scheduled_content/publishing/content.md
-echo \"**Generated:** $(date '+%Y-%m-%d %H:%M:%S')\" >> /tmp/scheduled_content/publishing/content.md
-echo \"**Content Type:** \$TYPE\" >> /tmp/scheduled_content/publishing/content.md
-echo \"**Content ID:** \$GENERATION_ID\" >> /tmp/scheduled_content/publishing/content.md
-echo \"" >> /tmp/scheduled_content/publishing/content.md
+echo \"# \\\$TOPIC\" > /tmp/scheduled_content/publishing/content.md
+echo \"\" >> /tmp/scheduled_content/publishing/content.md
+echo \"**Generated:** \$(date '+%Y-%m-%d %H:%M:%S')\" >> /tmp/scheduled_content/publishing/content.md
+echo \"**Content Type:** \\\$TYPE\" >> /tmp/scheduled_content/publishing/content.md
+echo \"**Content ID:** \\\$GENERATION_ID\" >> /tmp/scheduled_content/publishing/content.md
+echo \"\" >> /tmp/scheduled_content/publishing/content.md
 echo \"---\" >> /tmp/scheduled_content/publishing/content.md
-echo \"" >> /tmp/scheduled_content/publishing/content.md
-echo \"\$MAIN_CONTENT\" >> /tmp/scheduled_content/publishing/content.md
-echo \"" >> /tmp/scheduled_content/publishing/content.md
+echo \"\" >> /tmp/scheduled_content/publishing/content.md
+echo \"\\\$MAIN_CONTENT\" >> /tmp/scheduled_content/publishing/content.md
+echo \"\" >> /tmp/scheduled_content/publishing/content.md
 echo \"---\" >> /tmp/scheduled_content/publishing/content.md
-echo \"" >> /tmp/scheduled_content/publishing/content.md
+echo \"\" >> /tmp/scheduled_content/publishing/content.md
 echo \"*This content was automatically generated using scheduled content generation system.*\" >> /tmp/scheduled_content/publishing/content.md
 
 # Create Telegram format (truncated for character limit)
-TELEGRAM_CONTENT=$(echo \"\$MAIN_CONTENT\" | head -c 3800)
-echo \"🚀 *\$TOPIC*\" > /tmp/scheduled_content/publishing/telegram.txt
-echo \"" >> /tmp/scheduled_content/publishing/telegram.txt
-echo \"\$TELEGRAM_CONTENT\" >> /tmp/scheduled_content/publishing/telegram.txt
-echo \"" >> /tmp/scheduled_content/publishing/telegram.txt
-echo \"📅 Generated: $(date '+%d/%m/%Y %H:%M')\" >> /tmp/scheduled_content/publishing/telegram.txt
-echo \"🆔 ID: \$GENERATION_ID\" >> /tmp/scheduled_content/publishing/telegram.txt
+TELEGRAM_CONTENT=\$(echo \"\\\$MAIN_CONTENT\" | head -c 3800)
+echo \"🚀 *\\\$TOPIC*\" > /tmp/scheduled_content/publishing/telegram.txt
+echo \"\" >> /tmp/scheduled_content/publishing/telegram.txt
+echo \"\\\$TELEGRAM_CONTENT\" >> /tmp/scheduled_content/publishing/telegram.txt
+echo \"\" >> /tmp/scheduled_content/publishing/telegram.txt
+echo \"📅 Generated: \$(date '+%d/%m/%Y %H:%M')\" >> /tmp/scheduled_content/publishing/telegram.txt
+echo \"🆔 ID: \\\$GENERATION_ID\" >> /tmp/scheduled_content/publishing/telegram.txt
 
 echo \"✅ Content saved and formatted for publishing\"
 "
@@ -773,27 +773,27 @@ execute_telegram_publish_to_telegram
 /bin/bash -c "set -euo pipefail
 echo \"📄 Publishing content to file storage...\"
 
-GENERATION_ID=$(cat /tmp/scheduled_content/generation_id.txt)
+GENERATION_ID=\$(cat /tmp/scheduled_content/generation_id.txt)
 
 # Create permanent content directory
 CONTENT_DIR=\"/tmp/scheduled_content/published\"
-mkdir -p \"\$CONTENT_DIR\"
+mkdir -p \"\\\$CONTENT_DIR\"
 
 # Copy formatted content to permanent storage
 if [ -f \"/tmp/scheduled_content/publishing/content.md\" ]; then
-  FILENAME=\"content_$(get_var "GENERATION_ID" "publish_to_file")_$(date +%Y%m%d_%H%M%S).md\"
-  cp \"/tmp/scheduled_content/publishing/content.md\" \"\$CONTENT_DIR/\$FILENAME\"
+  FILENAME=\"content_\$(get_var "GENERATION_ID" "publish_to_file")_\$(date +%Y%m%d_%H%M%S).md\"
+  cp \"/tmp/scheduled_content/publishing/content.md\" \"\\\$CONTENT_DIR/\\\$FILENAME\"
   
-  FILE_SIZE=$(du -h \"\$CONTENT_DIR/\$FILENAME\" | cut -f1)
+  FILE_SIZE=\$(du -h \"\\\$CONTENT_DIR/\\\$FILENAME\" | cut -f1)
   
   echo \"📁 File Publishing Details:\"
-  echo \"  Filename: \$FILENAME\"
-  echo \"  File Size: \$FILE_SIZE\"
-  echo \"  Content ID: \$GENERATION_ID\"
+  echo \"  Filename: \\\$FILENAME\"
+  echo \"  File Size: \\\$FILE_SIZE\"
+  echo \"  Content ID: \\\$GENERATION_ID\"
 
   echo \"✅ Content published to file storage successfully\"
   echo \"published\" > /tmp/scheduled_content/publishing/file_status.txt
-  echo \"\$FILENAME\" > /tmp/scheduled_content/publishing/file_name.txt
+  echo \"\\\$FILENAME\" > /tmp/scheduled_content/publishing/file_name.txt
 else
   echo \"❌ File publishing failed - content not found\"
   echo \"failed\" > /tmp/scheduled_content/publishing/file_status.txt

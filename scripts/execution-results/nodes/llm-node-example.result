@@ -1,34 +1,73 @@
 Starting workflow: llm-node-example
 [0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
 [0;36mℹ️  LLMv7 API successful[0m
-Hello! I’m excited to help you explore biomimicry and sustainable design. To get started, let’s work through the Biomimicry Design Process together, step by step.
+Hey there! 👋 How's your day going? What’s on your mind today?
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[1;33m⚠️  LLMv7 API also failed, using mock response[0m
+[1;33m⚠️  Using mock response as final fallback[0m
+Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[1;33m⚠️  LLMv7 API also failed, using mock response[0m
+[1;33m⚠️  Using mock response as final fallback[0m
+Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello
+[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
+[0;36mℹ️  LLMv7 API successful[0m
+Hello! How can I assist you today? If you're up for it, let's play a word association game. I say a word, and you respond with the first word that comes to your mind. I'll start:
 
-**Step 1: Define**
+Cat
 
-To begin, I’ll guide you through defining your design challenge. Please answer the following prompts; I’m here to help clarify or offer examples if you need them.
+(What word does that make you think of?)
+[0;36m🚀 📊 Variable Aggregation: Aggregate LLM Responses[0m
+[1;33m⚠️  No non-empty values to concatenate[0m
+[0;32m✅ Variable aggregation completed: 4 inputs -> combined_analysis[0m
+# 🧠 LLM Node Example Results
 
-**a. Frame your challenge:**  
-What is the positive impact you want your design to achieve? This isn’t about a specific product or solution yet, but rather the outcome or improvement you wish to see.
+## Original Query
+**Question**: Explain the concept of workflow automation in simple terms
+**Preferences**: educational style, medium length, examples: true
 
-**b. Consider context:**  
-Can you describe the context for your challenge? For example:  
-- Who are the stakeholders or beneficiaries?
-- Where will the solution be used (geographical, environmental, social setting)?
-- What resources, constraints, or regulations are relevant?
+## LLM Configurations Demonstrated
 
-**c. Take a systems view and look for leverage points:**  
-What larger system is your challenge a part of?  
-- What are the boundaries of your system (what’s included or excluded)?
-- What are some key relationships, feedback loops, or pain points?
-- Where do you think a small change might create a big positive impact?
+### 1. Basic Chat Mode 💬
+- **Provider**: OpenAI GPT-3.5-turbo
+- **Mode**: Chat with system/user messages
+- **Features**: Basic temperature and token controls
+- **Use Case**: Quick, conversational interactions
 
-**d. Phrase your challenge as a “How might we…?” question:**  
-Bring it all together into a question that is specific, but open enough to allow for creative solutions.  
-For example: “How might we help communities in arid climates conserve water for agriculture in a way that benefits local ecosystems?”
+### 2. Advanced Template Mode 🎯
+- **Provider**: OpenAI GPT-4
+- **Mode**: Chat with structured templates
+- **Features**: Template parameters, context management, memory window
+- **Use Case**: Complex, structured analysis tasks
 
-**Your Turn:**  
-Please provide your responses to the 4 points above.  
-If you’d like, just start with one and we’ll work through the rest together!
+### 3. Vision-Enabled Mode 👁️
+- **Provider**: OpenAI GPT-4-Vision
+- **Mode**: Chat with visual analysis capabilities
+- **Features**: Image understanding, visual context
+- **Use Case**: Analysis involving diagrams, charts, images
 
-Let me know how you’d like to proceed, or if you want an example.
-scripts/generated-outputs/nodes/llm-node-example.sh: line 374: $1: unbound variable
+### 4. Completion Mode 📝
+- **Provider**: OpenAI GPT-3.5-turbo-instruct
+- **Mode**: Completion (not chat)
+- **Features**: Direct text completion, stop sequences
+- **Use Case**: Text generation, creative writing, completion tasks
+
+## Advanced Features Showcased
+
+- **Multiple Model Providers**: Support for OpenAI, Anthropic, Google, local models
+- **Flexible Prompting**: Inline prompts, template systems, multi-message conversations
+- **Parameter Control**: Temperature, max_tokens, top_p, frequency/presence penalties
+- **Context Management**: Context variables, memory windows, role prefixes
+- **Vision Integration**: Image analysis capabilities when supported
+- **Template Parameters**: Dynamic prompt customization with variable substitution
+- **Response Aggregation**: Combining multiple LLM responses for comprehensive analysis
+
+## Combined Analysis Results
+
+
+
+---
+
+This example demonstrates the full range of LLM node capabilities in flowsh, from simple chat interactions to complex, template-driven AI workflows with advanced configuration options.
+
+Workflow completed successfully

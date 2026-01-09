@@ -7,6 +7,7 @@
  * Does one thing well: converts workflow YAML files into clean, executable shell scripts.
  */
 
+import { scanMissingEnvironmentVariables } from '../templates/env-scanner.js';
 import { createDefaultRegistry } from '../generation/generators/index.js';
 import { generateShellScript } from '../generation/shell-generator.js';
 import { initCommand } from '../templates/init-command.js';
@@ -105,6 +106,16 @@ async function compileCommand(
         `✅ Generated ${generateResult.script.split('\n').length} lines of shell script`
       );
       console.error(`📊 Complexity: ${generateResult.metadata.estimatedComplexity}`);
+      console.error('');
+    }
+
+    // Check for missing environment variables and warn user
+    const missingEnvVars = scanMissingEnvironmentVariables(parseResult.workflow);
+    if (missingEnvVars.length > 0) {
+      console.error('⚠️  Missing environment variables:');
+      missingEnvVars.forEach(varName => {
+        console.error(`   → ${varName} (consider setting this before running the script)`);
+      });
       console.error('');
     }
 
@@ -268,8 +279,19 @@ program
   .argument('[target]', 'Target workflow file path')
   .option('--help', 'Display available templates and usage')
   .option('-p, --preview', 'Display template content without creating files')
+  .option('-l, --list-templates', 'List all available templates')
+  .option('-s, --search <query>', 'Search templates by keyword')
   .action(
-    async (template?: string, target?: string, options?: { help?: boolean; preview?: boolean }) => {
+    async (
+      template?: string,
+      target?: string,
+      options?: {
+        help?: boolean;
+        preview?: boolean;
+        listTemplates?: boolean;
+        search?: string;
+      }
+    ) => {
       await initCommand(template, target, options);
     }
   );

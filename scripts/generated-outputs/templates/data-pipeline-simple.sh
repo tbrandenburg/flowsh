@@ -659,8 +659,8 @@ echo \"📊 Processing API responses...\"
 success_count=0
 total_requests=2
 
-if [ -n \"${http_response_body:-}\" ]; then
-  success_count=$((success_count + 1))
+if [ -n \"\${http_response_body:-}\" ]; then
+  success_count=\$((success_count + 1))
   echo \"✅ Response 1: Success\"
 else
   echo \"❌ Response 1: Failed\"
@@ -669,7 +669,7 @@ fi
 # Check if we have any data
 if [ \$success_count -gt 0 ]; then
   echo \"📈 Successfully processed \$success_count/\$total_requests API responses\"
-  echo \"📊 Success rate: $((success_count * 100 / total_requests))%\"
+  echo \"📊 Success rate: \$((success_count * 100 / total_requests))%\"
 else
   echo \"⚠️  No successful API responses received\"
 fi

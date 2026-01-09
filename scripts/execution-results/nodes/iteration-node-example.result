@@ -7,12 +7,12 @@ Starting workflow: iteration-node-example
 [0;36mℹ️  Processing file: file3.txt[0m
 [0;32m✅ Sequential iteration completed: processed 3 files[0m
 Condition passed
-Processing YAML:  - Mode: analyze - Structure validation and syntax check
+Processing YAML: ${current_file} - Mode: ${processing_mode} - Structure validation and syntax check
 Condition passed
-Processing JSON:  - Mode: analyze - Schema validation and formatting
+Processing JSON: ${current_file} - Mode: ${processing_mode} - Schema validation and formatting
 Condition passed
-Processing SCRIPT:  - Mode: analyze - Syntax check and permissions
-Processing OTHER:  (default) - Mode: analyze - Basic file analysis
+Processing SCRIPT: ${current_file} - Mode: ${processing_mode} - Syntax check and permissions
+Processing OTHER: ${current_file} (${file_extension}) - Mode: ${processing_mode} - Basic file analysis
 [0;36m🚀 📊 Variable Aggregation: Collect All File Results[0m
 [1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 1 inputs -> final_results[0m
@@ -22,14 +22,14 @@ Processing OTHER:  (default) - Mode: analyze - Basic file analysis
 - **Input Files**: config.yaml,data.json,script.sh,README.md,package.json
 - **Processing Mode**: analyze
 - **Parallel Processing**: false
-- **Total Files**: 5
+- **Total Files**: 1
 
 ## Processing Results
 
 
 
 ## Summary Statistics
-Iteration Summary: 5 files processed in analyze mode. Parallel: false
+Iteration Summary: $(get_workflow_var "TOTAL_FILES_PROCESSED" "default") files processed in $(get_workflow_var "PROCESSING_MODE" "default") mode. Parallel: $(get_workflow_var "ENABLE_PARALLEL" "default")
 
 ## File Type Breakdown
 The iteration processed different file types with specialized handling:

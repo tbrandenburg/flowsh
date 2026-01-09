@@ -1,2 +1,8 @@
 Starting workflow: AI Chat with Memory - Stateful Conversations
-scripts/generated-outputs/templates/ai-chat-memory-template.sh: line 369: SYSTEM_PROMPT: unbound variable
+🧠 Initializing AI Chat Memory System...
+🔧 Memory Configuration:
+  Conversation ID: $CONV_ID
+  Max Memory Turns: $MAX_TURNS
+  System Prompt Length: 101 characters
+  User Input: Hello! How are you today?
+/bin/bash: line 22: get_var: command not found

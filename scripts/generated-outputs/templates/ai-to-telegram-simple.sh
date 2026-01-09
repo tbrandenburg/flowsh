@@ -369,12 +369,12 @@ execute_fallback_path() {
 /bin/bash -c "set -euo pipefail
 echo \"🔍 Validating environment...\"
 
-if [ -z \"${TELEGRAM_BOT_TOKEN:-}\" ]; then
+if [ -z \"\${TELEGRAM_BOT_TOKEN:-}\" ]; then
   echo \"❌ ERROR: TELEGRAM_BOT_TOKEN not set (get from @BotFather)\"
   exit 1
 fi
 
-if [ -z \"${TELEGRAM_CHAT_ID:-}\" ]; then
+if [ -z \"\${TELEGRAM_CHAT_ID:-}\" ]; then
   echo \"❌ ERROR: TELEGRAM_CHAT_ID not set (use @userinfobot)\"
   exit 1
 fi
@@ -384,7 +384,7 @@ if [[ ! \"\$TELEGRAM_BOT_TOKEN\" =~ ^[0-9]+:[a-zA-Z0-9_-]+\$ ]]; then
 fi
 
 echo \"✅ Environment validation passed\"
-echo \"🤖 Bot: ${TELEGRAM_BOT_TOKEN:0:10}...\"
+echo \"🤖 Bot: \${TELEGRAM_BOT_TOKEN:0:10}...\"
 echo \"💬 Chat: \$TELEGRAM_CHAT_ID\"
 "
 
@@ -452,7 +452,7 @@ set_workflow_var "llm_success" "true"
 echo "$llm_content"
 
 # Node: format_message
-set_var "TELEGRAM_MESSAGE" "🎯 <b>Daily Riddle Challenge</b> 🎯\\n\\n${llm_content}\\n\\n💭 <i>Can you solve it? Share your answer!</i>\\n\\n🤖 <i>Powered by flowsh AI automation</i>" "format_message"
+set_var "TELEGRAM_MESSAGE" "🎯 <b>Daily Riddle Challenge</b> 🎯\\n\\n\${llm_content}\\n\\n💭 <i>Can you solve it? Share your answer!</i>\\n\\n🤖 <i>Powered by flowsh AI automation</i>" "format_message"
 
 # Node: send_telegram
 

@@ -11,10 +11,75 @@ export class TemplateDisplay {
   static displayHelp(templates: HierarchicalTemplates): void {
     console.log('Usage:');
     console.log('  flowsh init [TEMPLATE] [TARGET_FILE]');
+    console.log('  flowsh init --list-templates');
+    console.log('  flowsh init --search <query>');
     console.log('');
     console.log('Available templates:');
 
     this.displayHierarchicalTemplates(templates);
+  }
+
+  /**
+   * Display detailed list of all templates (for --list-templates flag)
+   */
+  static displayDetailedList(templates: TemplateInfo[]): void {
+    console.log('All available templates:');
+    console.log('');
+
+    if (templates.length === 0) {
+      console.log('  No templates found');
+      return;
+    }
+
+    // Group by category for better organization
+    const grouped = new Map<string, TemplateInfo[]>();
+    for (const template of templates) {
+      const category = template.category || 'uncategorized';
+      if (!grouped.has(category)) {
+        grouped.set(category, []);
+      }
+      grouped.get(category)!.push(template);
+    }
+
+    for (const [category, categoryTemplates] of Array.from(grouped.entries()).sort()) {
+      console.log(`  ${category}:`);
+
+      for (const template of categoryTemplates.sort((a, b) =>
+        a.displayName.localeCompare(b.displayName)
+      )) {
+        const subcategoryPrefix = template.subcategory ? `${template.subcategory}/` : '';
+        const fullName = `${subcategoryPrefix}${template.displayName}`;
+        const description = template.description ? ` - ${template.description}` : '';
+        console.log(`    ${fullName}${description}`);
+      }
+      console.log('');
+    }
+  }
+
+  /**
+   * Display search results (for --search flag)
+   */
+  static displaySearchResults(query: string, templates: TemplateInfo[]): void {
+    console.log(`Search results for "${query}":`);
+    console.log('');
+
+    if (templates.length === 0) {
+      console.log('  No matching templates found');
+      console.log('');
+      console.log(
+        '💡 Try a different search term or use --list-templates to see all available templates'
+      );
+      return;
+    }
+
+    for (const template of templates.sort((a, b) => a.displayName.localeCompare(b.displayName))) {
+      const subcategoryPrefix = template.subcategory ? `${template.subcategory}/` : '';
+      const categoryPrefix = template.category ? `${template.category}/` : '';
+      const fullPath = `${categoryPrefix}${subcategoryPrefix}${template.displayName}`;
+      const description = template.description ? ` - ${template.description}` : '';
+      console.log(`  ${fullPath}${description}`);
+    }
+    console.log('');
   }
 
   /**

@@ -371,7 +371,7 @@ execute_fallback_path() {
 # Node: simple_message
 
 # Node: simple_message (Simple HTML Message)
-send_telegram_simple_message() {
+execute_telegram_simple_message() {
     log_step "📱 Sending Telegram message: Simple HTML Message"
 
     local message="🚀 <b>Workflow Started!</b>
@@ -599,12 +599,12 @@ EOF
         fi
     done
 }
-send_telegram_simple_message
+execute_telegram_simple_message
 
 # Node: env_var_message
 
 # Node: env_var_message (Message with Environment Variables)
-send_telegram_env_var_message() {
+execute_telegram_env_var_message() {
     log_step "📱 Sending Telegram message: Message with Environment Variables"
 
     local message="📋 Environment Variable Configuration Test
@@ -831,12 +831,12 @@ EOF
         fi
     done
 }
-send_telegram_env_var_message
+execute_telegram_env_var_message
 
 # Node: markdown_message
 
 # Node: markdown_message (Markdown Formatted Message)
-send_telegram_markdown_message() {
+execute_telegram_markdown_message() {
     log_step "📱 Sending Telegram message: Markdown Formatted Message"
 
     local message="📄 <b>Formatting Features Example</b>
@@ -1067,12 +1067,12 @@ EOF
         fi
     done
 }
-send_telegram_markdown_message
+execute_telegram_markdown_message
 
 # Node: progress_update
 
 # Node: progress_update (Progress Update Notification)
-send_telegram_progress_update() {
+execute_telegram_progress_update() {
     log_step "📱 Sending Telegram message: Progress Update Notification"
 
     local message="🔄 <b>Progress Update</b>
@@ -1304,7 +1304,7 @@ EOF
         fi
     done
 }
-send_telegram_progress_update
+execute_telegram_progress_update
 
 # Node: simulate_error
 set_var "ERROR_MESSAGE" "Simulated API timeout error" "simulate_error"
@@ -1312,7 +1312,7 @@ set_var "ERROR_MESSAGE" "Simulated API timeout error" "simulate_error"
 # Node: error_notification
 
 # Node: error_notification (Error Alert Message)
-send_telegram_error_notification() {
+execute_telegram_error_notification() {
     log_step "📱 Sending Telegram message: Error Alert Message"
 
     local message="🚨 <b>ERROR ALERT</b> 🚨
@@ -1545,12 +1545,12 @@ EOF
         fi
     done
 }
-send_telegram_error_notification
+execute_telegram_error_notification
 
 # Node: recovery_message
 
 # Node: recovery_message (Recovery Notification)
-send_telegram_recovery_message() {
+execute_telegram_recovery_message() {
     log_step "📱 Sending Telegram message: Recovery Notification"
 
     local message="✅ <b>System Recovery</b>
@@ -1782,12 +1782,12 @@ EOF
         fi
     done
 }
-send_telegram_recovery_message
+execute_telegram_recovery_message
 
 # Node: special_characters
 
 # Node: special_characters (Special Characters Test)
-send_telegram_special_characters() {
+execute_telegram_special_characters() {
     log_step "📱 Sending Telegram message: Special Characters Test"
 
     local message="🧪 <b>Character Escaping Test</b>
@@ -2021,7 +2021,7 @@ EOF
         fi
     done
 }
-send_telegram_special_characters
+execute_telegram_special_characters
 
 # Node: check_notification_level
 if true; then
@@ -2033,7 +2033,7 @@ fi
 # Node: detailed_completion
 
 # Node: detailed_completion (Detailed Completion Report)
-send_telegram_detailed_completion() {
+execute_telegram_detailed_completion() {
     log_step "📱 Sending Telegram message: Detailed Completion Report"
 
     local message="📊 <b>DETAILED WORKFLOW COMPLETION REPORT</b>
@@ -2287,12 +2287,12 @@ EOF
         fi
     done
 }
-send_telegram_detailed_completion
+execute_telegram_detailed_completion
 
 # Node: simple_completion
 
 # Node: simple_completion (Simple Completion Notice)
-send_telegram_simple_completion() {
+execute_telegram_simple_completion() {
     log_step "📱 Sending Telegram message: Simple Completion Notice"
 
     local message="✅ <b>Workflow Complete</b>
@@ -2519,11 +2519,11 @@ EOF
         fi
     done
 }
-send_telegram_simple_completion
+execute_telegram_simple_completion
 
 # Node: workflow_summary
 # Node: workflow_summary
-TELEGRAM_SUMMARY=$(echo 'Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: '"$(get_workflow_var "USER_NAME" "default")"' | Level: '"$(get_workflow_var "NOTIFICATION_LEVEL" "default")"'')
+TELEGRAM_SUMMARY=$(echo 'Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: $(get_workflow_var "USER_NAME" "default") | Level: $(get_workflow_var "NOTIFICATION_LEVEL" "default")')
 set_var "TELEGRAM_SUMMARY" "$TELEGRAM_SUMMARY" "workflow_summary"
 
 # Node: final_results

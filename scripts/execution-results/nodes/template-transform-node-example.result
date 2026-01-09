@@ -19,14 +19,14 @@ scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1533: {
 - **Template Type:** email
 - **Priority Level:** medium
 - **Include Details:** true
-- **Generated:** 2026-01-05 14:51:11
+- **Generated:** 2026-01-09 12:45:15
 
 ## Template Transformation Results
 
 
 
 ## Operations Summary
-Template Transform Summary: 4 templates processed | User: John Doe | Project: MyAwesomeProject | Type: email | Priority: medium | Details: true
+Template Transform Summary: 4 templates processed | User: $(get_workflow_var "USER_NAME" "default") | Project: $(get_workflow_var "PROJECT_NAME" "default") | Type: $(get_workflow_var "TEMPLATE_TYPE" "default") | Priority: $(get_workflow_var "URGENCY_LEVEL" "default") | Details: $(get_workflow_var "INCLUDE_DETAILS" "default")
 
 ## Template Transform Node Features Demonstrated
 

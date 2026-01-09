@@ -368,18 +368,18 @@ execute_fallback_path() {
 echo \"🛡️ Initializing Content Moderation Pipeline...\"
 
 # Configuration validation
-CONTENT=\"$(get_var "CONTENT_INPUT" "initialize_moderation_system")\"
-STRICTNESS=\"${MODERATION_STRICTNESS:-moderate}\"
-PROFANITY_CHECK=\"${ENABLE_PROFANITY_CHECK:-true}\"
-SENTIMENT_CHECK=\"${ENABLE_SENTIMENT_ANALYSIS:-true}\"
-WEBHOOK=\"${WEBHOOK_URL:-}\"
+CONTENT=\"\$(get_var "CONTENT_INPUT" "initialize_moderation_system")\"
+STRICTNESS=\"\${MODERATION_STRICTNESS:-moderate}\"
+PROFANITY_CHECK=\"\${ENABLE_PROFANITY_CHECK:-true}\"
+SENTIMENT_CHECK=\"\${ENABLE_SENTIMENT_ANALYSIS:-true}\"
+WEBHOOK=\"\${WEBHOOK_URL:-}\"
 
 echo \"🔧 Moderation Configuration:\"
-echo \"  Content Length: ${#CONTENT} characters\"
-echo \"  Strictness Level: \$STRICTNESS\"
-echo \"  Profanity Check: \$PROFANITY_CHECK\"
-echo \"  Sentiment Analysis: \$SENTIMENT_CHECK\"
-echo \"  Webhook Alerts: $([ -n \"\$WEBHOOK\" ] && echo \"Enabled\" || echo \"Disabled\")\"
+echo \"  Content Length: \${#CONTENT} characters\"
+echo \"  Strictness Level: \\\$STRICTNESS\"
+echo \"  Profanity Check: \\\$PROFANITY_CHECK\"
+echo \"  Sentiment Analysis: \\\$SENTIMENT_CHECK\"
+echo \"  Webhook Alerts: \$([ -n \"\\\$WEBHOOK\" ] && echo \"Enabled\" || echo \"Disabled\")\"
 
 # Create moderation workspace
 mkdir -p /tmp/content_moderation
@@ -387,13 +387,13 @@ mkdir -p /tmp/content_moderation/analysis
 mkdir -p /tmp/content_moderation/reports
 
 # Initialize content file
-echo \"\$CONTENT\" > /tmp/content_moderation/input_content.txt
+echo \"\\\$CONTENT\" > /tmp/content_moderation/input_content.txt
 
 # Initialize analysis results
 echo '{\"moderation_results\":[],\"flags\":[],\"scores\":{},\"recommendations\":[]}' > /tmp/content_moderation/analysis/results.json
 
 # Set strictness parameters
-case \"\$STRICTNESS\" in
+case \"\\\$STRICTNESS\" in
   \"lenient\")
     echo '{\"profanity_threshold\":0.8,\"toxicity_threshold\":0.7,\"hate_threshold\":0.8}' > /tmp/content_moderation/thresholds.json
     ;;
@@ -419,57 +419,57 @@ CONTENT_FILE=\"/tmp/content_moderation/input_content.txt\"
 ANALYSIS_DIR=\"/tmp/content_moderation/analysis\"
 
 # Basic content metrics
-CHAR_COUNT=$(wc -c < \"\$CONTENT_FILE\")
-WORD_COUNT=$(wc -w < \"\$CONTENT_FILE\")
-LINE_COUNT=$(wc -l < \"\$CONTENT_FILE\")
+CHAR_COUNT=\$(wc -c < \"\\\$CONTENT_FILE\")
+WORD_COUNT=\$(wc -w < \"\\\$CONTENT_FILE\")
+LINE_COUNT=\$(wc -l < \"\\\$CONTENT_FILE\")
 
 echo \"📊 Content Metrics:\"
-echo \"  Characters: \$CHAR_COUNT\"
-echo \"  Words: \$WORD_COUNT\" 
-echo \"  Lines: \$LINE_COUNT\"
+echo \"  Characters: \\\$CHAR_COUNT\"
+echo \"  Words: \\\$WORD_COUNT\" 
+echo \"  Lines: \\\$LINE_COUNT\"
 
 # Basic safety checks
-CONTENT=$(cat \"\$CONTENT_FILE\")
+CONTENT=\$(cat \"\\\$CONTENT_FILE\")
 
 # Check for URLs and links
-URL_COUNT=$(echo \"\$CONTENT\" | grep -oE 'https?://[^[:space:]]+' | wc -l || echo \"0\")
+URL_COUNT=\$(echo \"\\\$CONTENT\" | grep -oE 'https?://[^[:space:]]+' | wc -l || echo \"0\")
 
 # Check for email addresses
-EMAIL_COUNT=$(echo \"\$CONTENT\" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | wc -l || echo \"0\")
+EMAIL_COUNT=\$(echo \"\\\$CONTENT\" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}' | wc -l || echo \"0\")
 
 # Check for phone numbers (basic pattern)
-PHONE_COUNT=$(echo \"\$CONTENT\" | grep -oE '[0-9]{3}-[0-9]{3}-[0-9]{4}|\\([0-9]{3}\\)[[:space:]]*[0-9]{3}-[0-9]{4}' | wc -l || echo \"0\")
+PHONE_COUNT=\$(echo \"\\\$CONTENT\" | grep -oE '[0-9]{3}-[0-9]{3}-[0-9]{4}|\\\\([0-9]{3}\\\\)[[:space:]]*[0-9]{3}-[0-9]{4}' | wc -l || echo \"0\")
 
 echo \"📧 Content Pattern Analysis:\"
-echo \"  URLs found: \$URL_COUNT\"
-echo \"  Email addresses: \$EMAIL_COUNT\"
-echo \"  Phone numbers: \$PHONE_COUNT\"
+echo \"  URLs found: \\\$URL_COUNT\"
+echo \"  Email addresses: \\\$EMAIL_COUNT\"
+echo \"  Phone numbers: \\\$PHONE_COUNT\"
 
 # Basic content flags
-FLAGS=\""
-if [ \"\$URL_COUNT\" -gt 5 ]; then
-  FLAGS=\"\$FLAGS,excessive_links\"
+FLAGS=\"\"
+if [ \"\\\$URL_COUNT\" -gt 5 ]; then
+  FLAGS=\"\\\$FLAGS,excessive_links\"
 fi
-if [ \"\$EMAIL_COUNT\" -gt 3 ]; then
-  FLAGS=\"\$FLAGS,excessive_emails\"  
+if [ \"\\\$EMAIL_COUNT\" -gt 3 ]; then
+  FLAGS=\"\\\$FLAGS,excessive_emails\"  
 fi
-if [ \"\$CHAR_COUNT\" -gt 10000 ]; then
-  FLAGS=\"\$FLAGS,very_long_content\"
+if [ \"\\\$CHAR_COUNT\" -gt 10000 ]; then
+  FLAGS=\"\\\$FLAGS,very_long_content\"
 fi
 
 # Save basic analysis
-cat > \"\$ANALYSIS_DIR/basic_analysis.json\" <<EOF
+cat > \"\\\$ANALYSIS_DIR/basic_analysis.json\" <<EOF
 {
   \"metrics\": {
-    \"character_count\": \$CHAR_COUNT,
-    \"word_count\": \$WORD_COUNT,
-    \"line_count\": \$LINE_COUNT,
-    \"url_count\": \$URL_COUNT,
-    \"email_count\": \$EMAIL_COUNT,
-    \"phone_count\": \$PHONE_COUNT
+    \"character_count\": \\\$CHAR_COUNT,
+    \"word_count\": \\\$WORD_COUNT,
+    \"line_count\": \\\$LINE_COUNT,
+    \"url_count\": \\\$URL_COUNT,
+    \"email_count\": \\\$EMAIL_COUNT,
+    \"phone_count\": \\\$PHONE_COUNT
   },
-  \"flags\": \"${FLAGS#,}\",
-  \"analysis_timestamp\": \"$(date -Iseconds)\"
+  \"flags\": \"\${FLAGS#,}\",
+  \"analysis_timestamp\": \"\$(date -Iseconds)\"
 }
 EOF
 
@@ -480,16 +480,16 @@ echo \"✅ Basic content analysis complete\"
 /bin/bash -c "set -euo pipefail
 echo \"🚫 Running profanity and offensive language detection...\"
 
-ENABLE_CHECK=\"${ENABLE_PROFANITY_CHECK:-true}\"
+ENABLE_CHECK=\"\${ENABLE_PROFANITY_CHECK:-true}\"
 
-if [ \"\$ENABLE_CHECK\" != \"true\" ]; then
+if [ \"\\\$ENABLE_CHECK\" != \"true\" ]; then
   echo \"ℹ️ Profanity check disabled by configuration\"
   echo '{\"profanity_detected\":false,\"score\":0,\"flagged_terms\":[],\"enabled\":false}' > /tmp/content_moderation/analysis/profanity.json
   exit 0
 fi
 
 CONTENT_FILE=\"/tmp/content_moderation/input_content.txt\"
-CONTENT=$(cat \"\$CONTENT_FILE\" | tr '[:upper:]' '[:lower:]')
+CONTENT=\$(cat \"\\\$CONTENT_FILE\" | tr '[:upper:]' '[:lower:]')
 
 # Basic profanity word list (production would use comprehensive database)
 PROFANITY_WORDS=\"damn hell shit fuck ass bitch bastard crap stupid idiot moron dumb\"
@@ -502,69 +502,69 @@ VIOLENCE_TERMS=\"kill murder die death threat attack harm violence\"
 
 echo \"🔍 Scanning content for inappropriate language...\"
 
-PROFANITY_MATCHES=\""
-HATE_MATCHES=\""
-VIOLENCE_MATCHES=\""
+PROFANITY_MATCHES=\"\"
+HATE_MATCHES=\"\"
+VIOLENCE_MATCHES=\"\"
 PROFANITY_SCORE=0
 HATE_SCORE=0
 VIOLENCE_SCORE=0
 
 # Check profanity
-for word in \$PROFANITY_WORDS; do
-  if echo \"\$CONTENT\" | grep -qi \"\\b\$word\\b\"; then
-    PROFANITY_MATCHES=\"\$PROFANITY_MATCHES,\$word\"
-    PROFANITY_SCORE=$((PROFANITY_SCORE + 1))
+for word in \\\$PROFANITY_WORDS; do
+  if echo \"\\\$CONTENT\" | grep -qi \"\\\\b\\\$word\\\\b\"; then
+    PROFANITY_MATCHES=\"\\\$PROFANITY_MATCHES,\\\$word\"
+    PROFANITY_SCORE=\$((PROFANITY_SCORE + 1))
   fi
 done
 
 # Check hate speech
-for word in \$HATE_TERMS; do
-  if echo \"\$CONTENT\" | grep -qi \"\\b\$word\\b\"; then
-    HATE_MATCHES=\"\$HATE_MATCHES,\$word\"
-    HATE_SCORE=$((HATE_SCORE + 2))  # Hate speech weighted higher
+for word in \\\$HATE_TERMS; do
+  if echo \"\\\$CONTENT\" | grep -qi \"\\\\b\\\$word\\\\b\"; then
+    HATE_MATCHES=\"\\\$HATE_MATCHES,\\\$word\"
+    HATE_SCORE=\$((HATE_SCORE + 2))  # Hate speech weighted higher
   fi
 done
 
 # Check violence/threats
-for word in \$VIOLENCE_TERMS; do
-  if echo \"\$CONTENT\" | grep -qi \"\\b\$word\\b\"; then
-    VIOLENCE_MATCHES=\"\$VIOLENCE_MATCHES,\$word\"
-    VIOLENCE_SCORE=$((VIOLENCE_SCORE + 3))  # Violence weighted highest
+for word in \\\$VIOLENCE_TERMS; do
+  if echo \"\\\$CONTENT\" | grep -qi \"\\\\b\\\$word\\\\b\"; then
+    VIOLENCE_MATCHES=\"\\\$VIOLENCE_MATCHES,\\\$word\"
+    VIOLENCE_SCORE=\$((VIOLENCE_SCORE + 3))  # Violence weighted highest
   fi
 done
 
-TOTAL_SCORE=$((PROFANITY_SCORE + HATE_SCORE + VIOLENCE_SCORE))
-WORD_COUNT=$(wc -w < \"\$CONTENT_FILE\")
-NORMALIZED_SCORE=$(echo \"scale=2; \$TOTAL_SCORE / \$WORD_COUNT * 100\" | bc -l || echo \"0\")
+TOTAL_SCORE=\$((PROFANITY_SCORE + HATE_SCORE + VIOLENCE_SCORE))
+WORD_COUNT=\$(wc -w < \"\\\$CONTENT_FILE\")
+NORMALIZED_SCORE=\$(echo \"scale=2; \\\$TOTAL_SCORE / \\\$WORD_COUNT * 100\" | bc -l || echo \"0\")
 
 echo \"📊 Profanity Detection Results:\"
-echo \"  Profanity matches: ${PROFANITY_MATCHES#,}\"
-echo \"  Hate speech matches: ${HATE_MATCHES#,}\"
-echo \"  Violence/threat matches: ${VIOLENCE_MATCHES#,}\"
-echo \"  Total flagged terms: \$TOTAL_SCORE\"
-echo \"  Normalized score: $(get_var "NORMALIZED_SCORE" "profanity_detection")%\"
+echo \"  Profanity matches: \${PROFANITY_MATCHES#,}\"
+echo \"  Hate speech matches: \${HATE_MATCHES#,}\"
+echo \"  Violence/threat matches: \${VIOLENCE_MATCHES#,}\"
+echo \"  Total flagged terms: \\\$TOTAL_SCORE\"
+echo \"  Normalized score: \$(get_var "NORMALIZED_SCORE" "profanity_detection")%\"
 
 # Determine if content is flagged
-THRESHOLD=$(jq -r '.profanity_threshold' /tmp/content_moderation/thresholds.json)
-FLAGGED=$(echo \"\$NORMALIZED_SCORE > \$THRESHOLD * 100\" | bc -l | grep -q \"1\" && echo \"true\" || echo \"false\")
+THRESHOLD=\$(jq -r '.profanity_threshold' /tmp/content_moderation/thresholds.json)
+FLAGGED=\$(echo \"\\\$NORMALIZED_SCORE > \\\$THRESHOLD * 100\" | bc -l | grep -q \"1\" && echo \"true\" || echo \"false\")
 
-echo \"  Threshold: $(get_var "THRESHOLD" "profanity_detection")%\"
-echo \"  Content flagged: \$FLAGGED\"
+echo \"  Threshold: \$(get_var "THRESHOLD" "profanity_detection")%\"
+echo \"  Content flagged: \\\$FLAGGED\"
 
 # Save profanity analysis
 cat > /tmp/content_moderation/analysis/profanity.json <<EOF
 {
-  \"profanity_detected\": \$FLAGGED,
-  \"normalized_score\": \$NORMALIZED_SCORE,
-  \"raw_score\": \$TOTAL_SCORE,
-  \"threshold\": \$THRESHOLD,
+  \"profanity_detected\": \\\$FLAGGED,
+  \"normalized_score\": \\\$NORMALIZED_SCORE,
+  \"raw_score\": \\\$TOTAL_SCORE,
+  \"threshold\": \\\$THRESHOLD,
   \"flagged_terms\": {
-    \"profanity\": \"${PROFANITY_MATCHES#,}\",
-    \"hate_speech\": \"${HATE_MATCHES#,}\",
-    \"violence_threats\": \"${VIOLENCE_MATCHES#,}\"
+    \"profanity\": \"\${PROFANITY_MATCHES#,}\",
+    \"hate_speech\": \"\${HATE_MATCHES#,}\",
+    \"violence_threats\": \"\${VIOLENCE_MATCHES#,}\"
   },
   \"enabled\": true,
-  \"analysis_timestamp\": \"$(date -Iseconds)\"
+  \"analysis_timestamp\": \"\$(date -Iseconds)\"
 }
 EOF
 
@@ -638,16 +638,16 @@ echo "$llm_content"
 /bin/bash -c "set -euo pipefail
 echo \"🤖 Processing AI analysis results...\"
 
-AI_RESPONSE=\"$(get_var "LLM_CONTENT" "process_ai_analysis")\"
+AI_RESPONSE=\"\$(get_var "LLM_CONTENT" "process_ai_analysis")\"
 ANALYSIS_DIR=\"/tmp/content_moderation/analysis\"
 
 echo \"📋 AI Analysis Response:\"
-echo \"\$AI_RESPONSE\"
+echo \"\\\$AI_RESPONSE\"
 
 # Try to extract JSON from AI response (handle potential formatting issues)
-echo \"\$AI_RESPONSE\" | jq . > \"\$ANALYSIS_DIR/ai_analysis.json\" 2>/dev/null || {
+echo \"\\\$AI_RESPONSE\" | jq . > \"\\\$ANALYSIS_DIR/ai_analysis.json\" 2>/dev/null || {
   echo \"⚠️ AI response not in valid JSON format, creating structured version\"
-  cat > \"\$ANALYSIS_DIR/ai_analysis.json\" <<EOF
+  cat > \"\\\$ANALYSIS_DIR/ai_analysis.json\" <<EOF
   {
     \"safety_assessment\": \"caution\",
     \"safety_score\": 0.5,
@@ -658,7 +658,7 @@ echo \"\$AI_RESPONSE\" | jq . > \"\$ANALYSIS_DIR/ai_analysis.json\" 2>/dev/null 
     \"risk_factors\": [\"ai_parsing_error\"],
     \"recommendations\": [\"manual_review_required\"],
     \"confidence\": 0.3,
-    \"raw_response\": \"\$AI_RESPONSE\"
+    \"raw_response\": \"\\\$AI_RESPONSE\"
   }
 EOF
 }
@@ -670,16 +670,16 @@ echo \"✅ AI analysis processed and saved\"
 /bin/bash -c "set -euo pipefail
 echo \"😊 Performing sentiment and emotional analysis...\"
 
-ENABLE_SENTIMENT=\"${ENABLE_SENTIMENT_ANALYSIS:-true}\"
+ENABLE_SENTIMENT=\"\${ENABLE_SENTIMENT_ANALYSIS:-true}\"
 
-if [ \"\$ENABLE_SENTIMENT\" != \"true\" ]; then
+if [ \"\\\$ENABLE_SENTIMENT\" != \"true\" ]; then
   echo \"ℹ️ Sentiment analysis disabled by configuration\"
   echo '{\"sentiment_enabled\":false,\"sentiment\":\"neutral\",\"score\":0.5}' > /tmp/content_moderation/analysis/sentiment.json
   exit 0
 fi
 
 CONTENT_FILE=\"/tmp/content_moderation/input_content.txt\"
-CONTENT=$(cat \"\$CONTENT_FILE\" | tr '[:upper:]' '[:lower:]')
+CONTENT=\$(cat \"\\\$CONTENT_FILE\" | tr '[:upper:]' '[:lower:]')
 
 # Positive sentiment words
 POSITIVE_WORDS=\"good great excellent amazing wonderful fantastic brilliant perfect love like enjoy happy pleased satisfied\"
@@ -697,28 +697,28 @@ NEGATIVE_COUNT=0
 NEUTRAL_COUNT=0
 
 # Count sentiment indicators
-for word in \$POSITIVE_WORDS; do
-  COUNT=$(echo \"\$CONTENT\" | grep -oi \"\\b\$word\\b\" | wc -l || echo \"0\")
-  POSITIVE_COUNT=$((POSITIVE_COUNT + COUNT))
+for word in \\\$POSITIVE_WORDS; do
+  COUNT=\$(echo \"\\\$CONTENT\" | grep -oi \"\\\\b\\\$word\\\\b\" | wc -l || echo \"0\")
+  POSITIVE_COUNT=\$((POSITIVE_COUNT + COUNT))
 done
 
-for word in \$NEGATIVE_WORDS; do
-  COUNT=$(echo \"\$CONTENT\" | grep -oi \"\\b\$word\\b\" | wc -l || echo \"0\")
-  NEGATIVE_COUNT=$((NEGATIVE_COUNT + COUNT))
+for word in \\\$NEGATIVE_WORDS; do
+  COUNT=\$(echo \"\\\$CONTENT\" | grep -oi \"\\\\b\\\$word\\\\b\" | wc -l || echo \"0\")
+  NEGATIVE_COUNT=\$((NEGATIVE_COUNT + COUNT))
 done
 
-for word in \$NEUTRAL_WORDS; do
-  COUNT=$(echo \"\$CONTENT\" | grep -oi \"\\b\$word\\b\" | wc -l || echo \"0\")
-  NEUTRAL_COUNT=$((NEUTRAL_COUNT + COUNT))
+for word in \\\$NEUTRAL_WORDS; do
+  COUNT=\$(echo \"\\\$CONTENT\" | grep -oi \"\\\\b\\\$word\\\\b\" | wc -l || echo \"0\")
+  NEUTRAL_COUNT=\$((NEUTRAL_COUNT + COUNT))
 done
 
-TOTAL_SENTIMENT=$((POSITIVE_COUNT + NEGATIVE_COUNT + NEUTRAL_COUNT))
+TOTAL_SENTIMENT=\$((POSITIVE_COUNT + NEGATIVE_COUNT + NEUTRAL_COUNT))
 
 # Calculate sentiment scores
-if [ \"\$TOTAL_SENTIMENT\" -gt 0 ]; then
-  POSITIVE_RATIO=$(echo \"scale=2; \$POSITIVE_COUNT / \$TOTAL_SENTIMENT\" | bc -l)
-  NEGATIVE_RATIO=$(echo \"scale=2; \$NEGATIVE_COUNT / \$TOTAL_SENTIMENT\" | bc -l)
-  NEUTRAL_RATIO=$(echo \"scale=2; \$NEUTRAL_COUNT / \$TOTAL_SENTIMENT\" | bc -l)
+if [ \"\\\$TOTAL_SENTIMENT\" -gt 0 ]; then
+  POSITIVE_RATIO=\$(echo \"scale=2; \\\$POSITIVE_COUNT / \\\$TOTAL_SENTIMENT\" | bc -l)
+  NEGATIVE_RATIO=\$(echo \"scale=2; \\\$NEGATIVE_COUNT / \\\$TOTAL_SENTIMENT\" | bc -l)
+  NEUTRAL_RATIO=\$(echo \"scale=2; \\\$NEUTRAL_COUNT / \\\$TOTAL_SENTIMENT\" | bc -l)
 else
   POSITIVE_RATIO=\"0.33\"
   NEGATIVE_RATIO=\"0.33\" 
@@ -726,39 +726,39 @@ else
 fi
 
 # Determine overall sentiment
-if (( $(echo \"\$POSITIVE_RATIO > 0.5\" | bc -l) )); then
+if (( \$(echo \"\\\$POSITIVE_RATIO > 0.5\" | bc -l) )); then
   OVERALL_SENTIMENT=\"positive\"
-  SENTIMENT_SCORE=\"\$POSITIVE_RATIO\"
-elif (( $(echo \"\$NEGATIVE_RATIO > 0.4\" | bc -l) )); then
+  SENTIMENT_SCORE=\"\\\$POSITIVE_RATIO\"
+elif (( \$(echo \"\\\$NEGATIVE_RATIO > 0.4\" | bc -l) )); then
   OVERALL_SENTIMENT=\"negative\"
-  SENTIMENT_SCORE=$(echo \"1 - \$NEGATIVE_RATIO\" | bc -l)  # Invert negative for 0-1 scale
+  SENTIMENT_SCORE=\$(echo \"1 - \\\$NEGATIVE_RATIO\" | bc -l)  # Invert negative for 0-1 scale
 else
   OVERALL_SENTIMENT=\"neutral\"
   SENTIMENT_SCORE=\"0.5\"
 fi
 
 echo \"📊 Sentiment Analysis Results:\"
-echo \"  Positive indicators: \$POSITIVE_COUNT (\$POSITIVE_RATIO)\"
-echo \"  Negative indicators: \$NEGATIVE_COUNT (\$NEGATIVE_RATIO)\" 
-echo \"  Neutral indicators: \$NEUTRAL_COUNT (\$NEUTRAL_RATIO)\"
-echo \"  Overall sentiment: \$OVERALL_SENTIMENT\"
-echo \"  Sentiment score: \$SENTIMENT_SCORE\"
+echo \"  Positive indicators: \\\$POSITIVE_COUNT (\\\$POSITIVE_RATIO)\"
+echo \"  Negative indicators: \\\$NEGATIVE_COUNT (\\\$NEGATIVE_RATIO)\" 
+echo \"  Neutral indicators: \\\$NEUTRAL_COUNT (\\\$NEUTRAL_RATIO)\"
+echo \"  Overall sentiment: \\\$OVERALL_SENTIMENT\"
+echo \"  Sentiment score: \\\$SENTIMENT_SCORE\"
 
 # Save sentiment analysis
 cat > /tmp/content_moderation/analysis/sentiment.json <<EOF
 {
   \"sentiment_enabled\": true,
-  \"overall_sentiment\": \"\$OVERALL_SENTIMENT\",
-  \"sentiment_score\": \$SENTIMENT_SCORE,
+  \"overall_sentiment\": \"\\\$OVERALL_SENTIMENT\",
+  \"sentiment_score\": \\\$SENTIMENT_SCORE,
   \"indicators\": {
-    \"positive_count\": \$POSITIVE_COUNT,
-    \"negative_count\": \$NEGATIVE_COUNT, 
-    \"neutral_count\": \$NEUTRAL_COUNT,
-    \"positive_ratio\": \$POSITIVE_RATIO,
-    \"negative_ratio\": \$NEGATIVE_RATIO,
-    \"neutral_ratio\": \$NEUTRAL_RATIO
+    \"positive_count\": \\\$POSITIVE_COUNT,
+    \"negative_count\": \\\$NEGATIVE_COUNT, 
+    \"neutral_count\": \\\$NEUTRAL_COUNT,
+    \"positive_ratio\": \\\$POSITIVE_RATIO,
+    \"negative_ratio\": \\\$NEGATIVE_RATIO,
+    \"neutral_ratio\": \\\$NEUTRAL_RATIO
   },
-  \"analysis_timestamp\": \"$(date -Iseconds)\"
+  \"analysis_timestamp\": \"\$(date -Iseconds)\"
 }
 EOF
 
@@ -773,88 +773,88 @@ ANALYSIS_DIR=\"/tmp/content_moderation/analysis\"
 REPORTS_DIR=\"/tmp/content_moderation/reports\"
 
 # Load all analysis results
-BASIC_ANALYSIS=$(cat \"\$ANALYSIS_DIR/basic_analysis.json\" 2>/dev/null || echo '{}')
-PROFANITY_ANALYSIS=$(cat \"\$ANALYSIS_DIR/profanity.json\" 2>/dev/null || echo '{}')
-AI_ANALYSIS=$(cat \"\$ANALYSIS_DIR/ai_analysis.json\" 2>/dev/null || echo '{}')
-SENTIMENT_ANALYSIS=$(cat \"\$ANALYSIS_DIR/sentiment.json\" 2>/dev/null || echo '{}')
+BASIC_ANALYSIS=\$(cat \"\\\$ANALYSIS_DIR/basic_analysis.json\" 2>/dev/null || echo '{}')
+PROFANITY_ANALYSIS=\$(cat \"\\\$ANALYSIS_DIR/profanity.json\" 2>/dev/null || echo '{}')
+AI_ANALYSIS=\$(cat \"\\\$ANALYSIS_DIR/ai_analysis.json\" 2>/dev/null || echo '{}')
+SENTIMENT_ANALYSIS=\$(cat \"\\\$ANALYSIS_DIR/sentiment.json\" 2>/dev/null || echo '{}')
 
 echo \"🔍 Analysis Results Summary:\"
-echo \"  Basic Analysis: $(echo \"\$BASIC_ANALYSIS\" | jq -r '.metrics.word_count // \"N/A\"') words\"
-echo \"  Profanity Check: $(echo \"\$PROFANITY_ANALYSIS\" | jq -r '.profanity_detected // \"N/A\"')\"
-echo \"  AI Safety Assessment: $(echo \"\$AI_ANALYSIS\" | jq -r '.safety_assessment // \"N/A\"')\"
-echo \"  Sentiment: $(echo \"\$SENTIMENT_ANALYSIS\" | jq -r '.overall_sentiment // \"N/A\"')\"
+echo \"  Basic Analysis: \$(echo \"\\\$BASIC_ANALYSIS\" | jq -r '.metrics.word_count // \"N/A\"') words\"
+echo \"  Profanity Check: \$(echo \"\\\$PROFANITY_ANALYSIS\" | jq -r '.profanity_detected // \"N/A\"')\"
+echo \"  AI Safety Assessment: \$(echo \"\\\$AI_ANALYSIS\" | jq -r '.safety_assessment // \"N/A\"')\"
+echo \"  Sentiment: \$(echo \"\\\$SENTIMENT_ANALYSIS\" | jq -r '.overall_sentiment // \"N/A\"')\"
 
 # Calculate overall risk score
-PROFANITY_FLAGGED=$(echo \"\$PROFANITY_ANALYSIS\" | jq -r '.profanity_detected // false')
-AI_SAFETY_SCORE=$(echo \"\$AI_ANALYSIS\" | jq -r '.safety_score // 0.5')
-AI_SAFETY_ASSESSMENT=$(echo \"\$AI_ANALYSIS\" | jq -r '.safety_assessment // \"caution\"')
+PROFANITY_FLAGGED=\$(echo \"\\\$PROFANITY_ANALYSIS\" | jq -r '.profanity_detected // false')
+AI_SAFETY_SCORE=\$(echo \"\\\$AI_ANALYSIS\" | jq -r '.safety_score // 0.5')
+AI_SAFETY_ASSESSMENT=\$(echo \"\\\$AI_ANALYSIS\" | jq -r '.safety_assessment // \"caution\"')
 
 # Determine overall moderation decision
 OVERALL_DECISION=\"approved\"
 RISK_LEVEL=\"low\"
 REQUIRES_REVIEW=false
 
-if [ \"\$PROFANITY_FLAGGED\" = \"true\" ]; then
+if [ \"\\\$PROFANITY_FLAGGED\" = \"true\" ]; then
   OVERALL_DECISION=\"flagged\"
   RISK_LEVEL=\"high\"
   REQUIRES_REVIEW=true
-elif [ \"\$AI_SAFETY_ASSESSMENT\" = \"unsafe\" ]; then
+elif [ \"\\\$AI_SAFETY_ASSESSMENT\" = \"unsafe\" ]; then
   OVERALL_DECISION=\"rejected\"
   RISK_LEVEL=\"critical\"
   REQUIRES_REVIEW=true
-elif [ \"\$AI_SAFETY_ASSESSMENT\" = \"caution\" ]; then
+elif [ \"\\\$AI_SAFETY_ASSESSMENT\" = \"caution\" ]; then
   OVERALL_DECISION=\"review_required\"
   RISK_LEVEL=\"medium\"
   REQUIRES_REVIEW=true
 fi
 
 # Get recommendations from AI analysis
-AI_RECOMMENDATIONS=$(echo \"\$AI_ANALYSIS\" | jq -r '.recommendations // []' | jq -r '.[]' | tr '\n' ',' | sed 's/,\$//')
+AI_RECOMMENDATIONS=\$(echo \"\\\$AI_ANALYSIS\" | jq -r '.recommendations // []' | jq -r '.[]' | tr '\\n' ',' | sed 's/,\\\$//')
 
 echo \"🎯 Moderation Decision:\"
-echo \"  Overall Decision: \$OVERALL_DECISION\"
-echo \"  Risk Level: \$RISK_LEVEL\"
-echo \"  Requires Manual Review: \$REQUIRES_REVIEW\"
+echo \"  Overall Decision: \\\$OVERALL_DECISION\"
+echo \"  Risk Level: \\\$RISK_LEVEL\"
+echo \"  Requires Manual Review: \\\$REQUIRES_REVIEW\"
 
 # Create comprehensive report
-REPORT_FILE=\"\$REPORTS_DIR/moderation_report_$(date +%Y%m%d_%H%M%S).json\"
+REPORT_FILE=\"\\\$REPORTS_DIR/moderation_report_\$(date +%Y%m%d_%H%M%S).json\"
 
-cat > \"\$REPORT_FILE\" <<EOF
+cat > \"\\\$REPORT_FILE\" <<EOF
 {
   \"content_analysis\": {
-    \"content_length\": $(echo \"\$BASIC_ANALYSIS\" | jq -r '.metrics.character_count // 0'),
-    \"word_count\": $(echo \"\$BASIC_ANALYSIS\" | jq -r '.metrics.word_count // 0'),
-    \"url_count\": $(echo \"\$BASIC_ANALYSIS\" | jq -r '.metrics.url_count // 0'),
-    \"email_count\": $(echo \"\$BASIC_ANALYSIS\" | jq -r '.metrics.email_count // 0')
+    \"content_length\": \$(echo \"\\\$BASIC_ANALYSIS\" | jq -r '.metrics.character_count // 0'),
+    \"word_count\": \$(echo \"\\\$BASIC_ANALYSIS\" | jq -r '.metrics.word_count // 0'),
+    \"url_count\": \$(echo \"\\\$BASIC_ANALYSIS\" | jq -r '.metrics.url_count // 0'),
+    \"email_count\": \$(echo \"\\\$BASIC_ANALYSIS\" | jq -r '.metrics.email_count // 0')
   },
   \"safety_analysis\": {
-    \"profanity_detected\": \$PROFANITY_FLAGGED,
-    \"profanity_score\": $(echo \"\$PROFANITY_ANALYSIS\" | jq -r '.normalized_score // 0'),
-    \"ai_safety_assessment\": \"\$AI_SAFETY_ASSESSMENT\",
-    \"ai_safety_score\": \$AI_SAFETY_SCORE,
-    \"sentiment\": \"$(echo \"\$SENTIMENT_ANALYSIS\" | jq -r '.overall_sentiment // \"neutral\"')\",
-    \"sentiment_score\": $(echo \"\$SENTIMENT_ANALYSIS\" | jq -r '.sentiment_score // 0.5')
+    \"profanity_detected\": \\\$PROFANITY_FLAGGED,
+    \"profanity_score\": \$(echo \"\\\$PROFANITY_ANALYSIS\" | jq -r '.normalized_score // 0'),
+    \"ai_safety_assessment\": \"\\\$AI_SAFETY_ASSESSMENT\",
+    \"ai_safety_score\": \\\$AI_SAFETY_SCORE,
+    \"sentiment\": \"\$(echo \"\\\$SENTIMENT_ANALYSIS\" | jq -r '.overall_sentiment // \"neutral\"')\",
+    \"sentiment_score\": \$(echo \"\\\$SENTIMENT_ANALYSIS\" | jq -r '.sentiment_score // 0.5')
   },
   \"moderation_decision\": {
-    \"overall_decision\": \"\$OVERALL_DECISION\",
-    \"risk_level\": \"\$RISK_LEVEL\", 
-    \"requires_manual_review\": \$REQUIRES_REVIEW,
-    \"confidence_score\": $(echo \"\$AI_ANALYSIS\" | jq -r '.confidence // 0.5')
+    \"overall_decision\": \"\\\$OVERALL_DECISION\",
+    \"risk_level\": \"\\\$RISK_LEVEL\", 
+    \"requires_manual_review\": \\\$REQUIRES_REVIEW,
+    \"confidence_score\": \$(echo \"\\\$AI_ANALYSIS\" | jq -r '.confidence // 0.5')
   },
-  \"recommendations\": \"\$AI_RECOMMENDATIONS\",
-  \"analysis_timestamp\": \"$(date -Iseconds)\",
+  \"recommendations\": \"\\\$AI_RECOMMENDATIONS\",
+  \"analysis_timestamp\": \"\$(date -Iseconds)\",
   \"moderation_config\": {
-    \"strictness\": \"${MODERATION_STRICTNESS:-moderate}\",
-    \"profanity_enabled\": ${ENABLE_PROFANITY_CHECK:-true},
-    \"sentiment_enabled\": ${ENABLE_SENTIMENT_ANALYSIS:-true}
+    \"strictness\": \"\${MODERATION_STRICTNESS:-moderate}\",
+    \"profanity_enabled\": \${ENABLE_PROFANITY_CHECK:-true},
+    \"sentiment_enabled\": \${ENABLE_SENTIMENT_ANALYSIS:-true}
   }
 }
 EOF
 
 # Save report path for later use
-echo \"\$REPORT_FILE\" > /tmp/content_moderation/final_report_path.txt
+echo \"\\\$REPORT_FILE\" > /tmp/content_moderation/final_report_path.txt
 
-echo \"📋 Comprehensive moderation report saved: \$REPORT_FILE\"
+echo \"📋 Comprehensive moderation report saved: \\\$REPORT_FILE\"
 echo \"✅ Moderation analysis complete\"
 "
 
@@ -862,46 +862,46 @@ echo \"✅ Moderation analysis complete\"
 /bin/bash -c "set -euo pipefail
 echo \"📡 Sending webhook notification...\"
 
-WEBHOOK_URL=\"${WEBHOOK_URL:-}\"
+WEBHOOK_URL=\"\${WEBHOOK_URL:-}\"
 
-if [ -z \"\$WEBHOOK_URL\" ]; then
+if [ -z \"\\\$WEBHOOK_URL\" ]; then
   echo \"ℹ️ No webhook URL configured - skipping notification\"
   echo '{\"webhook_sent\":false,\"reason\":\"no_webhook_configured\"}' > /tmp/content_moderation/webhook_result.json
   exit 0
 fi
 
-REPORT_FILE=$(cat /tmp/content_moderation/final_report_path.txt)
-MODERATION_RESULT=$(cat \"\$REPORT_FILE\")
+REPORT_FILE=\$(cat /tmp/content_moderation/final_report_path.txt)
+MODERATION_RESULT=\$(cat \"\\\$REPORT_FILE\")
 
-echo \"🚀 Sending notification to: \$WEBHOOK_URL\"
+echo \"🚀 Sending notification to: \\\$WEBHOOK_URL\"
 
 # Send webhook with moderation results
-WEBHOOK_RESPONSE=$(curl -s -X POST \"\$WEBHOOK_URL\" \
-  -H \"Content-Type: application/json\" \
-  -H \"X-Webhook-Type: content-moderation\" \
-  -d \"\$MODERATION_RESULT\" \
+WEBHOOK_RESPONSE=\$(curl -s -X POST \"\\\$WEBHOOK_URL\" \\
+  -H \"Content-Type: application/json\" \\
+  -H \"X-Webhook-Type: content-moderation\" \\
+  -d \"\\\$MODERATION_RESULT\" \\
   -w \"HTTP_CODE:%{http_code}\" || echo \"HTTP_CODE:000\")
 
-HTTP_CODE=$(echo \"\$WEBHOOK_RESPONSE\" | grep -o \"HTTP_CODE:[0-9]*\" | cut -d: -f2)
-RESPONSE_BODY=$(echo \"\$WEBHOOK_RESPONSE\" | sed 's/HTTP_CODE:[0-9]*\$//')
+HTTP_CODE=\$(echo \"\\\$WEBHOOK_RESPONSE\" | grep -o \"HTTP_CODE:[0-9]*\" | cut -d: -f2)
+RESPONSE_BODY=\$(echo \"\\\$WEBHOOK_RESPONSE\" | sed 's/HTTP_CODE:[0-9]*\\\$//')
 
-if [ \"\$HTTP_CODE\" -ge 200 ] && [ \"\$HTTP_CODE\" -lt 300 ]; then
-  echo \"✅ Webhook notification sent successfully (HTTP \$HTTP_CODE)\"
+if [ \"\\\$HTTP_CODE\" -ge 200 ] && [ \"\\\$HTTP_CODE\" -lt 300 ]; then
+  echo \"✅ Webhook notification sent successfully (HTTP \\\$HTTP_CODE)\"
   WEBHOOK_SUCCESS=true
 else
-  echo \"❌ Webhook notification failed (HTTP \$HTTP_CODE)\"
-  echo \"Response: \$RESPONSE_BODY\"
+  echo \"❌ Webhook notification failed (HTTP \\\$HTTP_CODE)\"
+  echo \"Response: \\\$RESPONSE_BODY\"
   WEBHOOK_SUCCESS=false
 fi
 
 # Save webhook result
 cat > /tmp/content_moderation/webhook_result.json <<EOF
 {
-  \"webhook_sent\": \$WEBHOOK_SUCCESS,
-  \"webhook_url\": \"\$WEBHOOK_URL\",
-  \"http_code\": \$HTTP_CODE,
-  \"response\": \"\$RESPONSE_BODY\",
-  \"timestamp\": \"$(date -Iseconds)\"
+  \"webhook_sent\": \\\$WEBHOOK_SUCCESS,
+  \"webhook_url\": \"\\\$WEBHOOK_URL\",
+  \"http_code\": \\\$HTTP_CODE,
+  \"response\": \"\\\$RESPONSE_BODY\",
+  \"timestamp\": \"\$(date -Iseconds)\"
 }
 EOF
 

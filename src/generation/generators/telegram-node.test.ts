@@ -41,7 +41,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_send_message()');
+      expect(result).toContain('execute_telegram_send_message()');
       expect(result).toContain('log_step "📱 Sending Telegram message: Send Notification"');
       expect(result).toContain('local message="Hello from flowsh!"');
       expect(result).toContain('local parse_mode="HTML"'); // Default
@@ -65,7 +65,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_custom_message()');
+      expect(result).toContain('execute_telegram_custom_message()');
       expect(result).toContain('local chat_id="12345"');
       expect(result).toContain('local bot_token="bot123:token"');
       expect(result).toContain('local parse_mode="Markdown"');
@@ -84,7 +84,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_template_message()');
+      expect(result).toContain('execute_telegram_template_message()');
       expect(result).toContain('$(get_var "STATUS" "template_message")');
       expect(result).toContain('$(get_var "TIME" "template_message")');
       expect(result).toContain('$(get_var "CHAT_ID" "template_message")');
@@ -102,7 +102,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_shell_template_message()');
+      expect(result).toContain('execute_telegram_shell_template_message()');
       expect(result).toContain('$(get_var "WORKFLOW_NAME" "shell_template_message")');
       expect(result).toContain('$(get_var "USER_NAME" "shell_template_message")');
       expect(result).toContain('$(get_var "TEST_CHAT_ID" "shell_template_message")');
@@ -121,7 +121,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_full_config()');
+      expect(result).toContain('execute_telegram_full_config()');
       expect(result).toContain('local disable_notification=true');
       expect(result).toContain('local reply_to_message_id=123');
       expect(result).toContain('"disable_notification": true');
@@ -234,7 +234,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('send_telegram_resilient_message()');
+      expect(result).toContain('execute_telegram_resilient_message()');
       expect(result).toContain('local error_handling="continue"');
       expect(result).toContain('case "$error_handling" in');
       expect(result).toContain('"ignore")');
@@ -513,7 +513,7 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toMatch(/send_telegram_structure_test\(\)\s*\{/);
+      expect(result).toMatch(/execute_telegram_structure_test\(\)\s*\{/);
       expect(result).toContain('}');
       expect(result).toContain('log_step');
       expect(result).toContain('set_workflow_var');
