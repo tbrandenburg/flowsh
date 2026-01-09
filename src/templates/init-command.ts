@@ -13,7 +13,7 @@ import { TemplateDisplay } from './display.js';
 export async function initCommand(
   template?: string,
   target?: string,
-  options?: { help?: boolean; preview?: boolean; format?: string }
+  options?: { help?: boolean; preview?: boolean }
 ): Promise<void> {
   const discovery = new TemplateDiscovery();
 
@@ -38,19 +38,11 @@ export async function initCommand(
       }
 
       // Import preview functionality dynamically to avoid circular imports during build
-      const { previewTemplate, formatPreviewAsText, formatPreviewAsJSON } =
-        await import('./preview.js');
+      const { previewTemplate, displayTemplatePreview } = await import('./preview.js');
 
       try {
         const preview = await previewTemplate(templateInfo);
-
-        // Format output based on --format option
-        const format = options?.format || 'text';
-        if (format === 'json') {
-          console.log(formatPreviewAsJSON(preview));
-        } else {
-          console.log(formatPreviewAsText(preview));
-        }
+        displayTemplatePreview(preview);
         return;
       } catch (previewError: any) {
         console.error(`❌ Preview failed: ${previewError.message}`);

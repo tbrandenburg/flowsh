@@ -10,10 +10,6 @@ flowsh converts YAML workflow definitions into clean, readable shell scripts. Th
 # Start with a template (NEW!)
 flowsh init ai-to-telegram-simple my-workflow.yaml
 
-# Preview templates before creating files (NEW!)
-flowsh init ai-to-telegram-simple --preview           # Human-readable preview
-flowsh init circuit-breaker --preview --format json   # Machine-readable JSON
-
 # Explore DSL structure and node types (NEW!)
 flowsh dsl
 flowsh dsl llm                    # Detailed node exploration
@@ -39,18 +35,9 @@ bash script.sh
 - **Unix Philosophy** - Does one thing well, plays nicely with other tools
 - **jq-like UX** - Familiar command-line interface for developers
 
-## 🆕 What's New - Phase 2B
+## 🆕 What's New - Phase 2A
 
-flowsh now supports **template preview functionality** for informed workflow creation:
-
-- **Template Preview** - View template content without creating files (`--preview`)
-- **JSON Output** - Machine-readable template metadata (`--format json`)
-- **Smart Analysis** - Automatic complexity analysis and requirement detection
-- **AI-Friendly** - Enhanced template discovery for AI agents and tooling
-
-## 🆕 Previous Updates - Phase 2A
-
-flowsh supports **enhanced control flow** with loops and iterations:
+flowsh now supports **enhanced control flow** with loops and iterations, making it practical for real-world automation:
 
 - **Loop Nodes** - Conditional repetition with safety limits (prevents infinite loops)
 - **Iteration Nodes** - Array processing with JSON and newline-separated input support
@@ -279,18 +266,11 @@ flowsh is the `jq` of this space - focused, simple, and extremely good at its on
 **Quick Start with Templates:**
 
 ```bash
-# Explore available templates first
-flowsh init                                          # List all templates
-
-# Preview a template before creating files
-flowsh init ai-to-telegram-simple --preview         # See what you're getting
-flowsh init circuit-breaker --preview --format json # JSON for tooling
-
-# Create workflow from template
-flowsh init ai-to-telegram-simple my-bot.yaml       # Create from template
-flowsh validate my-bot.yaml                         # Validate syntax
-flowsh compile my-bot.yaml > my-bot.sh               # Generate shell script
-bash my-bot.sh                                       # Execute
+# Get started in 30 seconds
+flowsh init ai-to-telegram-simple my-bot.yaml
+flowsh validate my-bot.yaml
+flowsh compile my-bot.yaml > my-bot.sh
+bash my-bot.sh
 ```
 
 See the `examples/` directory for sample workflows and the `templates/` directory for all 14 production-ready templates:

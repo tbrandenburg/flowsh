@@ -1,12 +1,7 @@
 /**
  * Tests for template preview functionality
  */
-import {
-  previewTemplate,
-  displayTemplatePreview,
-  formatPreviewAsText,
-  formatPreviewAsJSON,
-} from './preview.js';
+import { previewTemplate, displayTemplatePreview } from './preview.js';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TemplateDiscovery } from './discovery.js';
 import { TemplateAnalyzer } from './analyzer.js';
@@ -303,89 +298,6 @@ describe('Template Preview Functionality', () => {
 
       // Multiple previews should still be reasonably fast
       expect(endTime - startTime).toBeLessThan(1500); // 1.5 seconds for 3 templates
-    });
-  });
-
-  describe('Output Formatting', () => {
-    it('should support JSON format output via CLI', () => {
-      const command = 'node dist/cli/index.js init ai-to-telegram-simple --preview --format json';
-      const output = execSync(command, { encoding: 'utf8' });
-
-      // Should be valid JSON
-      expect(() => JSON.parse(output)).not.toThrow();
-
-      const parsed = JSON.parse(output);
-      expect(parsed.templateId).toBe('ai-to-telegram-simple');
-      expect(parsed.category).toBe('enhanced');
-      expect(parsed.metadata).toBeDefined();
-      expect(parsed.placeholders).toBeDefined();
-      expect(parsed.contentLength).toBeGreaterThan(0);
-    });
-
-    it('should default to text format', () => {
-      const command = 'node dist/cli/index.js init ai-to-telegram-simple --preview';
-      const output = execSync(command, { encoding: 'utf8' });
-
-      // Should contain text format markers
-      expect(output).toContain('# Template:');
-      expect(output).toContain('# Category:');
-      expect(output).toContain('# Description:');
-      expect(output).toContain('workflow:');
-    });
-
-    it('should format preview as readable text', async () => {
-      const templateInfo = discovery.getTemplateByName('ai-to-telegram-simple');
-      expect(templateInfo).toBeDefined();
-
-      if (templateInfo) {
-        const preview = await previewTemplate(templateInfo);
-        const textOutput = formatPreviewAsText(preview);
-
-        expect(textOutput).toContain('# Template: ai-to-telegram-simple');
-        expect(textOutput).toContain('# Category: enhanced');
-        expect(textOutput).toContain('# Complexity: ');
-        expect(textOutput).toContain('# Node Types: ');
-        expect(textOutput).toContain('# Estimated Script Length: ');
-        expect(textOutput).toContain('workflow:');
-      }
-    });
-
-    it('should format preview as valid JSON', async () => {
-      const templateInfo = discovery.getTemplateByName('ai-to-telegram-simple');
-      expect(templateInfo).toBeDefined();
-
-      if (templateInfo) {
-        const preview = await previewTemplate(templateInfo);
-        const jsonOutput = formatPreviewAsJSON(preview);
-
-        expect(() => JSON.parse(jsonOutput)).not.toThrow();
-
-        const parsed = JSON.parse(jsonOutput);
-        expect(parsed.templateId).toBe('ai-to-telegram-simple');
-        expect(parsed.category).toBe('enhanced');
-        expect(parsed.description).toBeDefined();
-        expect(parsed.metadata).toBeDefined();
-        expect(parsed.placeholders).toBeDefined();
-        expect(parsed.requiredVariables).toBeDefined();
-        expect(parsed.contentLength).toBeGreaterThan(0);
-        // Should not include full content in JSON mode
-        expect(parsed.content).toBeUndefined();
-      }
-    });
-
-    it('should handle subcategory in text format', async () => {
-      const templateInfo = discovery.getTemplateByName('circuit-breaker');
-      expect(templateInfo).toBeDefined();
-
-      if (templateInfo) {
-        const preview = await previewTemplate(templateInfo);
-        const textOutput = formatPreviewAsText(preview);
-
-        expect(textOutput).toContain('# Category: advanced');
-        if (preview.subcategory) {
-          expect(textOutput).toContain(`> ${preview.subcategory}`);
-        }
-      }
     });
   });
 });
