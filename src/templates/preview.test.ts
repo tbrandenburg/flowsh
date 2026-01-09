@@ -1,10 +1,10 @@
 /**
  * Tests for template preview functionality
  */
-import { previewTemplate, displayTemplatePreview } from './preview.js';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TemplateDiscovery } from './discovery.js';
 import { TemplateAnalyzer } from './analyzer.js';
+import { previewTemplate } from './preview.js';
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';

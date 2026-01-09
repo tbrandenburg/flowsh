@@ -81,7 +81,7 @@ function extractEnvVarsFromNode(node: WorkflowNode): string[] {
         envVars.push('OPENAI_API_KEY');
       }
     }
-  } catch (error) {
+  } catch {
     // Ignore JSON parsing errors and continue
   }
 
