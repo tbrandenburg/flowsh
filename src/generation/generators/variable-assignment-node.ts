@@ -22,6 +22,7 @@ export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
       const expression = this.processConfigValue(this.getNodeData(node, 'expression', ''), '');
 
       if (expression) {
+        // Use command substitution to execute the expression and capture its output
         return `# Node: ${node.id}
 ${variable.toUpperCase()}=$(${expression})
 set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
@@ -58,8 +59,8 @@ set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
           // For arithmetic expressions, use unquoted variable substitution
           return `$(get_workflow_var "${sanitizedVar}" "0")`;
         } else {
-          // For string expressions, break out of quotes and return to quoted context
-          return `'"$(get_workflow_var "${sanitizedVar}" "default")"'`;
+          // For string expressions, use direct substitution without quote conflicts
+          return `$(get_workflow_var "${sanitizedVar}" "default")`;
         }
       });
       return result;
