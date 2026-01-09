@@ -123,17 +123,37 @@ async function compileCommand(
  * DSL command: Show flowsh DSL structure and node types
  */
 async function dslCommand(
+  nodeType?: string,
   options: { format: 'text' | 'json' } = { format: 'text' }
 ): Promise<void> {
   try {
     const registry = createDefaultRegistry();
     const introspector = new DSLIntrospector(registry);
-    const overview = introspector.getOverview();
 
-    if (options.format === 'json') {
-      console.log(introspector.formatAsJSON(overview));
+    if (nodeType) {
+      // Node detail mode
+      if (!registry.has(nodeType)) {
+        console.error(`❌ Unknown node type: ${nodeType}`);
+        console.error(`💡 Run 'flowsh dsl' to see available node types`);
+        process.exit(1);
+      }
+
+      const detail = introspector.getNodeDetail(nodeType);
+
+      if (options.format === 'json') {
+        console.log(introspector.formatNodeAsJSON(detail));
+      } else {
+        console.log(introspector.formatNodeAsText(detail));
+      }
     } else {
-      console.log(introspector.formatAsText(overview));
+      // Overview mode (Phase 1 functionality)
+      const overview = introspector.getOverview();
+
+      if (options.format === 'json') {
+        console.log(introspector.formatAsJSON(overview));
+      } else {
+        console.log(introspector.formatAsText(overview));
+      }
     }
   } catch (error) {
     handleError(error, 'DSL exploration');
@@ -204,9 +224,10 @@ program
 program
   .command('dsl')
   .description('Explore flowsh DSL node types and properties')
+  .argument('[node-type]', 'Specific node type to explore in detail')
   .option('--format <format>', 'Output format: text | json', 'text')
-  .action(async (options: { format: 'text' | 'json' }) => {
-    await dslCommand(options);
+  .action(async (nodeType?: string, options: { format: 'text' | 'json' } = { format: 'text' }) => {
+    await dslCommand(nodeType, options);
   });
 
 // Init command - initialize workflow from template

@@ -12,6 +12,8 @@ flowsh init ai-to-telegram-simple my-workflow.yaml
 
 # Explore DSL structure and node types (NEW!)
 flowsh dsl
+flowsh dsl llm                    # Detailed node exploration
+flowsh dsl http-request --format json  # Machine-readable schema
 
 # Compile workflow to shell script
 flowsh compile my-workflow.yaml > script.sh
@@ -174,8 +176,16 @@ Explore flowsh DSL structure and discover node types:
 # Show complete DSL structure overview
 flowsh dsl
 
+# Explore specific node types in detail (NEW in Phase 2!)
+flowsh dsl llm                    # Detailed LLM node specification
+flowsh dsl http-request          # HTTP request node properties
+flowsh dsl circuit-breaker       # Circuit breaker configuration
+flowsh dsl if-else               # Conditional branching options
+
 # Get machine-readable JSON format
-flowsh dsl --format json
+flowsh dsl --format json                # Full DSL schema
+flowsh dsl llm --format json            # LLM node JSON schema
+flowsh dsl http-request --format json   # HTTP node JSON schema
 
 # Get help with DSL exploration
 flowsh dsl --help
@@ -189,6 +199,14 @@ The DSL command provides comprehensive information about:
 - **VARIABLE TYPES** - All 7 supported variable types with descriptions
 - **NODE TYPES** - All 19+ available node types with descriptions
 - **SUPPORTING TYPES** - Model providers and template sources
+
+**NEW: Detailed Node Exploration** (Phase 2) - Get comprehensive documentation for any node type:
+
+- **Complete Property Schema** - All required and optional properties with types, defaults, and validation rules
+- **Template Variables** - Supported template variable syntax ({{var}}, {{#path#}}, ${var})
+- **Shell Generation Features** - What the node generates in shell scripts
+- **Usage Examples** - Property configuration examples and common patterns
+- **JSON Schema Output** - Machine-readable schema for tooling integration
 
 Perfect for discovering capabilities and for AI agents working with flowsh workflows.
 
