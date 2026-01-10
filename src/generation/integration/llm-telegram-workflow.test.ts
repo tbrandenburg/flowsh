@@ -98,9 +98,8 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
 
       const result = llmGenerator?.generate(llmNode, mockContext);
       expect(result).toBeDefined();
-      expect(result).toContain('# Node: generate_riddle');
-      expect(result).toContain('set_var "LLM_CONTENT"');
-      expect(result).toContain('$(get_workflow_var "TOPIC" "default")'); // Template variable processed
+      expect(result).toContain('set_workflow_var "LLM_CONTENT"');
+      expect(result).toContain('$(get_var "TOPIC" "generate_riddle")'); // Template variable processed
       expect(result).toContain('"role":"system"');
       expect(result).toContain('"role":"user"');
       expect(result).toContain('educational riddles about science');
@@ -124,8 +123,8 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
 
       const result = llmGenerator!.generate(llmNode, mockContext);
 
-      expect(result).toContain('set_var "LLM_CONTENT"');
-      expect(result).toContain('$(get_workflow_var "CONTENT_TOPIC" "default")');
+      expect(result).toContain('set_workflow_var "LLM_CONTENT"');
+      expect(result).toContain('$(get_var "CONTENT_TOPIC" "simple_llm")');
       expect(result).not.toContain('prompt_template'); // Should use legacy prompt field
     });
 
@@ -237,10 +236,10 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
       const result = telegramGenerator!.generate(telegramNode, mockContext);
 
       expect(result).toContain('# Node: send_message');
-      expect(result).toContain('$(get_workflow_var "TELEGRAM_MESSAGE" "default")');
+      expect(result).toContain('$(get_var "TELEGRAM_MESSAGE" "send_message")');
       expect(result).not.toContain('${telegram_message}'); // Should be processed
-      expect(result).toContain('"parse_mode":"HTML"');
-      expect(result).toContain('set_var "TELEGRAM_SUCCESS"');
+      expect(result).toContain('"parse_mode": "$parse_mode"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_SUCCESS"');
     });
 
     it('should handle direct message content in Telegram node', () => {
@@ -258,8 +257,8 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
 
       const result = telegramGenerator!.generate(directTelegramNode, mockContext);
 
-      expect(result).toContain('$(get_workflow_var "LLM_CONTENT" "default")');
-      expect(result).toContain('"parse_mode":"Markdown"');
+      expect(result).toContain('$(get_var "LLM_CONTENT" "direct_message")');
+      expect(result).toContain('"parse_mode": "$parse_mode"');
       expect(result).toContain('Hello from flowsh'); // Direct content preserved
     });
 
@@ -298,7 +297,7 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
       };
 
       const llmResult = llmGenerator!.generate(llmNode, mockContext);
-      expect(llmResult).toContain('set_var "LLM_CONTENT"'); // Produces LLM_CONTENT
+      expect(llmResult).toContain('set_workflow_var "LLM_CONTENT"'); // Produces LLM_CONTENT
 
       // Step 2: Format the message
       const formatNode: WorkflowNode = {
@@ -328,8 +327,8 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
       };
 
       const telegramResult = telegramGenerator!.generate(telegramNode, mockContext);
-      expect(telegramResult).toContain('set_var "TELEGRAM_SUCCESS"'); // Produces TELEGRAM_SUCCESS
-      expect(telegramResult).toContain('$(get_workflow_var "TELEGRAM_MESSAGE" "default")'); // Uses formatted message
+      expect(telegramResult).toContain('set_workflow_var "TELEGRAM_SUCCESS"'); // Produces TELEGRAM_SUCCESS
+      expect(telegramResult).toContain('$(get_var "TELEGRAM_MESSAGE" "send_telegram")'); // Uses formatted message
     });
 
     it('should handle workflow with fallback content', () => {
@@ -349,7 +348,7 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
       };
 
       const llmResult = llmGenerator!.generate(llmNode, mockContext);
-      expect(llmResult).toContain('Demo Riddle: What has rings'); // Fallback content included
+      expect(llmResult).toContain('Mock LLM Response: This is a simulated response'); // Fallback content included
 
       // Variable assignment using the LLM output (with fallback)
       const formatNode: WorkflowNode = {

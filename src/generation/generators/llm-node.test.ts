@@ -52,8 +52,8 @@ describe('LLMNodeGenerator', () => {
 
       expect(result).toContain('extract_llm_content()');
       expect(result).toContain('Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo');
-      expect(result).toContain('"model": "gpt-3.5-turbo"');
-      expect(result).toContain('"content":"Hello, how are you?"'); // Adjusted for JSON format
+      expect(result).toContain('\\"model\\": \\"gpt-3.5-turbo\\"');
+      expect(result).toContain('\\"content\\":\\"Hello, how are you?\\"'); // Escaped for shell script
       expect(result).toContain('set_workflow_var "LLM_CONTENT"');
       expect(result).toContain('set_workflow_var "LLM_SUCCESS"');
     });
@@ -71,8 +71,8 @@ describe('LLMNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('"model": "gpt-4"');
-      expect(result).toContain('"content":"Analyze this data"'); // Adjusted for JSON format
+      expect(result).toContain('\\"model\\": \\"gpt-4\\"');
+      expect(result).toContain('\\"content\\":\\"Analyze this data\\"'); // Escaped for shell script
     });
 
     it('should handle template variables in prompt', () => {
@@ -104,8 +104,8 @@ describe('LLMNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('"model": "gpt-4"');
-      expect(result).toContain('"content":"What is AI?"'); // Adjusted for JSON format
+      expect(result).toContain('\\"model\\": \\"gpt-4\\"');
+      expect(result).toContain('\\"content\\":\\"What is AI?\\"'); // Escaped for shell script
     });
 
     it('should include OpenAI API key check', () => {
