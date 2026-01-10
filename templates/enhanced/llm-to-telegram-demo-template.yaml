@@ -1,13 +1,6 @@
-version: '1.0'
-kind: Workflow
-metadata:
-  name: llm-to-telegram-workflow
-  description: 'Demonstrates LLM→Variable Assignment→Telegram workflow with proper variable substitution'
-  version: '1.0'
-
 workflow:
-  name: 'LLM to Telegram Workflow'
-  description: 'Complete example showing AI-generated content being sent to Telegram with proper variable substitution'
+  name: 'LLM to Telegram Demo - Variable Substitution'
+  description: 'Complete demonstration of AI-generated content being sent to Telegram with proper variable substitution'
 
 environment_variables:
   - variable: 'openai_api_key'
