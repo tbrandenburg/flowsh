@@ -14,7 +14,20 @@ export class AnswerNodeGenerator extends BaseNodeGenerator {
   generate(node: WorkflowNode, _context: GenerationContext): string {
     const answer = this.getNodeData(node, 'answer', 'Workflow completed');
     const processedAnswer = this.processTemplateVariables(String(answer), node.id);
-    return `echo "${processedAnswer}"`;
+
+    // For multiline content, split into lines and echo each one
+    if (processedAnswer.includes('\n')) {
+      const lines = processedAnswer.split('\n');
+      const echoCommands = lines.map(line => {
+        const escapedLine = line.replace(/"/g, '\\"').replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+        return `echo "${escapedLine}"`;
+      });
+      return echoCommands.join('\n');
+    }
+
+    // For single-line content, use echo with proper escaping
+    const escapedAnswer = processedAnswer.replace(/"/g, '\\"').replace(/`/g, '\\`');
+    return `echo "${escapedAnswer}"`;
   }
 
   getVariables(node: WorkflowNode): string[] {

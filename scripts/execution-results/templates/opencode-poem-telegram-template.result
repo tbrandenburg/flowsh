@@ -1,7 +1,0 @@
-Starting workflow: OpenCode Poem to Telegram - Creative Automation
-🔍 Validating environment for OpenCode Poem Generator...
-✅ OpenCode agent available: /home/tom/.opencode/bin/opencode
-✅ Environment validation passed
-🤖 Bot: 8404738211...
-💬 Chat: 6546106981
-/bin/bash: line 31: poem_type: unbound variable

@@ -1,8 +1,0 @@
-Starting workflow: Data Validation & Cleanup - Input Sanitization and Quality Assurance
-🔍 Initializing Data Validation & Cleanup System
-=========================================
-🆔 Validation ID: val_1768044011
-⏰ Start Time: 2026-01-10T12:20:11+01:00
-📊 Data Source: 
-🔧 Validation Rules: 
-scripts/generated-outputs/templates/data-validation-cleanup-template.sh: line 391: CLEANUP_ACTIONS: unbound variable

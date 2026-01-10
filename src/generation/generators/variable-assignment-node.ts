@@ -19,9 +19,16 @@ export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
 
     if (assignmentType === 'expression') {
       // Handle expression-based assignment
-      const expression = this.processConfigValue(this.getNodeData(node, 'expression', ''), '');
+      const rawExpression = this.getNodeData(node, 'expression', '');
+      let expression = this.processConfigValue(rawExpression, '');
 
       if (expression) {
+        // Handle multiline expressions by converting to single line
+        expression = expression.replace(/\n/g, ' ').trim();
+
+        // Escape single quotes in the expression to prevent shell syntax errors
+        expression = expression.replace(/'/g, "\\'");
+
         // Use command substitution to execute the expression and capture its output
         return `# Node: ${node.id}
 ${variable.toUpperCase()}=$(${expression})

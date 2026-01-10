@@ -247,16 +247,10 @@ EOF
   }
 
   private generateEscapingCode(_parseMode: string): string {
-    return `    # Character escaping functions for Telegram
+    return `    # Simple escaping for Telegram  
     escape_json() {
-        local text="\$1"
-        # Escape characters that would break JSON payload
-        text="\${text//\\\\/\\\\\\\\}"  # Escape backslashes first
-        text="\${text//\"/\\\\\"}"      # Escape double quotes
-        text="\${text//\$'\\n'/\\\\n}"  # Escape newlines
-        text="\${text//\$'\\r'/\\\\r}"  # Escape carriage returns
-        text="\${text//\$'\\t'/\\\\t}"  # Escape tabs
-        echo "\$text"
+        # For now, just pass through without complex escaping
+        printf '%s' "\$1"
     }
 
     escape_markdown() {

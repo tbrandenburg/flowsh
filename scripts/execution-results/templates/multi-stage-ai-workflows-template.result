@@ -1,9 +1,0 @@
-Starting workflow: Multi-Stage AI Workflows - Complex AI Processing Chains
-🤖 Initializing Multi-Stage AI Processing Pipeline
-===============================================
-🆔 Pipeline ID: ai_1768044006
-⏰ Start Time: 2026-01-10T12:20:06+01:00
-scripts/generated-outputs/templates/multi-stage-ai-workflows-template.sh: line 389: INPUT_CONTENT: unbound variable
-📝 Input Content Length: 0 characters
-🔄 Processing Stages: 
-scripts/generated-outputs/templates/multi-stage-ai-workflows-template.sh: line 391: AI_MODELS: unbound variable

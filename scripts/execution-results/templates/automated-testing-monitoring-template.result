@@ -1,7 +1,0 @@
-Starting workflow: Automated Testing & Monitoring - DevOps Automation
-🚀 Initializing Automated Testing & Monitoring System
-==================================================
-🆔 Monitoring ID: mon_1768044014
-⏰ Start Time: 2026-01-10T12:20:14+01:00
-🌐 Service URL: 
-scripts/generated-outputs/templates/automated-testing-monitoring-template.sh: line 391: TEST_ENDPOINTS: unbound variable

@@ -101,16 +101,16 @@ example: build
 # Generate shell scripts from all node examples and execute them
 examples-all: build
 	@echo "Generating and executing shell scripts from all node examples..."
-	@mkdir -p scripts/generated-outputs/nodes/
-	@mkdir -p scripts/execution-results/nodes/
+	@mkdir -p dev/generated-outputs/nodes/
+	@mkdir -p dev/execution-results/nodes/
 	@success=0; total=0; \
 	for example in examples/nodes/*-example.yaml; do \
 		if [ -f "$$example" ]; then \
 			total=$$((total + 1)); \
 			echo "Processing: $$example"; \
 			basename=$$(basename "$$example" .yaml); \
-			script_file="scripts/generated-outputs/nodes/$$basename.sh"; \
-			result_file="scripts/execution-results/nodes/$$basename.result"; \
+			script_file="dev/generated-outputs/nodes/$$basename.sh"; \
+			result_file="dev/execution-results/nodes/$$basename.result"; \
 			if node dist/cli/index.js compile "$$example" > "$$script_file" 2>/dev/null; then \
 				echo "  ✅ Generated: $$script_file"; \
 				chmod +x "$$script_file"; \
@@ -138,23 +138,23 @@ examples-all: build
 	if [ $$success -eq $$total ]; then \
 		echo "🎉 All examples passed!"; \
 	else \
-		echo "⚠️  Some examples failed - check scripts/execution-results/nodes/ for details"; \
+		echo "⚠️  Some examples failed - check dev/execution-results/nodes/ for details"; \
 		exit 1; \
 	fi
 
 # Generate shell scripts from key workflow examples  
 examples-workflows: build
 	@echo "Generating shell scripts from key workflow examples..."
-	@mkdir -p scripts/generated-outputs/workflows/
+	@mkdir -p dev/generated-outputs/workflows/
 	@for example in examples/hello-world.yaml examples/simple-workflow.yaml examples/counting-loop.yaml examples/api-data-aggregation.yaml; do \
 		if [ -f "$$example" ]; then \
 			echo "Generating: $$example"; \
 			basename=$$(basename "$$example" .yaml); \
-			node dist/cli/index.js compile "$$example" > "scripts/generated-outputs/workflows/$$basename.sh" 2>/dev/null || \
+			node dist/cli/index.js compile "$$example" > "dev/generated-outputs/workflows/$$basename.sh" 2>/dev/null || \
 			echo "  ❌ Failed to compile $$example"; \
 		fi; \
 	done
-	@echo "✅ Generated workflow example scripts in scripts/generated-outputs/workflows/"
+	@echo "✅ Generated workflow example scripts in dev/generated-outputs/workflows/"
 
 # Validate example workflows
 validate: build
@@ -170,16 +170,16 @@ validate: build
 # Generate shell scripts from all production templates and execute them
 templates-all: build
 	@echo "Generating and executing shell scripts from all production templates..."
-	@mkdir -p scripts/generated-outputs/templates/
-	@mkdir -p scripts/execution-results/templates/
+	@mkdir -p dev/generated-outputs/templates/
+	@mkdir -p dev/execution-results/templates/
 	@success=0; total=0; \
 	for template in templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
 		if [ -f "$$template" ]; then \
 			total=$$((total + 1)); \
 			echo "Processing: $$template"; \
 			basename=$$(basename "$$template" .yaml); \
-			script_file="scripts/generated-outputs/templates/$$basename.sh"; \
-			result_file="scripts/execution-results/templates/$$basename.result"; \
+			script_file="dev/generated-outputs/templates/$$basename.sh"; \
+			result_file="dev/execution-results/templates/$$basename.result"; \
 			if node dist/cli/index.js compile "$$template" > "$$script_file" 2>/dev/null; then \
 				echo "  ✅ Generated: $$script_file"; \
 				chmod +x "$$script_file"; \
@@ -208,7 +208,7 @@ templates-all: build
 	if [ $$success -eq $$total ]; then \
 		echo "🎉 All templates passed!"; \
 	else \
-		echo "⚠️  Some templates failed - check scripts/execution-results/templates/ for details"; \
+		echo "⚠️  Some templates failed - check dev/execution-results/templates/ for details"; \
 		exit 1; \
 	fi
 
@@ -272,10 +272,10 @@ test-templates: build
 # Test generated shell scripts (if they exist)
 test-generated:
 	@echo "Testing generated shell scripts..."
-	@if [ -f "scripts/generated-outputs/flowsh-workflow-example.sh" ]; then \
+	@if [ -f "dev/generated-outputs/flowsh-workflow-example.sh" ]; then \
 		echo "Testing example workflow script..."; \
-		chmod +x scripts/generated-outputs/flowsh-workflow-example.sh; \
-		scripts/generated-outputs/flowsh-workflow-example.sh --help || echo "Script help failed"; \
+		chmod +x dev/generated-outputs/flowsh-workflow-example.sh; \
+		dev/generated-outputs/flowsh-workflow-example.sh --help || echo "Script help failed"; \
 	else \
 		echo "No generated example script found. Run 'make example' first."; \
 	fi
@@ -283,7 +283,7 @@ test-generated:
 # Test development shell scripts
 test-scripts:
 	@echo "Testing development shell scripts..."
-	@for script in scripts/test-scripts/test_script_v*.sh; do \
+	@for script in dev/test-scripts/test_script_v*.sh; do \
 		if [ -f "$$script" ]; then \
 			echo "Testing $$script..."; \
 			chmod +x "$$script"; \

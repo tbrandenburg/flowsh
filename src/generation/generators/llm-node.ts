@@ -68,11 +68,12 @@ export class LLMNodeGenerator extends BaseNodeGenerator {
     modelName: string,
     messages: Array<{ role: string; content: string }>
   ): string {
-    const messagesJson = JSON.stringify(messages).replace(/'/g, "\\'");
+    // Use double quotes for curl data and escape only what's needed for JSON
+    const messagesJson = JSON.stringify(messages).replace(/"/g, '\\"').replace(/\$/g, '\\$');
     return `curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
       -H "Authorization: Bearer $OPENAI_API_KEY" \\
       -H "Content-Type: application/json" \\
-      -d '{"model": "${modelName}", "messages": ${messagesJson}}' \\
+      -d "{\\"model\\": \\"${modelName}\\", \\"messages\\": ${messagesJson}}" \\
       --connect-timeout 30 --max-time 60`;
   }
 

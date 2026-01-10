@@ -7,6 +7,32 @@ Agents should read this file first and follow it strictly.
 
 ---
 
+## 🚫 CRITICAL REPOSITORY RULE
+
+**FORBIDDEN: Placing non-repository-root files in the repository root.**
+
+AI agents must NEVER create temporary files, generated scripts, test files, or any other non-essential files directly in the repository root directory.
+
+**ALL temporary, generated, or development files must be placed under `dev/`:**
+
+- `dev/generated-scripts/` - Temporary shell scripts and generated files
+- `dev/test-workflows/` - Test YAML files and temporary workflow data
+- `dev/working-files/` - Development workspace and working files
+- `dev/outputs/` - Temporary outputs, logs, and debug files
+
+**Only these files are permitted in the repository root:**
+
+- Core configuration files: `package.json`, `package-lock.json`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.cjs`, `.prettierrc`
+- Documentation: `README.md`, `AGENTS.md`, `LICENSE`
+- Build/development tools: `Makefile`, `.gitignore`
+- Standard directories: `src/`, `templates/`, `examples/`, `docs/`, `dev/`
+
+**The entire `dev/` folder is gitignored - use it freely for all temporary work.**
+
+**Violation of this rule will result in immediate cleanup and reorganization.**
+
+---
+
 ## 1. Project Overview
 
 **Project Name**: flowsh
@@ -79,8 +105,13 @@ flowsh/
 ├── examples/               # Example workflows and node demonstrations
 │   ├── nodes/              # Individual node type examples (19+ types)
 │   └── *.yaml              # Complete workflow examples
-├── tests/                  # Test suites (Vitest)
-├── scripts/                # Build and development scripts
+├── dev/                    # ALL temporary/generated files (gitignored)
+│   ├── generated-scripts/  # Temporary shell scripts and generated files
+│   ├── test-workflows/     # Test YAML files and temporary workflow data
+│   ├── working-files/      # Development workspace and working files
+│   ├── outputs/            # Temporary outputs, logs, and debug files
+│   ├── execution-results/  # Test execution outputs
+│   └── test-scripts/       # Manual test scripts
 ├── docs/                   # Documentation
 └── PRPs/                   # Project Requirements & Planning documents
 ```
@@ -132,8 +163,7 @@ Agents must run relevant tests and add tests for new functionality when reasonab
 **Test Structure**:
 
 - Unit tests: `*.test.ts` files throughout source
-- Integration tests: `tests/integration/`
-- Manual tests: `tests/manual/` (shell scripts)
+- Manual tests: `dev/test-scripts/` (shell scripts for development testing)
 
 **Validation Requirements**:
 
