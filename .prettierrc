@@ -6,15 +6,5 @@
   "tabWidth": 2,
   "useTabs": false,
   "bracketSpacing": true,
-  "arrowParens": "avoid",
-  "plugins": ["prettier-plugin-sort-imports"],
-  "importOrder": [
-    "^node:",
-    "^[a-z]",
-    "^@[^/]",
-    "^@/",
-    "^[./]"
-  ],
-  "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true
+  "arrowParens": "avoid"
 }

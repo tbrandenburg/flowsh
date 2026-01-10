@@ -53,9 +53,9 @@ help:
 qa: check examples-all templates-all
 	@echo "🎉 All QA checks passed successfully!"
 
-# Unit tests only (npm test)
+# Unit tests only (npm run test:run for CI mode)
 test:
-	npm test
+	npm run test:run
 
 # =============================================================================
 # Core Development Commands
