@@ -406,11 +406,186 @@ function generateVariableSetup(variables: Map<string, string>): string {
 }
 
 /**
- * Generate main execution logic using registry
+ * Container group types for execution organization
+ */
+interface ContainerGroup {
+  type: 'linear' | 'iteration' | 'loop';
+  containerNode?: WorkflowNode; // The iteration/loop node that owns the children
+  nodes: WorkflowNode[];
+}
+
+/**
+ * Group nodes by their container membership for proper execution orchestration
+ */
+function groupNodesByContainer(nodes: WorkflowNode[], _edges: WorkflowEdge[]): ContainerGroup[] {
+  const groups: ContainerGroup[] = [];
+  const processedNodes = new Set<string>();
+
+  // First, find all container nodes (iteration, loop, etc.)
+  const containerNodes = nodes.filter(n => n.type === 'iteration' || n.type === 'loop');
+
+  // Process each container and its children
+  for (const containerNode of containerNodes) {
+    if (processedNodes.has(containerNode.id)) continue;
+
+    const childNodes: WorkflowNode[] = [];
+
+    // Find nodes that belong to this container
+    for (const node of nodes) {
+      if (processedNodes.has(node.id)) continue;
+
+      // Check if this node has container membership for this container
+      const nodeData = node.data as any;
+      const belongsToIteration =
+        nodeData.isInIteration && nodeData.iteration_id === containerNode.id;
+      const belongsToLoop = nodeData.isInLoop && nodeData.loop_id === containerNode.id;
+
+      if (belongsToIteration || belongsToLoop) {
+        childNodes.push(node);
+        processedNodes.add(node.id);
+      }
+    }
+
+    // Create container group
+    groups.push({
+      type: containerNode.type as 'iteration' | 'loop',
+      containerNode,
+      nodes: [containerNode, ...childNodes],
+    });
+
+    processedNodes.add(containerNode.id);
+  }
+
+  // Add remaining nodes as linear groups
+  const remainingNodes = nodes.filter(n => !processedNodes.has(n.id));
+  if (remainingNodes.length > 0) {
+    groups.push({
+      type: 'linear',
+      nodes: remainingNodes,
+    });
+  }
+
+  return groups;
+}
+
+/**
+ * Generate an iteration container with its child nodes embedded in the loop
+ */
+function generateIterationContainer(
+  group: ContainerGroup,
+  registry: NodeGeneratorRegistry,
+  options: GenerationOptions,
+  variables: Map<string, string>,
+  nodeIndex: number
+): string {
+  if (!group.containerNode || group.containerNode.type !== 'iteration') {
+    return '# Error: Invalid iteration container';
+  }
+
+  // Get the child nodes (everything except the container node itself)
+  const childNodes = group.nodes.filter(n => n.id !== group.containerNode!.id);
+
+  // Generate the iteration node with child nodes context
+  const context: GenerationContext = {
+    options,
+    variables,
+    nodeCount: group.nodes.length,
+    currentNodeIndex: nodeIndex,
+    workflowName: options.registry?.toString() || 'workflow',
+    childNodes, // Pass child nodes to the iteration generator
+  };
+
+  try {
+    const nodeCode = registry.generateNodeCode(group.containerNode, context);
+    if (nodeCode && nodeCode.trim() !== '') {
+      // The iteration generator will handle embedding child nodes
+      return nodeCode + '\n' + generateFunctionCall(group.containerNode, nodeCode);
+    }
+  } catch (error) {
+    return `# Error generating iteration container ${group.containerNode.id}: ${error instanceof Error ? error.message : String(error)}`;
+  }
+
+  return '# Empty iteration container';
+}
+
+/**
+ * Generate a loop container with its child nodes embedded in the loop
+ */
+function generateLoopContainer(
+  group: ContainerGroup,
+  _registry: NodeGeneratorRegistry,
+  _options: GenerationOptions,
+  _variables: Map<string, string>,
+  _nodeIndex: number
+): string {
+  if (!group.containerNode || group.containerNode.type !== 'loop') {
+    return '# Error: Invalid loop container';
+  }
+
+  // Loop containers are not yet implemented - placeholder for future
+  return `# Loop containers not yet implemented for node: ${group.containerNode.id}`;
+}
+
+/**
+ * Generate a single node (for linear execution)
+ */
+function generateSingleNode(
+  node: WorkflowNode,
+  registry: NodeGeneratorRegistry,
+  options: GenerationOptions,
+  variables: Map<string, string>,
+  nodeIndex: number,
+  monitor?: CompilationMonitor,
+  progressTracker?: ProgressTracker
+): string | null {
+  // Create generation context
+  const context: GenerationContext = {
+    options,
+    variables,
+    nodeCount: 1,
+    currentNodeIndex: nodeIndex,
+    workflowName: options.registry?.toString() || 'workflow',
+  };
+
+  try {
+    const nodeCode = registry.generateNodeCode(node, context);
+    if (nodeCode && nodeCode.trim() !== '') {
+      // For function-based nodes, also generate the function call
+      if (nodeCode.includes('() {')) {
+        const functionCall = generateFunctionCall(node, nodeCode);
+        return nodeCode + (functionCall ? '\n' + functionCall : '');
+      }
+      return nodeCode;
+    }
+
+    // Update progress after processing each node
+    if (monitor) {
+      monitor.updateProgress(nodeIndex + 2);
+    }
+    if (progressTracker) {
+      progressTracker.increment(`Processing node: ${node.id}`);
+    }
+  } catch (error) {
+    // Still update progress even on error
+    if (monitor) {
+      monitor.updateProgress(nodeIndex + 2);
+    }
+    if (progressTracker) {
+      progressTracker.increment(`Error processing node: ${node.id}`);
+    }
+
+    return `echo "Error generating node ${node.id}: ${error instanceof Error ? error.message : String(error)}"`;
+  }
+
+  return null;
+}
+
+/**
+ * Generate main execution logic using registry with container-aware compilation
  */
 function generateMainExecution(
   nodes: WorkflowNode[],
-  _edges: WorkflowEdge[],
+  edges: WorkflowEdge[],
   registry: NodeGeneratorRegistry,
   options: GenerationOptions,
   variables: Map<string, string>,
@@ -419,14 +594,16 @@ function generateMainExecution(
 ): string {
   const executionSteps: string[] = [];
 
-  // Simple linear execution for now (ignore complex control flow)
+  // Filter out start/end nodes
   const executableNodes = nodes.filter(n => n.type !== 'start' && n.type !== 'end');
+
+  // Group nodes by container membership
+  const containerGroups = groupNodesByContainer(executableNodes, edges);
 
   executionSteps.push('# Workflow Execution');
 
-  for (let i = 0; i < executableNodes.length; i++) {
-    const node = executableNodes[i]!; // We know this exists because we're iterating over the array
-
+  let nodeIndex = 0;
+  for (const group of containerGroups) {
     // Check if we should continue (timeout check)
     if (monitor && !monitor.shouldContinue()) {
       executionSteps.push('');
@@ -434,53 +611,45 @@ function generateMainExecution(
       break;
     }
 
-    // Create generation context
-    const context: GenerationContext = {
-      options,
-      variables,
-      nodeCount: nodes.length,
-      currentNodeIndex: i,
-      workflowName: options.registry?.toString() || 'workflow',
-    };
-
-    try {
-      const nodeCode = registry.generateNodeCode(node, context);
-      if (nodeCode && nodeCode.trim() !== '') {
-        executionSteps.push('');
-        executionSteps.push(`# Node: ${node.id}`);
-        executionSteps.push(nodeCode);
-
-        // For function-based nodes, also generate the function call
-        if (nodeCode.includes('() {')) {
-          // This is a function definition, we need to call it
-          const functionCall = generateFunctionCall(node, nodeCode);
-          if (functionCall) {
-            executionSteps.push(functionCall);
-          }
-        }
-      }
-
-      // Update progress after processing each node
-      if (monitor) {
-        monitor.updateProgress(i + 2); // +2 because we already did header and variables
-      }
-      if (progressTracker) {
-        progressTracker.increment(`Processing node: ${node.id}`);
-      }
-    } catch (error) {
+    if (group.type === 'iteration') {
+      // Generate iteration container with child nodes
+      const result = generateIterationContainer(group, registry, options, variables, nodeIndex);
       executionSteps.push('');
-      executionSteps.push(`# Node: ${node.id} (ERROR)`);
-      executionSteps.push(
-        `echo "Error generating node ${node.id}: ${error instanceof Error ? error.message : String(error)}"`
-      );
+      executionSteps.push(result);
+      nodeIndex += group.nodes.length;
+    } else if (group.type === 'loop') {
+      // Generate loop container with child nodes (future implementation)
+      const result = generateLoopContainer(group, registry, options, variables, nodeIndex);
+      executionSteps.push('');
+      executionSteps.push(result);
+      nodeIndex += group.nodes.length;
+    } else {
+      // Regular linear execution for non-container nodes
+      for (const node of group.nodes) {
+        const result = generateSingleNode(
+          node,
+          registry,
+          options,
+          variables,
+          nodeIndex,
+          monitor,
+          progressTracker
+        );
+        if (result) {
+          executionSteps.push('');
+          executionSteps.push(`# Node: ${node.id}`);
+          executionSteps.push(result);
+        }
+        nodeIndex++;
+      }
+    }
 
-      // Still update progress even on error
-      if (monitor) {
-        monitor.updateProgress(i + 2);
-      }
-      if (progressTracker) {
-        progressTracker.increment(`Error processing node: ${node.id}`);
-      }
+    // Update progress after processing each group
+    if (monitor) {
+      monitor.updateProgress(nodeIndex + 2); // +2 because we already did header and variables
+    }
+    if (progressTracker) {
+      progressTracker.increment(`Processing node group: ${group.type}`);
     }
   }
 

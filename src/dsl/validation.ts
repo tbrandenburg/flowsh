@@ -250,6 +250,11 @@ export function validateNode(node: WorkflowNode): ValidationResult {
       break;
   }
 
+  // Container membership validation
+  const containerValidation = validateContainerMembership(node);
+  errors.push(...containerValidation.errors);
+  warnings.push(...containerValidation.warnings);
+
   return {
     valid: errors.length === 0,
     errors,
@@ -630,6 +635,100 @@ export function validateVariableReferences(
         }
       }
     }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate container membership properties for execution orchestration
+ */
+function validateContainerMembership(node: WorkflowNode): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
+  const nodeData = node.data as any;
+
+  // Check if node has container membership properties
+  if (nodeData.isInIteration || nodeData.iteration_id) {
+    // If isInIteration is set, iteration_id must be provided
+    if (nodeData.isInIteration && !nodeData.iteration_id) {
+      errors.push({
+        type: 'error',
+        code: 'MISSING_ITERATION_ID',
+        message: 'Node with isInIteration=true must specify iteration_id',
+        path: 'data.iteration_id',
+      });
+    }
+
+    // If iteration_id is provided without isInIteration, warn but allow
+    if (nodeData.iteration_id && !nodeData.isInIteration) {
+      warnings.push({
+        type: 'warning',
+        code: 'ITERATION_ID_WITHOUT_FLAG',
+        message: 'Node has iteration_id but isInIteration is not true',
+        path: 'data.isInIteration',
+        suggestions: ['Set isInIteration: true to enable container membership'],
+      });
+    }
+
+    // Validate iteration_id format
+    if (nodeData.iteration_id && typeof nodeData.iteration_id !== 'string') {
+      errors.push({
+        type: 'error',
+        code: 'INVALID_ITERATION_ID_TYPE',
+        message: 'iteration_id must be a string',
+        path: 'data.iteration_id',
+      });
+    }
+  }
+
+  // Check loop container membership (future implementation)
+  if (nodeData.isInLoop || nodeData.loop_id) {
+    // If isInLoop is set, loop_id must be provided
+    if (nodeData.isInLoop && !nodeData.loop_id) {
+      errors.push({
+        type: 'error',
+        code: 'MISSING_LOOP_ID',
+        message: 'Node with isInLoop=true must specify loop_id',
+        path: 'data.loop_id',
+      });
+    }
+
+    // If loop_id is provided without isInLoop, warn but allow
+    if (nodeData.loop_id && !nodeData.isInLoop) {
+      warnings.push({
+        type: 'warning',
+        code: 'LOOP_ID_WITHOUT_FLAG',
+        message: 'Node has loop_id but isInLoop is not true',
+        path: 'data.isInLoop',
+        suggestions: ['Set isInLoop: true to enable container membership'],
+      });
+    }
+
+    // Warn that loop containers are not yet implemented
+    if (nodeData.isInLoop) {
+      warnings.push({
+        type: 'warning',
+        code: 'LOOP_CONTAINERS_NOT_IMPLEMENTED',
+        message: 'Loop containers are not yet implemented, node will use linear execution',
+        path: 'data.isInLoop',
+      });
+    }
+  }
+
+  // Prevent nodes from being in multiple container types simultaneously
+  if (nodeData.isInIteration && nodeData.isInLoop) {
+    errors.push({
+      type: 'error',
+      code: 'MULTIPLE_CONTAINER_MEMBERSHIP',
+      message: 'Node cannot be in both iteration and loop containers simultaneously',
+      path: 'data',
+      suggestions: ['Choose either iteration or loop container membership, not both'],
+    });
   }
 
   return {

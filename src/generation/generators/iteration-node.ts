@@ -12,7 +12,7 @@ import { BaseNodeGenerator } from './base-generator.js';
 export class IterationNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'iteration';
 
-  generate(node: WorkflowNode, _context: GenerationContext): string {
+  generate(node: WorkflowNode, context: GenerationContext): string {
     const data = node.data as IterationNodeData;
     const nodeId = this.sanitizeVariableName(node.id);
     const functionName = `execute_iteration_${nodeId}`;
@@ -34,6 +34,9 @@ export class IterationNodeGenerator extends BaseNodeGenerator {
     const parallel = data.parallel || false;
     const maxParallel = data.max_parallel || 4;
 
+    // Get child nodes from context (passed by container-aware shell generator)
+    const childNodes = context.childNodes || [];
+
     if (parallel) {
       return this.generateParallelIteration(
         node,
@@ -41,7 +44,8 @@ export class IterationNodeGenerator extends BaseNodeGenerator {
         title,
         inputVariable,
         outputVariable,
-        maxParallel
+        maxParallel,
+        childNodes
       );
     } else {
       return this.generateSequentialIteration(
@@ -49,9 +53,31 @@ export class IterationNodeGenerator extends BaseNodeGenerator {
         functionName,
         title,
         inputVariable,
-        outputVariable
+        outputVariable,
+        childNodes
       );
     }
+  }
+
+  /**
+   * Generate shell code to execute child nodes within an iteration
+   */
+  private generateChildNodesExecution(childNodes: WorkflowNode[]): string {
+    if (childNodes.length === 0) {
+      return '        # No child nodes to execute';
+    }
+
+    const executionSteps: string[] = [];
+    executionSteps.push('        # Execute child nodes within iteration');
+
+    for (const childNode of childNodes) {
+      const functionName = `execute_${childNode.type}_${this.sanitizeVariableName(childNode.id)}`;
+      executionSteps.push(
+        `        ${functionName} || log_warning "Child node ${childNode.id} failed"`
+      );
+    }
+
+    return executionSteps.join('\n');
   }
 
   /**
@@ -62,7 +88,8 @@ export class IterationNodeGenerator extends BaseNodeGenerator {
     functionName: string,
     title: string,
     inputVariable: string,
-    outputVariable: string
+    outputVariable: string,
+    childNodes: WorkflowNode[]
   ): string {
     return `
 ${this.generateNodeComment(node)}
@@ -112,11 +139,8 @@ ${functionName}() {
         # Clear previous iteration result
         set_workflow_var "iteration_result" ""
         
-        # Execute iteration body (child nodes would be called here by main executor)
-        log_debug "Executing iteration body for item: \$current_item"
-        
-        # This is where child nodes would be executed
-        # The main executor will handle the edge routing to child nodes
+        # Execute child nodes within the iteration
+${this.generateChildNodesExecution(childNodes)}
         
         # Collect result (after child nodes have executed)
         local iteration_result="\$(get_workflow_var "iteration_result" "\$current_item")"
@@ -154,7 +178,8 @@ ${functionName}() {
     title: string,
     inputVariable: string,
     outputVariable: string,
-    _maxParallel: number
+    _maxParallel: number,
+    childNodes: WorkflowNode[]
   ): string {
     return `
 ${this.generateNodeComment(node)}
@@ -166,7 +191,7 @@ ${functionName}() {
     log_warning "Parallel iteration not yet implemented, using sequential processing"
     
     # Use sequential implementation
-    ${this.generateSequentialIteration(node, `${functionName}_sequential`, title, inputVariable, outputVariable).replace(functionName, `${functionName}_sequential`)}
+    ${this.generateSequentialIteration(node, `${functionName}_sequential`, title, inputVariable, outputVariable, childNodes).replace(functionName, `${functionName}_sequential`)}
     
     # Call sequential implementation
     ${functionName}_sequential

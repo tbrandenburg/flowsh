@@ -154,6 +154,11 @@ export interface BaseNodeData {
   title?: string;
   desc?: string;
   description?: string;
+  // Container membership for proper execution orchestration
+  isInIteration?: boolean;
+  iteration_id?: string;
+  isInLoop?: boolean;
+  loop_id?: string;
 }
 
 export interface StartNodeData extends BaseNodeData {

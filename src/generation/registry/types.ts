@@ -21,6 +21,8 @@ export interface GenerationContext {
   currentNodeIndex: number;
   /** Workflow metadata */
   workflowName: string;
+  /** Child nodes for container types (iteration, loop, etc.) */
+  childNodes?: WorkflowNode[];
 }
 
 /**
