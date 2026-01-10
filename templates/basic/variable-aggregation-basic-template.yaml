@@ -1,0 +1,371 @@
+workflow:
+  name: 'Variable Aggregation Node Example'
+  description: 'Shows how to combine and aggregate multiple variables using different methods'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Data Collection Setup'
+        description: 'Collect multiple data sources for aggregation demonstration'
+        variables:
+          - variable: 'dataset_1'
+            type: 'text'
+            label: 'Dataset 1'
+            description: 'First dataset (comma-separated values)'
+            required: true
+            default: 'apple,banana,cherry'
+          - variable: 'dataset_2'
+            type: 'text'
+            label: 'Dataset 2'
+            description: 'Second dataset (comma-separated values)'
+            required: true
+            default: 'dog,elephant,fox'
+          - variable: 'dataset_3'
+            type: 'text'
+            label: 'Dataset 3'
+            description: 'Third dataset (comma-separated values)'
+            required: true
+            default: 'guitar,hammer,ice'
+          - variable: 'numbers_1'
+            type: 'text'
+            label: 'Numbers Set 1'
+            description: 'First set of numbers'
+            required: true
+            default: '10,20,30'
+          - variable: 'numbers_2'
+            type: 'text'
+            label: 'Numbers Set 2'
+            description: 'Second set of numbers'
+            required: true
+            default: '5,15,25'
+          - variable: 'numbers_3'
+            type: 'text'
+            label: 'Numbers Set 3'
+            description: 'Third set of numbers'
+            required: true
+            default: '100,200,300'
+
+    # Prepare individual data sources
+    - id: 'create_text_source_1'
+      type: 'variable-assignment'
+      data:
+        title: 'Create Text Source 1'
+        description: 'Prepare first text data source'
+        variable: 'text_source_a'
+        assignment_type: 'expression'
+        expression: "echo 'Source A: ${dataset_1}'"
+
+    - id: 'create_text_source_2'
+      type: 'variable-assignment'
+      data:
+        title: 'Create Text Source 2'
+        description: 'Prepare second text data source'
+        variable: 'text_source_b'
+        assignment_type: 'expression'
+        expression: "echo 'Source B: ${dataset_2}'"
+
+    - id: 'create_text_source_3'
+      type: 'variable-assignment'
+      data:
+        title: 'Create Text Source 3'
+        description: 'Prepare third text data source'
+        variable: 'text_source_c'
+        assignment_type: 'expression'
+        expression: "echo 'Source C: ${dataset_3}'"
+
+    # Concatenation aggregation examples
+    - id: 'concat_with_newlines'
+      type: 'variable-aggregation'
+      data:
+        title: 'Concatenate with Newlines'
+        description: 'Combine text sources with newline separators'
+        input_variables: ['text_source_a', 'text_source_b', 'text_source_c']
+        output_variable: 'combined_text_newline'
+        aggregation_method: 'concat'
+        separator: "\n"
+
+    - id: 'concat_with_pipes'
+      type: 'variable-aggregation'
+      data:
+        title: 'Concatenate with Pipe Separators'
+        description: 'Combine datasets using pipe separators'
+        input_variables: ['dataset_1', 'dataset_2', 'dataset_3']
+        output_variable: 'combined_datasets_pipe'
+        aggregation_method: 'concat'
+        separator: ' | '
+
+    - id: 'concat_with_comma'
+      type: 'variable-aggregation'
+      data:
+        title: 'Concatenate with Comma Separators'
+        description: 'Create a single comma-separated list from multiple sources'
+        input_variables: ['dataset_1', 'dataset_2', 'dataset_3']
+        output_variable: 'combined_datasets_comma'
+        aggregation_method: 'concat'
+        separator: ','
+
+    # Numerical aggregation examples
+    - id: 'sum_all_numbers'
+      type: 'variable-aggregation'
+      data:
+        title: 'Sum All Numbers'
+        description: 'Calculate the sum of all number sets'
+        input_variables: ['numbers_1', 'numbers_2', 'numbers_3']
+        output_variable: 'total_sum'
+        aggregation_method: 'sum'
+
+    - id: 'average_numbers'
+      type: 'variable-aggregation'
+      data:
+        title: 'Calculate Average'
+        description: 'Calculate the average of all number sets'
+        input_variables: ['numbers_1', 'numbers_2', 'numbers_3']
+        output_variable: 'average_value'
+        aggregation_method: 'avg'
+
+    # Create structured data for merging
+    - id: 'create_json_object_1'
+      type: 'variable-assignment'
+      data:
+        title: 'Create JSON Object 1'
+        description: 'Create first JSON object for merging'
+        variable: 'json_obj_1'
+        assignment_type: 'expression'
+        expression: 'echo ''{"name": "object1", "type": "fruit", "items": ["${dataset_1}"], "count": 3}'''
+
+    - id: 'create_json_object_2'
+      type: 'variable-assignment'
+      data:
+        title: 'Create JSON Object 2'
+        description: 'Create second JSON object for merging'
+        variable: 'json_obj_2'
+        assignment_type: 'expression'
+        expression: 'echo ''{"name": "object2", "type": "animal", "items": ["${dataset_2}"], "count": 3}'''
+
+    - id: 'create_json_object_3'
+      type: 'variable-assignment'
+      data:
+        title: 'Create JSON Object 3'
+        description: 'Create third JSON object for merging'
+        variable: 'json_obj_3'
+        assignment_type: 'expression'
+        expression: 'echo ''{"name": "object3", "type": "tool", "items": ["${dataset_3}"], "count": 3}'''
+
+    # Merge structured data
+    - id: 'merge_json_objects'
+      type: 'variable-aggregation'
+      data:
+        title: 'Merge JSON Objects'
+        description: 'Combine JSON objects into a structured collection'
+        input_variables: ['json_obj_1', 'json_obj_2', 'json_obj_3']
+        output_variable: 'merged_json'
+        aggregation_method: 'merge'
+
+    # Collect arrays for collection aggregation
+    - id: 'collect_all_datasets'
+      type: 'variable-aggregation'
+      data:
+        title: 'Collect All Datasets'
+        description: 'Collect all datasets into an array structure'
+        input_variables: ['dataset_1', 'dataset_2', 'dataset_3']
+        output_variable: 'collected_arrays'
+        aggregation_method: 'collect'
+
+    # Advanced aggregation with preprocessing
+    - id: 'process_numbers_for_aggregation'
+      type: 'variable-assignment'
+      data:
+        title: 'Process Numbers for Complex Aggregation'
+        description: 'Convert comma-separated numbers to space-separated for aggregation'
+        variable: 'processed_numbers_1'
+        assignment_type: 'expression'
+        expression: "echo '${numbers_1}' | tr ',' ' '"
+
+    - id: 'process_numbers_2'
+      type: 'variable-assignment'
+      data:
+        title: 'Process Numbers Set 2'
+        description: 'Convert second number set'
+        variable: 'processed_numbers_2'
+        assignment_type: 'expression'
+        expression: "echo '${numbers_2}' | tr ',' ' '"
+
+    - id: 'process_numbers_3'
+      type: 'variable-assignment'
+      data:
+        title: 'Process Numbers Set 3'
+        description: 'Convert third number set'
+        variable: 'processed_numbers_3'
+        assignment_type: 'expression'
+        expression: "echo '${numbers_3}' | tr ',' ' '"
+
+    # Complex aggregation with space separators
+    - id: 'aggregate_processed_numbers'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate Processed Numbers'
+        description: 'Combine processed numbers with space separation'
+        input_variables: ['processed_numbers_1', 'processed_numbers_2', 'processed_numbers_3']
+        output_variable: 'all_numbers_space'
+        aggregation_method: 'concat'
+        separator: ' '
+
+    # Create metadata for final summary
+    - id: 'create_aggregation_metadata'
+      type: 'variable-assignment'
+      data:
+        title: 'Create Aggregation Metadata'
+        description: 'Generate metadata about all aggregation operations'
+        variable: 'aggregation_summary'
+        assignment_type: 'expression'
+        expression: "echo 'Processed at: '$(date)' | Total variables aggregated: 15 | Methods used: concat, sum, avg, merge, collect'"
+
+    - id: 'final_results'
+      type: 'answer'
+      data:
+        title: 'Variable Aggregation Results'
+        description: 'Comprehensive results from all aggregation operations'
+        answer: |
+          # 🔄 Variable Aggregation Node Example Results
+
+          ## Original Input Data
+          - **Dataset 1**: ${dataset_1}
+          - **Dataset 2**: ${dataset_2}
+          - **Dataset 3**: ${dataset_3}
+          - **Numbers 1**: ${numbers_1}
+          - **Numbers 2**: ${numbers_2}
+          - **Numbers 3**: ${numbers_3}
+
+          ## Concatenation Results
+
+          ### Newline Separated Text
+          ```
+          ${combined_text_newline}
+          ```
+
+          ### Pipe Separated Datasets
+          ```
+          ${combined_datasets_pipe}
+          ```
+
+          ### Comma Separated Combined
+          ```
+          ${combined_datasets_comma}
+          ```
+
+          ## Numerical Aggregation Results
+          - **Total Sum**: ${total_sum}
+          - **Average Value**: ${average_value}
+
+          ## Advanced Aggregations
+
+          ### Merged JSON Objects
+          ```json
+          ${merged_json}
+          ```
+
+          ### Collected Arrays
+          ```
+          ${collected_arrays}
+          ```
+
+          ### Space-Separated Numbers
+          ```
+          ${all_numbers_space}
+          ```
+
+          ## Aggregation Metadata
+          ${aggregation_summary}
+
+          ## Variable Aggregation Features Demonstrated
+
+          ### Aggregation Methods
+
+          1. **Concat**: String concatenation with customizable separators
+             - Newline separation for readable lists
+             - Pipe separation for structured data
+             - Comma separation for CSV-style output
+             - Space separation for shell-friendly formats
+
+          2. **Sum**: Numerical summation across multiple variables
+             - Automatic parsing of comma-separated numbers
+             - Robust handling of different number formats
+             - Accumulation across variable sets
+
+          3. **Avg**: Average calculation across datasets
+             - Statistical aggregation of numerical data
+             - Automatic count and division operations
+             - Precision handling for decimal results
+
+          4. **Merge**: Object and structure merging
+             - JSON object combination
+             - Structured data integration
+             - Hierarchical data aggregation
+
+          5. **Collect**: Array and collection building
+             - Converting multiple variables into collections
+             - Preserving data structure and relationships
+             - Building composite data structures
+
+          ### Key Capabilities
+
+          - **Multiple Input Variables**: Process any number of source variables
+          - **Flexible Separators**: Customize output formatting with any separator
+          - **Type-Aware Processing**: Different handling for text, numbers, and structured data
+          - **Preprocessing Integration**: Combine with variable assignment for data preparation
+          - **Output Variable Mapping**: Clean result storage in specified variables
+          - **Method Optimization**: Each method optimized for specific data types
+
+          ### Use Cases
+
+          - **Data Consolidation**: Combining multiple data sources
+          - **Report Generation**: Aggregating information for summaries
+          - **Statistical Analysis**: Calculating sums, averages, and totals
+          - **List Building**: Creating comprehensive collections from parts
+          - **Configuration Merging**: Combining settings from multiple sources
+          - **Log Aggregation**: Consolidating log entries and events
+
+          This example demonstrates the full range of variable aggregation capabilities for efficient data combination and processing workflows.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'create_text_source_1'
+    - source: 'create_text_source_1'
+      target: 'create_text_source_2'
+    - source: 'create_text_source_2'
+      target: 'create_text_source_3'
+    - source: 'create_text_source_3'
+      target: 'concat_with_newlines'
+    - source: 'concat_with_newlines'
+      target: 'concat_with_pipes'
+    - source: 'concat_with_pipes'
+      target: 'concat_with_comma'
+    - source: 'concat_with_comma'
+      target: 'sum_all_numbers'
+    - source: 'sum_all_numbers'
+      target: 'average_numbers'
+    - source: 'average_numbers'
+      target: 'create_json_object_1'
+    - source: 'create_json_object_1'
+      target: 'create_json_object_2'
+    - source: 'create_json_object_2'
+      target: 'create_json_object_3'
+    - source: 'create_json_object_3'
+      target: 'merge_json_objects'
+    - source: 'merge_json_objects'
+      target: 'collect_all_datasets'
+    - source: 'collect_all_datasets'
+      target: 'process_numbers_for_aggregation'
+    - source: 'process_numbers_for_aggregation'
+      target: 'process_numbers_2'
+    - source: 'process_numbers_2'
+      target: 'process_numbers_3'
+    - source: 'process_numbers_3'
+      target: 'aggregate_processed_numbers'
+    - source: 'aggregate_processed_numbers'
+      target: 'create_aggregation_metadata'
+    - source: 'create_aggregation_metadata'
+      target: 'final_results'

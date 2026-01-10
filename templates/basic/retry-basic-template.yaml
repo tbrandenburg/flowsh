@@ -1,0 +1,397 @@
+workflow:
+  name: 'Retry Node Example'
+  description: 'Shows robust retry patterns with configurable backoff strategies and comprehensive failure handling'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Retry Configuration Setup'
+        description: 'Configure retry behavior and failure simulation parameters'
+        variables:
+          - variable: 'max_retry_attempts'
+            type: 'number'
+            label: 'Maximum Retry Attempts'
+            description: 'Maximum number of retry attempts before giving up'
+            required: true
+            default: 5
+            min: 1
+            max: 20
+          - variable: 'base_delay'
+            type: 'number'
+            label: 'Base Retry Delay'
+            description: 'Initial delay between retries in seconds'
+            required: true
+            default: 2
+            min: 1
+            max: 10
+          - variable: 'backoff_multiplier'
+            type: 'number'
+            label: 'Backoff Multiplier'
+            description: 'Exponential backoff multiplier for retry delays'
+            required: true
+            default: 1.5
+            min: 1.0
+            max: 3.0
+          - variable: 'operation_timeout'
+            type: 'number'
+            label: 'Operation Timeout'
+            description: 'Overall timeout for the entire retry operation'
+            required: true
+            default: 60
+            min: 10
+            max: 300
+          - variable: 'failure_simulation'
+            type: 'select'
+            label: 'Failure Simulation Mode'
+            description: 'Simulate different types of failures for testing'
+            options: ['none', 'intermittent', 'timeout', 'network']
+            default: 'intermittent'
+            required: true
+
+    - id: 'initialize_retry_tracking'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Retry Tracking'
+        description: 'Set up variables to track retry attempts and outcomes'
+        variable: 'retry_attempt_count'
+        assignment_type: 'constant'
+        value: 0
+
+    - id: 'initialize_success_tracking'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Success Tracking'
+        description: 'Track successful operations across retries'
+        variable: 'operation_success_count'
+        assignment_type: 'constant'
+        value: 0
+
+    # First retry example: Network operation with intermittent failures
+    - id: 'retry_network_operation'
+      type: 'retry'
+      data:
+        title: 'Retry Network Operation'
+        description: 'Attempt network operation with retry logic for intermittent failures'
+        max_attempts: '${max_retry_attempts}'
+        retry_delay: '${base_delay}'
+        backoff_multiplier: '${backoff_multiplier}'
+        retry_condition: 'any_failure'
+        timeout: '${operation_timeout}'
+
+    - id: 'simulate_network_call'
+      type: 'code'
+      data:
+        title: 'Simulate Network Operation'
+        description: 'Simulate a network call that may fail intermittently'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Attempting network operation...' && if [ '${failure_simulation}' = 'intermittent' ] && [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Network operation failed' && exit 1; else echo 'Network operation successful' && exit 0; fi",
+          ]
+        timeout: 10
+        environment_variables:
+          OPERATION_TYPE: 'network'
+          SIMULATION_MODE: '${failure_simulation}'
+
+    - id: 'record_network_success'
+      type: 'variable-assignment'
+      data:
+        title: 'Record Network Success'
+        description: 'Record successful network operation'
+        variable: 'network_operation_result'
+        assignment_type: 'constant'
+        value: 'Network operation completed successfully after retries'
+
+    # Second retry example: Timeout-specific retry pattern
+    - id: 'retry_timeout_operation'
+      type: 'retry'
+      data:
+        title: 'Retry Timeout-Prone Operation'
+        description: 'Retry operation that specifically handles timeout failures'
+        max_attempts: 3
+        retry_delay: 1
+        backoff_multiplier: 2.0
+        retry_condition: 'timeout_only'
+        timeout: 30
+
+    - id: 'simulate_timeout_operation'
+      type: 'code'
+      data:
+        title: 'Simulate Timeout Operation'
+        description: 'Simulate an operation that may timeout'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Starting timeout-prone operation...' && if [ '${failure_simulation}' = 'timeout' ]; then sleep 15 && echo 'Operation timed out'; else echo 'Operation completed within timeout' && exit 0; fi",
+          ]
+        timeout: 5
+        environment_variables:
+          OPERATION_TYPE: 'timeout_test'
+
+    - id: 'record_timeout_success'
+      type: 'variable-assignment'
+      data:
+        title: 'Record Timeout Success'
+        description: 'Record successful timeout operation'
+        variable: 'timeout_operation_result'
+        assignment_type: 'constant'
+        value: 'Timeout operation completed successfully'
+
+    # Third retry example: Network-only failures
+    - id: 'retry_network_only'
+      type: 'retry'
+      data:
+        title: 'Retry Network-Only Failures'
+        description: 'Retry pattern that only retries on network-related failures'
+        max_attempts: 4
+        retry_delay: 3
+        backoff_multiplier: 1.8
+        retry_condition: 'network_only'
+        timeout: 45
+
+    - id: 'simulate_network_specific'
+      type: 'code'
+      data:
+        title: 'Simulate Network-Specific Operation'
+        description: 'Simulate operation with network-specific failure modes'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Network-specific operation starting...' && if [ '${failure_simulation}' = 'network' ] && [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Network connectivity issue' && exit 2; else echo 'Network operation successful' && exit 0; fi",
+          ]
+        timeout: 8
+        environment_variables:
+          OPERATION_TYPE: 'network_specific'
+
+    - id: 'record_network_specific_success'
+      type: 'variable-assignment'
+      data:
+        title: 'Record Network-Specific Success'
+        description: 'Record successful network-specific operation'
+        variable: 'network_specific_result'
+        assignment_type: 'constant'
+        value: 'Network-specific operation completed after appropriate retries'
+
+    # Complex retry with custom logic
+    - id: 'advanced_retry_operation'
+      type: 'retry'
+      data:
+        title: 'Advanced Retry with Custom Logic'
+        description: 'Advanced retry pattern with complex failure handling'
+        max_attempts: '${max_retry_attempts}'
+        retry_delay: '${base_delay}'
+        backoff_multiplier: '${backoff_multiplier}'
+        retry_condition: 'any_failure'
+        timeout: '${operation_timeout}'
+
+    - id: 'complex_operation_simulation'
+      type: 'code'
+      data:
+        title: 'Complex Operation with Multiple Failure Modes'
+        description: 'Simulate a complex operation that can fail in multiple ways'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Complex operation attempt...' && case '${failure_simulation}' in 'none') echo 'Success on first try' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Success after intermittent failure' && exit 0; else echo 'Intermittent failure' && exit 1; fi ;; 'timeout') sleep 2 && echo 'Complex operation success' && exit 0 ;; 'network') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Network success' && exit 0; else echo 'Network failure' && exit 1; fi ;; esac",
+          ]
+        timeout: 15
+        environment_variables:
+          COMPLEXITY_LEVEL: 'high'
+          FAILURE_MODE: '${failure_simulation}'
+
+    - id: 'record_complex_success'
+      type: 'variable-assignment'
+      data:
+        title: 'Record Complex Operation Success'
+        description: 'Record successful complex operation'
+        variable: 'complex_operation_result'
+        assignment_type: 'expression'
+        expression: "echo 'Complex operation succeeded with ${failure_simulation} simulation mode after retry logic'"
+
+    # Aggregate retry results
+    - id: 'calculate_retry_statistics'
+      type: 'variable-assignment'
+      data:
+        title: 'Calculate Retry Statistics'
+        description: 'Generate comprehensive statistics about retry operations'
+        variable: 'retry_statistics'
+        assignment_type: 'expression'
+        expression: "echo 'Retry Statistics: Max attempts=${max_retry_attempts}, Base delay=${base_delay}s, Backoff=${backoff_multiplier}x, Timeout=${operation_timeout}s, Simulation=${failure_simulation}'"
+
+    - id: 'aggregate_all_results'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate All Retry Results'
+        description: 'Combine results from all retry operations'
+        input_variables:
+          [
+            'network_operation_result',
+            'timeout_operation_result',
+            'network_specific_result',
+            'complex_operation_result',
+          ]
+        output_variable: 'combined_retry_results'
+        aggregation_method: 'concat'
+        separator: "\n"
+
+    - id: 'final_report'
+      type: 'answer'
+      data:
+        title: 'Retry Node Example Results'
+        description: 'Comprehensive analysis of retry patterns and failure recovery'
+        answer: |
+          # 🔄 Retry Node Example Results
+
+          ## Retry Configuration
+          - **Maximum Attempts**: ${max_retry_attempts}
+          - **Base Delay**: ${base_delay} seconds
+          - **Backoff Multiplier**: ${backoff_multiplier}x
+          - **Operation Timeout**: ${operation_timeout} seconds
+          - **Failure Simulation**: ${failure_simulation}
+
+          ## Retry Operations Performed
+
+          ### 1. Network Operation with Intermittent Failures
+          - **Retry Condition**: Any failure
+          - **Strategy**: Exponential backoff for all failure types
+          - **Use Case**: General network operations with unpredictable failures
+
+          ### 2. Timeout-Specific Retry Pattern
+          - **Retry Condition**: Timeout only
+          - **Strategy**: Faster retry cycle for timeout-specific issues
+          - **Use Case**: Operations prone to timeout but not other failures
+
+          ### 3. Network-Only Failure Retry
+          - **Retry Condition**: Network failures only
+          - **Strategy**: Moderate backoff for network connectivity issues
+          - **Use Case**: Network-dependent operations with stable processing
+
+          ### 4. Advanced Retry with Complex Logic
+          - **Retry Condition**: Any failure with custom handling
+          - **Strategy**: Full configurability with multiple failure modes
+          - **Use Case**: Complex operations requiring sophisticated retry logic
+
+          ## Retry Results Summary
+
+          ${combined_retry_results}
+
+          ## Performance Metrics
+          ${retry_statistics}
+
+          ## Retry Node Features Demonstrated
+
+          ### Retry Conditions
+          - **Any Failure**: Retry on any type of operation failure
+          - **Timeout Only**: Retry specifically for timeout conditions
+          - **Network Only**: Retry for network-related failures only
+
+          ### Backoff Strategies
+          - **Linear Backoff**: Fixed delay between retries
+          - **Exponential Backoff**: Increasing delays with configurable multiplier
+          - **Custom Delays**: Flexible delay configuration per retry pattern
+
+          ### Timeout Management
+          - **Operation Timeout**: Overall timeout for entire retry sequence
+          - **Individual Timeouts**: Per-attempt timeout control
+          - **Escalation Logic**: Timeout handling with retry escalation
+
+          ### Failure Classification
+          - **Transient Failures**: Temporary issues that may resolve with retry
+          - **Persistent Failures**: Issues requiring different handling strategies
+          - **Timeout Failures**: Specific timeout-related failure handling
+          - **Network Failures**: Connectivity and network-specific issues
+
+          ### Advanced Features
+          - **Configurable Attempts**: Flexible maximum retry count
+          - **Dynamic Delays**: Runtime calculation of retry delays
+          - **Condition-Based Retries**: Different retry logic for different failure types
+          - **Result Tracking**: Comprehensive logging of retry attempts and outcomes
+          - **Integration Ready**: Seamless integration with other workflow nodes
+
+          ### Use Cases
+          - **API Integration**: Reliable communication with external services
+          - **Database Operations**: Resilient data access with connection retry
+          - **File Operations**: Robust file system interactions
+          - **Network Services**: Fault-tolerant network communications
+          - **Batch Processing**: Reliable large-scale data processing
+          - **Microservice Communication**: Inter-service reliability patterns
+
+          ## Retry Best Practices Demonstrated
+
+          1. **Exponential Backoff**: Reduces load on failing services
+          2. **Maximum Attempt Limits**: Prevents infinite retry loops
+          3. **Timeout Controls**: Ensures bounded execution time
+          4. **Failure Classification**: Different strategies for different failure types
+          5. **Result Aggregation**: Comprehensive tracking and reporting
+          6. **Configuration Flexibility**: Runtime adjustment of retry parameters
+
+          This example showcases how retry nodes provide robust failure recovery mechanisms essential for reliable workflow execution in distributed and network-dependent environments.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'initialize_retry_tracking'
+    - source: 'initialize_retry_tracking'
+      target: 'initialize_success_tracking'
+    - source: 'initialize_success_tracking'
+      target: 'retry_network_operation'
+
+    # First retry operation
+    - source: 'retry_network_operation'
+      target: 'simulate_network_call'
+    - source: 'simulate_network_call'
+      target: 'retry_network_operation'
+      condition: 'retry_needed'
+    - source: 'retry_network_operation'
+      target: 'record_network_success'
+      condition: 'retry_complete_success'
+
+    # Second retry operation
+    - source: 'record_network_success'
+      target: 'retry_timeout_operation'
+    - source: 'retry_timeout_operation'
+      target: 'simulate_timeout_operation'
+    - source: 'simulate_timeout_operation'
+      target: 'retry_timeout_operation'
+      condition: 'retry_needed'
+    - source: 'retry_timeout_operation'
+      target: 'record_timeout_success'
+      condition: 'retry_complete_success'
+
+    # Third retry operation
+    - source: 'record_timeout_success'
+      target: 'retry_network_only'
+    - source: 'retry_network_only'
+      target: 'simulate_network_specific'
+    - source: 'simulate_network_specific'
+      target: 'retry_network_only'
+      condition: 'retry_needed'
+    - source: 'retry_network_only'
+      target: 'record_network_specific_success'
+      condition: 'retry_complete_success'
+
+    # Fourth retry operation
+    - source: 'record_network_specific_success'
+      target: 'advanced_retry_operation'
+    - source: 'advanced_retry_operation'
+      target: 'complex_operation_simulation'
+    - source: 'complex_operation_simulation'
+      target: 'advanced_retry_operation'
+      condition: 'retry_needed'
+    - source: 'advanced_retry_operation'
+      target: 'record_complex_success'
+      condition: 'retry_complete_success'
+
+    # Final aggregation and reporting
+    - source: 'record_complex_success'
+      target: 'calculate_retry_statistics'
+    - source: 'calculate_retry_statistics'
+      target: 'aggregate_all_results'
+    - source: 'aggregate_all_results'
+      target: 'final_report'

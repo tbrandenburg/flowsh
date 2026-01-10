@@ -178,3 +178,122 @@ export function buildShellCommand(command: string, args: string[] = []): string 
 
   return [quotedCommand, ...quotedArgs].join(' ');
 }
+
+/**
+ * Standardized Escaping Library for Critical Countermeasure #4
+ *
+ * These functions provide centralized, consistent escaping patterns
+ * to eliminate the 90% of escaping-related bugs across all node generators.
+ */
+
+/**
+ * Escape text for JSON payload in shell commands
+ * Handles quotes, backslashes, newlines safely for curl/HTTP requests
+ *
+ * Critical for LLM, HTTP, and Telegram nodes that send JSON payloads
+ */
+export function escapeForJSON(text: string): string {
+  // Defensive programming: ensure text is a string
+  if (typeof text !== 'string') {
+    text = String(text || '');
+  }
+
+  return text
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\f/g, '\\f') // Escape form feeds
+    .replace(/\b/g, '\\b') // Escape backspaces
+    .replace(/[\u0000-\u001f]/g, char => {
+      // Escape control characters
+      return '\\u' + ('0000' + char.charCodeAt(0).toString(16)).slice(-4);
+    });
+}
+
+/**
+ * Escape text for shell variable assignment
+ * Prevents command injection and quote issues
+ * Uses single-quote wrapping with embedded quote escaping
+ *
+ * Safe for any variable assignment in generated shell scripts
+ */
+export function escapeForShellVariable(text: string): string {
+  // Defensive programming: ensure text is a string
+  if (typeof text !== 'string') {
+    text = String(text || '');
+  }
+
+  // For shell safety, wrap in single quotes and escape embedded single quotes
+  return "'" + text.replace(/'/g, "'\"'\"'") + "'";
+}
+
+/**
+ * Escape text for shell command arguments
+ * Safer than variable assignment, allows for shell expansion
+ *
+ * Good for command arguments that may need variable expansion
+ */
+export function escapeForShellArg(text: string): string {
+  // Defensive programming: ensure text is a string
+  if (typeof text !== 'string') {
+    text = String(text || '');
+  }
+
+  // Use printf '%q' equivalent logic for shell argument safety
+  if (/^[a-zA-Z0-9._\/\-]+$/.test(text)) {
+    return text; // Safe characters, no escaping needed
+  }
+  return '"' + text.replace(/([\\$`"])/g, '\\$1') + '"';
+}
+
+/**
+ * Validate shell syntax before generation
+ * Integrates with bash -n for syntax checking
+ *
+ * Used by syntax validation gates to catch errors before execution
+ */
+export async function validateShellSyntax(
+  shellCode: string
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const { execSync } = await import('child_process');
+    execSync('bash -n', { input: shellCode, encoding: 'utf8', stdio: 'pipe' });
+    return { valid: true };
+  } catch (error: any) {
+    return {
+      valid: false,
+      error: error.stderr || error.message || 'Unknown shell syntax error',
+    };
+  }
+}
+
+/**
+ * Sanitize multiline content for shell script embedding
+ * Handles heredocs, embedded quotes, and special characters
+ *
+ * Returns both the content and a safe delimiter to use
+ */
+export function prepareForHeredoc(
+  text: string,
+  delimiter: string = 'EOF'
+): { content: string; delimiter: string } {
+  // Defensive programming: ensure text is a string
+  if (typeof text !== 'string') {
+    text = String(text || '');
+  }
+
+  // Ensure delimiter is unique in the text
+  let uniqueDelimiter = delimiter;
+  let counter = 1;
+  while (text.includes(uniqueDelimiter)) {
+    uniqueDelimiter = `${delimiter}_${counter}`;
+    counter++;
+  }
+
+  return {
+    content: text,
+    delimiter: uniqueDelimiter,
+  };
+}

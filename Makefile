@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate test-templates qa
+.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate templates-syntax test-templates qa
 
 # Default target
 help:
@@ -32,9 +32,10 @@ help:
 	@echo "  make validate         Validate example workflows"
 	@echo
 	@echo "🎯 Template Operations:"
-	@echo "  make templates-all    Generate and execute scripts from all 14 production templates"
-	@echo "  make templates-validate  Validate all template workflows"
-	@echo "  make test-templates   Basic compilation testing for all templates"
+	@echo "  make templates-all      Generate and execute scripts from all 35 templates (19 basic + 16 production)"
+	@echo "  make templates-validate Validate all template workflows"
+	@echo "  make templates-syntax   Validate shell syntax for all template-generated scripts"
+	@echo "  make test-templates     Basic compilation testing for all templates"
 	@echo
 	@echo "🧪 Testing Generated Scripts:"
 	@echo "  make test-generated   Test generated shell scripts"
@@ -173,7 +174,7 @@ templates-all: build
 	@mkdir -p dev/generated-outputs/templates/
 	@mkdir -p dev/execution-results/templates/
 	@success=0; total=0; \
-	for template in templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
+	for template in templates/basic/*-template.yaml templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
 		if [ -f "$$template" ]; then \
 			total=$$((total + 1)); \
 			echo "Processing: $$template"; \
@@ -216,7 +217,7 @@ templates-all: build
 templates-validate: build
 	@echo "Validating all production templates..."
 	@success=0; total=0; \
-	for template in templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
+	for template in templates/basic/*-template.yaml templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
 		if [ -f "$$template" ]; then \
 			total=$$((total + 1)); \
 			echo "Validating: $$template"; \
@@ -235,6 +236,36 @@ templates-validate: build
 		echo "🎉 All templates are valid!"; \
 	else \
 		echo "⚠️  Some templates have validation errors"; \
+		exit 1; \
+	fi
+
+# Shell syntax validation for all template-generated scripts (Critical Countermeasure #3)
+templates-syntax: build
+	@echo "Validating shell syntax for all templates..."
+	@success=0; total=0; \
+	for template in templates/basic/*-template.yaml templates/enhanced/*-simple.yaml templates/enhanced/*-template.yaml templates/advanced/*/*.yaml; do \
+		if [ -f "$$template" ]; then \
+			total=$$((total + 1)); \
+			template_name=$$(basename "$$template"); \
+			echo "Syntax check: $$template_name"; \
+			if node dist/cli/index.js compile "$$template" 2>/dev/null | bash -n 2>/dev/null; then \
+				echo "  ✅ Valid shell syntax"; \
+				success=$$((success + 1)); \
+			else \
+				echo "  ❌ Invalid shell syntax - see details:"; \
+				echo "    Compilation output:"; \
+				node dist/cli/index.js compile "$$template" 2>&1 | head -5 | sed 's/^/      /'; \
+				echo "    Shell syntax check:"; \
+				node dist/cli/index.js compile "$$template" 2>/dev/null | bash -n 2>&1 | head -3 | sed 's/^/      /'; \
+			fi; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📊 Results: $$success/$$total templates have valid shell syntax"; \
+	if [ $$success -eq $$total ]; then \
+		echo "🎉 All templates generate valid shell syntax!"; \
+	else \
+		echo "⚠️  Shell syntax errors found - blocking deployment"; \
 		exit 1; \
 	fi
 

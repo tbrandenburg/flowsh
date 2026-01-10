@@ -1,0 +1,182 @@
+workflow:
+  name: 'Answer Node Example'
+  description: 'Shows how to use answer nodes for different types of output formatting'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Input Collection'
+        description: 'Collect user information for personalized responses'
+        variables:
+          - variable: 'user_name'
+            type: 'text'
+            label: 'Your Name'
+            description: 'Enter your name for personalized output'
+            required: true
+            default: 'User'
+          - variable: 'output_format'
+            type: 'select'
+            label: 'Preferred Output Format'
+            description: 'Choose how you want the results displayed'
+            options: ['text', 'json', 'markdown']
+            default: 'markdown'
+            required: true
+          - variable: 'include_details'
+            type: 'boolean'
+            label: 'Include Detailed Information'
+            description: 'Include additional details in the output'
+            default: true
+
+    - id: 'calculate_stats'
+      type: 'variable-assignment'
+      data:
+        title: 'Calculate Basic Statistics'
+        description: 'Generate some data to display in answer nodes'
+        variable: 'current_timestamp'
+        assignment_type: 'expression'
+        expression: 'date +%Y-%m-%d\ %H:%M:%S'
+
+    - id: 'generate_data'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Sample Data'
+        description: 'Create sample data for demonstration'
+        variable: 'sample_count'
+        assignment_type: 'expression'
+        expression: 'echo $((RANDOM % 100 + 1))'
+
+    - id: 'create_status'
+      type: 'variable-assignment'
+      data:
+        title: 'Create Status Message'
+        description: 'Generate status information'
+        variable: 'status_message'
+        assignment_type: 'constant'
+        value: 'Processing completed successfully'
+
+    - id: 'format_decision'
+      type: 'if-else'
+      data:
+        title: 'Output Format Decision'
+        description: 'Decide which answer node to use based on format preference'
+        conditions:
+          - variable: 'output_format'
+            comparison_operator: '=='
+            value: 'text'
+
+    - id: 'text_answer'
+      type: 'answer'
+      data:
+        title: 'Plain Text Response'
+        description: 'Simple text format output'
+        answer: |
+          Hello ${user_name}!
+
+          Answer Node Example - Text Format
+
+          Generated Statistics:
+          - Timestamp: ${current_timestamp}
+          - Sample Count: ${sample_count}
+          - Status: ${status_message}
+          - Details Included: ${include_details}
+
+          This demonstrates a basic text answer node with variable interpolation.
+        type: 'text'
+
+    - id: 'json_check'
+      type: 'if-else'
+      data:
+        title: 'JSON Format Check'
+        description: 'Check if JSON format was selected'
+        conditions:
+          - variable: 'output_format'
+            comparison_operator: '=='
+            value: 'json'
+
+    - id: 'json_answer'
+      type: 'answer'
+      data:
+        title: 'JSON Format Response'
+        description: 'Structured JSON output'
+        answer: |
+          {
+            "greeting": "Hello ${user_name}!",
+            "workflow": {
+              "name": "Answer Node Example",
+              "format": "${output_format}",
+              "timestamp": "${current_timestamp}"
+            },
+            "results": {
+              "sample_count": ${sample_count},
+              "status": "${status_message}",
+              "include_details": ${include_details}
+            },
+            "metadata": {
+              "node_type": "answer",
+              "format_type": "json",
+              "generated_by": "flowsh"
+            }
+          }
+        type: 'json'
+
+    - id: 'markdown_answer'
+      type: 'answer'
+      data:
+        title: 'Markdown Format Response'
+        description: 'Rich markdown formatted output'
+        answer: |
+          # 🎯 Answer Node Example Results
+
+          **Hello ${user_name}!** Welcome to the flowsh answer node demonstration.
+
+          ## 📊 Generated Statistics
+
+          | Metric | Value |
+          |--------|-------|
+          | **Timestamp** | `${current_timestamp}` |
+          | **Sample Count** | `${sample_count}` |
+          | **Status** | ✅ ${status_message} |
+          | **Details Included** | ${include_details} |
+
+          ## 📝 About This Example
+
+          This answer node demonstrates:
+          - **Variable Interpolation**: Using `${variable_name}` syntax
+          - **Markdown Formatting**: Rich text with headers, tables, and emojis
+          - **Conditional Logic**: Different outputs based on user preferences
+          - **Type Safety**: Proper typing for different answer formats
+
+          ---
+
+          *Generated by flowsh workflow engine at ${current_timestamp}*
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'calculate_stats'
+    - source: 'calculate_stats'
+      target: 'generate_data'
+    - source: 'generate_data'
+      target: 'create_status'
+    - source: 'create_status'
+      target: 'format_decision'
+
+    # Text format path
+    - source: 'format_decision'
+      target: 'text_answer'
+      condition: 'true'
+
+    # Non-text format paths
+    - source: 'format_decision'
+      target: 'json_check'
+      condition: 'false'
+
+    - source: 'json_check'
+      target: 'json_answer'
+      condition: 'true'
+
+    - source: 'json_check'
+      target: 'markdown_answer'
+      condition: 'false'

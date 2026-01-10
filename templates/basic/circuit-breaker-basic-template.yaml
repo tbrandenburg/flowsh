@@ -1,0 +1,459 @@
+workflow:
+  name: 'Circuit Breaker Node Example'
+  description: 'Shows circuit breaker patterns for protecting services from cascading failures and enabling automatic recovery'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Circuit Breaker Configuration'
+        description: 'Configure circuit breaker behavior and failure simulation parameters'
+        variables:
+          - variable: 'failure_threshold'
+            type: 'number'
+            label: 'Failure Threshold'
+            description: 'Number of failures before opening the circuit'
+            required: true
+            default: 5
+            min: 2
+            max: 20
+          - variable: 'timeout_duration'
+            type: 'number'
+            label: 'Circuit Timeout Duration'
+            description: 'How long the circuit stays open (seconds)'
+            required: true
+            default: 60
+            min: 10
+            max: 300
+          - variable: 'success_threshold'
+            type: 'number'
+            label: 'Success Threshold'
+            description: 'Successes needed to close the circuit'
+            required: true
+            default: 3
+            min: 1
+            max: 10
+          - variable: 'monitor_window'
+            type: 'number'
+            label: 'Monitor Window'
+            description: 'Time window for failure counting (seconds)'
+            required: true
+            default: 300
+            min: 60
+            max: 1800
+          - variable: 'service_endpoint'
+            type: 'text'
+            label: 'Protected Service Endpoint'
+            description: 'The service endpoint to protect with circuit breaker'
+            required: true
+            default: 'https://api.example.com/health'
+          - variable: 'failure_simulation_mode'
+            type: 'select'
+            label: 'Failure Simulation Mode'
+            description: 'Simulate different failure patterns for testing'
+            options: ['stable', 'intermittent', 'degraded', 'failing', 'recovering']
+            default: 'intermittent'
+            required: true
+
+    # Initialize circuit breaker state tracking
+    - id: 'initialize_circuit_state'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Circuit Breaker State'
+        description: 'Set up initial circuit breaker state variables'
+        variable: 'circuit_state'
+        assignment_type: 'constant'
+        value: 'CLOSED'
+
+    - id: 'initialize_failure_count'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Failure Counter'
+        description: 'Set up failure counter for circuit breaker monitoring'
+        variable: 'failure_count'
+        assignment_type: 'constant'
+        value: 0
+
+    - id: 'setup_monitoring_context'
+      type: 'variable-assignment'
+      data:
+        title: 'Setup Monitoring Context'
+        description: 'Prepare monitoring context for circuit breaker operations'
+        variable: 'monitoring_context'
+        assignment_type: 'expression'
+        expression: "echo 'Circuit Breaker Monitor: Threshold=${failure_threshold}, Timeout=${timeout_duration}s, Success=${success_threshold}, Window=${monitor_window}s'"
+
+    # Basic circuit breaker example with service protection
+    - id: 'basic_circuit_breaker'
+      type: 'circuit-breaker'
+      data:
+        title: 'Basic Service Protection Circuit Breaker'
+        description: 'Protect service calls with basic circuit breaker pattern'
+        failure_threshold: '${failure_threshold}'
+        timeout_duration: '${timeout_duration}'
+        success_threshold: '${success_threshold}'
+        monitor_window: '${monitor_window}'
+
+    # Protected service call
+    - id: 'protected_service_call'
+      type: 'code'
+      data:
+        title: 'Protected Service Call'
+        description: 'Service call protected by circuit breaker'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Calling protected service: ${service_endpoint}' && case '${failure_simulation_mode}' in 'stable') echo 'Service response: SUCCESS' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'Service response: SUCCESS' && exit 0; else echo 'Service temporarily unavailable' && exit 1; fi ;; 'degraded') if [ $(( RANDOM % 2 )) -eq 0 ]; then echo 'Service response: DEGRADED SUCCESS' && exit 0; else echo 'Service degraded response failure' && exit 1; fi ;; 'failing') echo 'Service completely down' && exit 1 ;; 'recovering') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'Service response: RECOVERY SUCCESS' && exit 0; else echo 'Service still recovering' && exit 1; fi ;; esac",
+          ]
+        timeout: 10
+        environment_variables:
+          CIRCUIT_BREAKER_ENABLED: 'true'
+          SERVICE_ENDPOINT: '${service_endpoint}'
+          SIMULATION_MODE: '${failure_simulation_mode}'
+
+    # Record circuit breaker operation result
+    - id: 'record_basic_result'
+      type: 'variable-assignment'
+      data:
+        title: 'Record Basic Circuit Breaker Result'
+        description: 'Capture result from basic circuit breaker operation'
+        variable: 'basic_circuit_result'
+        assignment_type: 'expression'
+        expression: "echo 'Basic circuit breaker completed for ${service_endpoint} with ${failure_simulation_mode} simulation'"
+
+    # High-frequency circuit breaker example
+    - id: 'high_frequency_circuit_breaker'
+      type: 'circuit-breaker'
+      data:
+        title: 'High-Frequency Operations Circuit Breaker'
+        description: 'Circuit breaker optimized for high-frequency operations'
+        failure_threshold: 10
+        timeout_duration: 30
+        success_threshold: 5
+        monitor_window: 120
+
+    # High-frequency operation simulation
+    - id: 'high_frequency_operation'
+      type: 'code'
+      data:
+        title: 'High-Frequency Operation'
+        description: 'Simulate high-frequency operation with potential for rapid failures'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            'echo ''High-frequency operation batch processing...'' && for i in 1 2 3 4 5; do echo "Processing batch $i"; if [ ''${failure_simulation_mode}'' = ''failing'' ] && [ $i -gt 2 ]; then echo "Batch $i failed" && exit 1; elif [ ''${failure_simulation_mode}'' = ''degraded'' ] && [ $(( RANDOM % 2 )) -eq 0 ]; then echo "Batch $i degraded" && exit 1; else echo "Batch $i success"; fi; done && echo ''All batches completed successfully'' && exit 0',
+          ]
+        timeout: 15
+        environment_variables:
+          OPERATION_TYPE: 'high_frequency'
+          BATCH_SIZE: '5'
+
+    # Database circuit breaker example
+    - id: 'database_circuit_breaker'
+      type: 'circuit-breaker'
+      data:
+        title: 'Database Connection Circuit Breaker'
+        description: 'Protect database connections with circuit breaker'
+        failure_threshold: 3
+        timeout_duration: 120
+        success_threshold: 2
+        monitor_window: 600
+
+    # Database operation simulation
+    - id: 'database_operation'
+      type: 'code'
+      data:
+        title: 'Database Operation'
+        description: 'Database query operation protected by circuit breaker'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            "echo 'Executing database query...' && case '${failure_simulation_mode}' in 'stable') echo 'DB Query: SELECT * FROM users - SUCCESS (150 rows returned)' && exit 0 ;; 'intermittent') if [ $(( RANDOM % 4 )) -eq 0 ]; then echo 'DB Query: Connection timeout' && exit 1; else echo 'DB Query: SUCCESS (data retrieved)' && exit 0; fi ;; 'degraded') sleep 2 && echo 'DB Query: SLOW SUCCESS (degraded performance)' && exit 0 ;; 'failing') echo 'DB Query: Connection refused' && exit 1 ;; 'recovering') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo 'DB Query: RECOVERY SUCCESS' && exit 0; else echo 'DB Query: Still unstable' && exit 1; fi ;; esac",
+          ]
+        timeout: 20
+        environment_variables:
+          OPERATION_TYPE: 'database'
+          QUERY_TYPE: 'SELECT'
+
+    # External API circuit breaker example
+    - id: 'external_api_circuit_breaker'
+      type: 'circuit-breaker'
+      data:
+        title: 'External API Circuit Breaker'
+        description: 'Protect external API calls with circuit breaker'
+        failure_threshold: '${failure_threshold}'
+        timeout_duration: 90
+        success_threshold: '${success_threshold}'
+        monitor_window: 240
+
+    # External API call simulation
+    - id: 'external_api_call'
+      type: 'code'
+      data:
+        title: 'External API Call'
+        description: 'External API call protected by circuit breaker'
+        command: 'sh'
+        args:
+          [
+            '-c',
+            'echo ''Calling external API: ${service_endpoint}'' && case ''${failure_simulation_mode}'' in ''stable'') echo ''API Response: {"status": "success", "data": "external data"}'' && exit 0 ;; ''intermittent'') if [ $(( RANDOM % 3 )) -eq 0 ]; then echo ''API Error: Rate limit exceeded'' && exit 1; else echo ''API Response: {"status": "success"}'' && exit 0; fi ;; ''degraded'') sleep 3 && echo ''API Response: {"status": "success", "warning": "slow response"}'' && exit 0 ;; ''failing'') echo ''API Error: Service unavailable (503)'' && exit 1 ;; ''recovering'') if [ $(( RANDOM % 5 )) -eq 0 ]; then echo ''API Response: {"status": "success", "note": "service recovered"}'' && exit 0; else echo ''API Error: Service still unstable'' && exit 1; fi ;; esac',
+          ]
+        timeout: 25
+        environment_variables:
+          OPERATION_TYPE: 'external_api'
+          API_ENDPOINT: '${service_endpoint}'
+
+    # Circuit state monitoring
+    - id: 'monitor_circuit_states'
+      type: 'variable-assignment'
+      data:
+        title: 'Monitor Circuit Breaker States'
+        description: 'Check and report current states of all circuit breakers'
+        variable: 'circuit_states_summary'
+        assignment_type: 'expression'
+        expression: "echo 'Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold=${failure_threshold}'"
+
+    # Generate health metrics
+    - id: 'generate_health_metrics'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Health Metrics'
+        description: 'Create comprehensive health metrics for circuit breakers'
+        variable: 'health_metrics'
+        assignment_type: 'expression'
+        expression: "echo 'Health Metrics: Simulation=${failure_simulation_mode}, Thresholds configured, Recovery patterns active, Monitoring window=${monitor_window}s'"
+
+    # Aggregate all circuit breaker results
+    - id: 'aggregate_circuit_results'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate Circuit Breaker Results'
+        description: 'Combine results from all circuit breaker demonstrations'
+        input_variables:
+          [
+            'basic_circuit_breaker',
+            'high_frequency_circuit_breaker',
+            'database_circuit_breaker',
+            'external_api_circuit_breaker',
+          ]
+        output_variable: 'combined_circuit_results'
+        aggregation_method: 'concat'
+        separator: "\n--- CIRCUIT BREAKER SEPARATOR ---\n"
+
+    # Generate comprehensive summary
+    - id: 'generate_circuit_summary'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Circuit Breaker Summary'
+        description: 'Create comprehensive summary of circuit breaker operations'
+        variable: 'circuit_summary'
+        assignment_type: 'expression'
+        expression: "echo 'Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: ${failure_threshold} | Timeout: ${timeout_duration}s | Success threshold: ${success_threshold} | Monitor window: ${monitor_window}s | Simulation: ${failure_simulation_mode}'"
+
+    - id: 'final_report'
+      type: 'answer'
+      data:
+        title: 'Circuit Breaker Node Example Results'
+        description: 'Comprehensive analysis of circuit breaker patterns and service protection'
+        answer: |
+          # ⚡ Circuit Breaker Node Example Results
+
+          ## Configuration Summary
+          - **Failure Threshold**: ${failure_threshold} failures
+          - **Timeout Duration**: ${timeout_duration} seconds
+          - **Success Threshold**: ${success_threshold} successes
+          - **Monitor Window**: ${monitor_window} seconds
+          - **Protected Endpoint**: ${service_endpoint}
+          - **Failure Simulation**: ${failure_simulation_mode}
+
+          ## Circuit Breaker Patterns Demonstrated
+
+          ### 1. Basic Service Protection
+          **Purpose**: Protect primary service endpoints from cascading failures
+          **Configuration**: Standard thresholds with balanced recovery
+          **Protected Service**: ${service_endpoint}
+          **Simulation Mode**: ${failure_simulation_mode}
+
+          ### 2. High-Frequency Operations Protection
+          **Purpose**: Protect high-throughput operations from rapid failure accumulation
+          **Configuration**: Higher failure threshold (10), shorter timeout (30s)
+          **Use Case**: Batch processing, streaming operations
+          **Optimization**: Faster recovery for high-volume scenarios
+
+          ### 3. Database Connection Protection
+          **Purpose**: Protect database connections from connection pool exhaustion
+          **Configuration**: Lower failure threshold (3), longer timeout (120s)
+          **Use Case**: Database queries, connection management
+          **Strategy**: Conservative approach for critical data operations
+
+          ### 4. External API Protection
+          **Purpose**: Protect against external service dependencies
+          **Configuration**: Moderate timeout (90s), adaptive thresholds
+          **Use Case**: Third-party API calls, external integrations
+          **Benefits**: Prevents external failures from affecting internal systems
+
+          ## Circuit Breaker Results Summary
+
+          ${combined_circuit_results}
+
+          ## System Health Metrics
+
+          ### Circuit States Monitoring
+          ${circuit_states_summary}
+
+          ### Health Metrics
+          ${health_metrics}
+
+          ### Comprehensive Summary
+          ${circuit_summary}
+
+          ## Circuit Breaker Node Features Demonstrated
+
+          ### Circuit States
+
+          1. **CLOSED State** (Normal Operation)
+             - Requests flow through normally
+             - Failure counting is active
+             - Circuit monitors for failure threshold
+
+          2. **OPEN State** (Circuit Tripped)
+             - Requests are immediately rejected
+             - No calls to protected service
+             - Timeout countdown is active
+
+          3. **HALF-OPEN State** (Testing Recovery)
+             - Limited requests allowed through
+             - Success counting is active  
+             - Ready to close or re-open based on results
+
+          ### Failure Detection
+          - **Failure Counting**: Tracks failures within monitor window
+          - **Threshold Management**: Configurable failure limits
+          - **Window-based Monitoring**: Time-bound failure tracking
+          - **Failure Classification**: Different failure types handling
+
+          ### Recovery Mechanisms
+          - **Automatic Recovery**: Timeout-based circuit reset attempts
+          - **Success Threshold**: Required successes to close circuit
+          - **Gradual Recovery**: Half-open state for safe recovery testing
+          - **Health Monitoring**: Continuous health assessment
+
+          ### Configuration Options
+          - **Failure Threshold**: Number of failures before opening circuit
+          - **Timeout Duration**: How long circuit stays open
+          - **Success Threshold**: Successes needed to close circuit
+          - **Monitor Window**: Time window for failure counting
+
+          ### Advanced Features
+          - **Multiple Circuit Patterns**: Different configurations for different use cases
+          - **State Monitoring**: Real-time circuit state tracking
+          - **Metrics Collection**: Comprehensive health and performance metrics
+          - **Failure Classification**: Distinguishing between failure types
+          - **Recovery Strategies**: Multiple recovery patterns and timings
+
+          ### Use Cases and Benefits
+
+          #### Microservices Architecture
+          - **Service Isolation**: Prevent cascading failures between services
+          - **Dependency Management**: Protect against failing downstream services
+          - **System Stability**: Maintain system operation during partial failures
+
+          #### API Gateway Patterns
+          - **Backend Protection**: Shield backend services from overload
+          - **Client Experience**: Fail fast instead of slow failures
+          - **Resource Conservation**: Prevent resource exhaustion
+
+          #### Database Access Protection
+          - **Connection Pool Management**: Prevent connection exhaustion
+          - **Query Performance**: Avoid slow/hanging queries
+          - **Data Consistency**: Maintain data integrity during failures
+
+          #### External Integration Resilience
+          - **Third-party Dependencies**: Protect against external service failures
+          - **Network Issues**: Handle network connectivity problems
+          - **Rate Limiting**: Respect external service limits
+
+          ### Monitoring and Observability
+          - **Circuit State Tracking**: Monitor open/closed/half-open states
+          - **Failure Rate Metrics**: Track failure rates and patterns
+          - **Recovery Time**: Measure time to recovery
+          - **Performance Impact**: Assess circuit breaker overhead
+          - **Business Impact**: Understand impact on user experience
+
+          ### Best Practices Demonstrated
+
+          1. **Appropriate Thresholds**: Balanced failure and success thresholds
+          2. **Context-Specific Configuration**: Different settings for different use cases
+          3. **Fast Failure**: Fail quickly rather than hanging
+          4. **Gradual Recovery**: Safe recovery through half-open state
+          5. **Monitoring Integration**: Comprehensive observability
+          6. **Fallback Integration**: Combine with fallback patterns
+
+          This example demonstrates how circuit breaker nodes provide essential protection against cascading failures, enabling resilient system architectures that can gracefully handle and recover from service degradation and failures.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'initialize_circuit_state'
+    - source: 'initialize_circuit_state'
+      target: 'initialize_failure_count'
+    - source: 'initialize_failure_count'
+      target: 'setup_monitoring_context'
+    - source: 'setup_monitoring_context'
+      target: 'basic_circuit_breaker'
+
+    # Basic circuit breaker operation
+    - source: 'basic_circuit_breaker'
+      target: 'protected_service_call'
+    - source: 'protected_service_call'
+      target: 'basic_circuit_breaker'
+      condition: 'circuit_retry'
+    - source: 'basic_circuit_breaker'
+      target: 'record_basic_result'
+      condition: 'circuit_complete'
+
+    # High-frequency circuit breaker
+    - source: 'record_basic_result'
+      target: 'high_frequency_circuit_breaker'
+    - source: 'high_frequency_circuit_breaker'
+      target: 'high_frequency_operation'
+    - source: 'high_frequency_operation'
+      target: 'high_frequency_circuit_breaker'
+      condition: 'circuit_retry'
+
+    # Database circuit breaker
+    - source: 'high_frequency_circuit_breaker'
+      target: 'database_circuit_breaker'
+      condition: 'circuit_complete'
+    - source: 'database_circuit_breaker'
+      target: 'database_operation'
+    - source: 'database_operation'
+      target: 'database_circuit_breaker'
+      condition: 'circuit_retry'
+
+    # External API circuit breaker
+    - source: 'database_circuit_breaker'
+      target: 'external_api_circuit_breaker'
+      condition: 'circuit_complete'
+    - source: 'external_api_circuit_breaker'
+      target: 'external_api_call'
+    - source: 'external_api_call'
+      target: 'external_api_circuit_breaker'
+      condition: 'circuit_retry'
+
+    # Final monitoring and aggregation
+    - source: 'external_api_circuit_breaker'
+      target: 'monitor_circuit_states'
+      condition: 'circuit_complete'
+    - source: 'monitor_circuit_states'
+      target: 'generate_health_metrics'
+    - source: 'generate_health_metrics'
+      target: 'aggregate_circuit_results'
+    - source: 'aggregate_circuit_results'
+      target: 'generate_circuit_summary'
+    - source: 'generate_circuit_summary'
+      target: 'final_report'

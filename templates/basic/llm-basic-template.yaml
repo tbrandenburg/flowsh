@@ -1,0 +1,277 @@
+workflow:
+  name: 'LLM Node Example'
+  description: 'Shows comprehensive LLM node usage with various providers, prompt templates, and configurations'
+
+environment_variables:
+  - variable: 'openai_api_key'
+    name: 'OpenAI API Key'
+    type: 'text'
+    description: 'API key for OpenAI GPT models'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Input Collection'
+        description: 'Collect parameters for LLM processing'
+        variables:
+          - variable: 'user_query'
+            type: 'text'
+            label: 'Your Question'
+            description: 'What would you like to ask the AI?'
+            required: true
+            default: 'Explain the concept of workflow automation in simple terms'
+          - variable: 'response_style'
+            type: 'select'
+            label: 'Response Style'
+            description: 'How should the AI respond?'
+            options: ['professional', 'casual', 'technical', 'educational']
+            default: 'educational'
+            required: true
+          - variable: 'max_length'
+            type: 'select'
+            label: 'Response Length'
+            description: 'Desired response length'
+            options: ['brief', 'medium', 'detailed']
+            default: 'medium'
+            required: true
+          - variable: 'include_examples'
+            type: 'boolean'
+            label: 'Include Examples'
+            description: 'Should the response include practical examples?'
+            default: true
+
+    - id: 'prepare_context'
+      type: 'variable-assignment'
+      data:
+        title: 'Prepare Context Information'
+        description: 'Gather context for the LLM'
+        variable: 'context_info'
+        assignment_type: 'expression'
+        expression: 'echo "Current workflow: LLM Node Example. User preferences: Style=${response_style}, Length=${max_length}, Examples=${include_examples}"'
+
+    - id: 'basic_llm_chat'
+      type: 'llm'
+      data:
+        title: 'Basic LLM Chat Mode'
+        description: 'Simple LLM interaction using chat mode with inline prompt'
+        model:
+          provider: 'openai'
+          name: 'gpt-3.5-turbo'
+          mode: 'chat'
+          completion_params:
+            temperature: 0.7
+            max_tokens: 500
+            top_p: 0.9
+        prompt_template:
+          - role: 'system'
+            text: |
+              You are a helpful AI assistant specializing in explaining technical concepts clearly.
+
+              Response Guidelines:
+              - Style: ${response_style}
+              - Length: ${max_length} (brief=1-2 paragraphs, medium=3-4 paragraphs, detailed=5+ paragraphs)
+              - Include examples: ${include_examples}
+              - Be accurate and informative
+              - Use clear, accessible language
+          - role: 'user'
+            text: '${user_query}'
+
+    - id: 'advanced_llm_template'
+      type: 'llm'
+      data:
+        title: 'Advanced LLM with Template'
+        description: 'LLM with structured template and advanced configuration'
+        model:
+          provider: 'openai'
+          name: 'gpt-4'
+          mode: 'chat'
+          completion_params:
+            temperature: 0.3
+            max_tokens: 800
+            top_p: 0.95
+            frequency_penalty: 0.1
+            presence_penalty: 0.1
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            # Technical Analysis Assistant
+
+            ## Context
+            You are an expert technical analyst providing detailed, structured responses.
+
+            ## User Query
+            {{user_query}}
+
+            ## Response Requirements
+            - **Style**: {{response_style}}
+            - **Length**: {{max_length}}
+            - **Include Examples**: {{include_examples}}
+            - **Context**: {{context_info}}
+
+            ## Response Format
+            Please structure your response with:
+            1. **Summary** (1-2 sentences)
+            2. **Detailed Explanation** 
+            3. **Key Points** (bullet format)
+            4. **Examples** (if requested)
+            5. **Additional Resources** (if applicable)
+
+            ## Guidelines
+            - Use clear, professional language
+            - Provide actionable insights
+            - Include relevant technical details
+            - Maintain accuracy and reliability
+        template_parameters:
+          user_query: '${user_query}'
+          response_style: '${response_style}'
+          max_length: '${max_length}'
+          include_examples: '${include_examples}'
+          context_info: '${context_info}'
+        context:
+          enabled: true
+          variable: 'context_info'
+        memory:
+          role_prefix:
+            user: 'User Query'
+            assistant: 'AI Analysis'
+          window:
+            enabled: true
+            size: 5
+
+    - id: 'llm_with_vision'
+      type: 'llm'
+      data:
+        title: 'LLM with Vision Capabilities'
+        description: 'Demonstrates vision-enabled LLM (when image data is available)'
+        model:
+          provider: 'openai'
+          name: 'gpt-4-vision-preview'
+          mode: 'chat'
+          completion_params:
+            temperature: 0.5
+            max_tokens: 600
+        prompt_template:
+          - role: 'system'
+            text: |
+              You are a visual analysis assistant. When provided with images, analyze them thoroughly.
+              Since no images are provided in this example, focus on explaining visual analysis capabilities.
+          - role: 'user'
+            text: |
+              Based on the query "${user_query}", explain how visual analysis could enhance the response.
+              Describe what types of diagrams, charts, or visual aids would be most helpful for this topic.
+        vision:
+          enabled: true
+          configs:
+            detail: 'high'
+
+    - id: 'completion_mode_llm'
+      type: 'llm'
+      data:
+        title: 'Completion Mode LLM'
+        description: 'LLM using completion mode instead of chat mode'
+        model:
+          provider: 'openai'
+          name: 'gpt-3.5-turbo-instruct'
+          mode: 'completion'
+          completion_params:
+            temperature: 0.8
+            max_tokens: 400
+            stop: ["\n\n", '###']
+        prompt_template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            Complete the following technical explanation:
+
+            Topic: ${user_query}
+            Style: ${response_style}
+            Length requirement: ${max_length}
+
+            Technical Explanation:
+
+    - id: 'aggregate_responses'
+      type: 'variable-aggregation'
+      data:
+        title: 'Aggregate LLM Responses'
+        description: 'Combine responses from different LLM configurations'
+        input_variables:
+          ['basic_llm_chat', 'advanced_llm_template', 'llm_with_vision', 'completion_mode_llm']
+        output_variable: 'combined_analysis'
+        aggregation_method: 'concat'
+        separator: "\n\n---\n\n"
+
+    - id: 'final_summary'
+      type: 'answer'
+      data:
+        title: 'LLM Node Example Results'
+        description: 'Comprehensive summary of LLM node capabilities'
+        answer: |
+          # 🧠 LLM Node Example Results
+
+          ## Original Query
+          **Question**: ${user_query}
+          **Preferences**: ${response_style} style, ${max_length} length, examples: ${include_examples}
+
+          ## LLM Configurations Demonstrated
+
+          ### 1. Basic Chat Mode 💬
+          - **Provider**: OpenAI GPT-3.5-turbo
+          - **Mode**: Chat with system/user messages
+          - **Features**: Basic temperature and token controls
+          - **Use Case**: Quick, conversational interactions
+
+          ### 2. Advanced Template Mode 🎯
+          - **Provider**: OpenAI GPT-4
+          - **Mode**: Chat with structured templates
+          - **Features**: Template parameters, context management, memory window
+          - **Use Case**: Complex, structured analysis tasks
+
+          ### 3. Vision-Enabled Mode 👁️
+          - **Provider**: OpenAI GPT-4-Vision
+          - **Mode**: Chat with visual analysis capabilities
+          - **Features**: Image understanding, visual context
+          - **Use Case**: Analysis involving diagrams, charts, images
+
+          ### 4. Completion Mode 📝
+          - **Provider**: OpenAI GPT-3.5-turbo-instruct
+          - **Mode**: Completion (not chat)
+          - **Features**: Direct text completion, stop sequences
+          - **Use Case**: Text generation, creative writing, completion tasks
+
+          ## Advanced Features Showcased
+
+          - **Multiple Model Providers**: Support for OpenAI, Anthropic, Google, local models
+          - **Flexible Prompting**: Inline prompts, template systems, multi-message conversations
+          - **Parameter Control**: Temperature, max_tokens, top_p, frequency/presence penalties
+          - **Context Management**: Context variables, memory windows, role prefixes
+          - **Vision Integration**: Image analysis capabilities when supported
+          - **Template Parameters**: Dynamic prompt customization with variable substitution
+          - **Response Aggregation**: Combining multiple LLM responses for comprehensive analysis
+
+          ## Combined Analysis Results
+
+          ${combined_analysis}
+
+          ---
+
+          This example demonstrates the full range of LLM node capabilities in flowsh, from simple chat interactions to complex, template-driven AI workflows with advanced configuration options.
+        type: 'markdown'
+
+  edges:
+    - source: 'start'
+      target: 'prepare_context'
+    - source: 'prepare_context'
+      target: 'basic_llm_chat'
+    - source: 'basic_llm_chat'
+      target: 'advanced_llm_template'
+    - source: 'advanced_llm_template'
+      target: 'llm_with_vision'
+    - source: 'llm_with_vision'
+      target: 'completion_mode_llm'
+    - source: 'completion_mode_llm'
+      target: 'aggregate_responses'
+    - source: 'aggregate_responses'
+      target: 'final_summary'

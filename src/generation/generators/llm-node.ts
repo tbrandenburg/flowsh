@@ -51,30 +51,51 @@ export class LLMNodeGenerator extends BaseNodeGenerator {
   }
 
   /**
-   * Generate LLMv7 API call with messages array
+   * Generate LLMv7 API call with messages array using standardized escaping
    */
   private generateLlmv7Call(messages: Array<{ role: string; content: string }>): string {
-    const messagesJson = JSON.stringify(messages).replace(/'/g, "\\'");
+    // Create a clean JSON structure and escape for double-quoted string
+    const jsonPayload = JSON.stringify({
+      model: 'default',
+      messages: messages,
+    });
+
+    // Use double quotes and escape internal quotes for safer shell handling
+    const escapedJson = jsonPayload
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, '\\$');
+
     return `curl -s -X POST "https://api.llm7.io/v1/chat/completions" \\
       -H "Content-Type: application/json" \\
-      -d '{"model": "default", "messages": ${messagesJson}}' \\
-      --connect-timeout 30 --max-time 60`;
+      --connect-timeout 30 --max-time 60 \\
+      -d "${escapedJson}"`;
   }
 
   /**
-   * Generate OpenAI API call with messages array
+   * Generate OpenAI API call with messages array using standardized escaping
    */
   private generateOpenAICall(
     modelName: string,
     messages: Array<{ role: string; content: string }>
   ): string {
-    // Use double quotes for curl data and escape only what's needed for JSON
-    const messagesJson = JSON.stringify(messages).replace(/"/g, '\\"').replace(/\$/g, '\\$');
+    // Create a clean JSON structure and escape for double-quoted string
+    const jsonPayload = JSON.stringify({
+      model: modelName,
+      messages: messages,
+    });
+
+    // Use double quotes and escape internal quotes for safer shell handling
+    const escapedJson = jsonPayload
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, '\\$');
+
     return `curl -s -X POST "https://api.openai.com/v1/chat/completions" \\
       -H "Authorization: Bearer $OPENAI_API_KEY" \\
       -H "Content-Type: application/json" \\
-      -d "{\\"model\\": \\"${modelName}\\", \\"messages\\": ${messagesJson}}" \\
-      --connect-timeout 30 --max-time 60`;
+      --connect-timeout 30 --max-time 60 \\
+      -d "${escapedJson}"`;
   }
 
   /**
