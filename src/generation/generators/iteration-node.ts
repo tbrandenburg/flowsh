@@ -191,7 +191,7 @@ ${functionName}() {
     log_warning "Parallel iteration not yet implemented, using sequential processing"
     
     # Use sequential implementation
-    ${this.generateSequentialIteration(node, `${functionName}_sequential`, title, inputVariable, outputVariable, childNodes).replace(functionName, `${functionName}_sequential`)}
+    ${this.generateSequentialIteration(node, `${functionName}_sequential`, title, inputVariable, outputVariable, childNodes)}
     
     # Call sequential implementation
     ${functionName}_sequential

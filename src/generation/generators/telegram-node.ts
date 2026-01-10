@@ -247,34 +247,34 @@ EOF
   }
 
   private generateEscapingCode(_parseMode: string): string {
-    return `    # Simple escaping for Telegram  
+    return `    # Standardized escaping for Telegram using centralized utility
     escape_json() {
-        # For now, just pass through without complex escaping
-        printf '%s' "\$1"
+        # Use centralized JSON escaping
+        local input="$1"
+        # Apply standardized JSON escaping transformations
+        input="\${input//\\\\/\\\\\\\\}"  # Escape backslashes first
+        input="\${input//\"/\\\\\"}"      # Escape double quotes
+        input="\${input//\$'\\n'/\\\\n}"  # Escape newlines
+        input="\${input//\$'\\r'/\\\\r}"  # Escape carriage returns
+        input="\${input//\$'\\t'/\\\\t}"  # Escape tabs
+        printf '%s' "$input"
     }
 
     escape_markdown() {
-        local text="\$1"
-        # Escape special MarkdownV2 characters
-        text="\${text//_/\\_}"
-        text="\${text//*/\\*}"
-        text="\${text//[/\\[}"
-        text="\${text//]/\\]}"
-        text="\${text//(/\\(}"
-        text="\${text//)/\\)}"
-        text="\${text//~/\\~}"
-        text="\${text//\\\`/\\\\\\\`}"
-        text="\${text//>/\\>}"
-        text="\${text//#/\\#}"
-        text="\${text//+/\\+}"
-        text="\${text//-/\\-}"
-        text="\${text//=/\\=}"
-        text="\${text//|/\\|}"
-        text="\${text//\\{/\\\\{}"
-        text="\${text//\\}/\\\\}}"
-        text="\${text//./\\.}"
-        text="\${text//!/\\!}"
-        echo "\$text"
+        # Use centralized Markdown escaping
+        local input="$1"
+        input="\${input//\\\\/\\\\\\\\}"
+        input="\${input//\\*/\\\\*}"
+        input="\${input//_/\\\\_}"
+        input="\${input//\\\`/\\\\\\\`}"
+        input="\${input//~/\\\\~}"
+        input="\${input//[/\\\\[}"
+        input="\${input//]/\\\\]}"
+        input="\${input//(/\\\\(}"
+        input="\${input//)/\\\\)}"
+        input="\${input//!/\\\\!}"
+        input="\${input//#/\\\\#}"
+        echo "$input"
      }`;
   }
 

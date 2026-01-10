@@ -113,7 +113,7 @@ graph:
         description: 'Get system information using shell commands'
         variable: 'system_info'
         assignment_type: 'expression'
-        expression: "echo 'System: '$(uname -s)', User: '$(whoami)', Directory: '$(pwd)"
+        expression: 'echo "System: $(uname -s), User: $(whoami), Directory: $(pwd)"'
 
     - id: 'conditional_expression'
       type: 'variable-assignment'
@@ -173,7 +173,7 @@ graph:
         description: 'Advanced string operations and transformations'
         variable: 'processed_text'
         assignment_type: 'expression'
-        expression: "echo '${base_value}' | tr '[:lower:]' '[:upper:]' | sed 's/WORLD/UNIVERSE/g'"
+        expression: 'echo "${base_value}" | tr "[:lower:]" "[:upper:]" | sed "s/WORLD/UNIVERSE/g"'
 
     - id: 'json_creation'
       type: 'variable-assignment'
@@ -191,7 +191,7 @@ graph:
         description: 'Collect comprehensive environment details'
         variable: 'env_summary'
         assignment_type: 'expression'
-        expression: "echo 'Environment Summary: OS='$(uname -o 2>/dev/null || uname -s)', Hostname='$(hostname)', Shell='$SHELL', Path='$(pwd)''"
+        expression: 'echo "Environment Summary: OS=$(uname -o 2>/dev/null || uname -s), Hostname=$(hostname), Shell=$SHELL, Path=$(pwd)"'
 
     # Clear operation example
     - id: 'create_temp_variable'

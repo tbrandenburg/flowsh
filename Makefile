@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate templates-syntax test-templates qa
+.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate templates-syntax templates-quality-gates test-templates qa
 
 # Default target
 help:
@@ -35,6 +35,7 @@ help:
 	@echo "  make templates-all      Generate and execute scripts from all 35 templates (19 basic + 16 production)"
 	@echo "  make templates-validate Validate all template workflows"
 	@echo "  make templates-syntax   Validate shell syntax for all template-generated scripts"
+	@echo "  make templates-quality-gates Run comprehensive template quality validation pipeline"
 	@echo "  make test-templates     Basic compilation testing for all templates"
 	@echo
 	@echo "🧪 Testing Generated Scripts:"
@@ -268,6 +269,10 @@ templates-syntax: build
 		echo "⚠️  Shell syntax errors found - blocking deployment"; \
 		exit 1; \
 	fi
+
+# Comprehensive quality gates (all validations) - Critical PRP requirement
+templates-quality-gates: templates-validate templates-syntax templates-all
+	@echo "🎉 All template quality gates passed!"
 
 # Basic compilation testing for templates (lightweight validation)
 test-templates: build

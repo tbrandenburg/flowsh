@@ -8,6 +8,7 @@ import { ValidationResult } from '../../dsl/validation.js';
 import { GenerationContext } from '../registry/types.js';
 import { BaseNodeGenerator } from './base-generator.js';
 import { WorkflowNode } from '../../dsl/types.js';
+import { ShellEscaping } from '../shell-scripting/escaping.js';
 
 export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
   readonly nodeType = 'variable-assignment';
@@ -26,8 +27,8 @@ export class VariableAssignmentNodeGenerator extends BaseNodeGenerator {
         // Handle multiline expressions by converting to single line
         expression = expression.replace(/\n/g, ' ').trim();
 
-        // Escape single quotes in the expression to prevent shell syntax errors
-        expression = expression.replace(/'/g, "\\'");
+        // Use standardized expression escaping to prevent command injection
+        expression = ShellEscaping.forExpressionContext(expression);
 
         // Use command substitution to execute the expression and capture its output
         return `# Node: ${node.id}
@@ -49,8 +50,8 @@ set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
         return `set_var "${variable.toUpperCase()}" "${processedValue}" "${node.id}"`;
       } else {
         // Regular constant value without template variables
-        const value = this.escapeShellValue(rawValueStr);
-        return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
+        const value = ShellEscaping.forShellVariable(rawValueStr);
+        return `set_var "${variable.toUpperCase()}" ${value} "${node.id}"`;
       }
     }
   }
