@@ -33,6 +33,18 @@ AI agents must NEVER create temporary files, generated scripts, test files, or a
 
 ---
 
+## 🚫 CRITICAL QUALITY ASSURANCE RULE
+
+**MANDATORY: Run "make qa" after ALL code modifications.**
+
+AI agents must ALWAYS run `make qa` after making any changes to the codebase.
+
+**If "make qa" fails, you MUST fix all issues before proceeding.**
+
+**Violation of this rule will result in broken builds and failed workflows.**
+
+---
+
 ## 1. Project Overview
 
 **Project Name**: flowsh
