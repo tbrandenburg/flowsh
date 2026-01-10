@@ -59,6 +59,7 @@ export class TemplateDiscovery {
    * Get all templates in hierarchical format for display
    */
   getHierarchicalDisplay(): HierarchicalTemplates {
+    const basic: TemplateInfo[] = [];
     const enhanced: TemplateInfo[] = [];
     const advanced: { [subcategory: string]: TemplateInfo[] } = {};
 
@@ -66,7 +67,9 @@ export class TemplateDiscovery {
     const uniqueTemplates = this.getUniqueTemplates();
 
     for (const template of uniqueTemplates) {
-      if (template.category === 'enhanced') {
+      if (template.category === 'basic') {
+        basic.push(template);
+      } else if (template.category === 'enhanced') {
         enhanced.push(template);
       } else if (template.category === 'advanced') {
         const subcategory = template.subcategory || 'miscellaneous';
@@ -78,6 +81,7 @@ export class TemplateDiscovery {
     }
 
     // Sort templates within each category by display name
+    basic.sort((a, b) => a.displayName.localeCompare(b.displayName));
     enhanced.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
     for (const subcategory in advanced) {
@@ -86,7 +90,7 @@ export class TemplateDiscovery {
       }
     }
 
-    return { enhanced, advanced };
+    return { basic, enhanced, advanced };
   }
 
   /**

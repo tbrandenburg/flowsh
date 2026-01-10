@@ -87,6 +87,15 @@ export class TemplateDisplay {
    * Display templates in hierarchical format
    */
   private static displayHierarchicalTemplates(templates: HierarchicalTemplates): void {
+    // Display basic templates (individual node examples)
+    if (templates.basic.length > 0) {
+      console.log('  basic:');
+      for (const template of templates.basic) {
+        this.displayTemplate(template, '    ');
+      }
+      console.log('');
+    }
+
     // Display enhanced templates
     if (templates.enhanced.length > 0) {
       console.log('  enhanced:');

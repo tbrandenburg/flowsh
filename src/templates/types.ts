@@ -15,7 +15,7 @@ export interface TemplateInfo {
   /** Absolute path to the template file */
   filePath: string;
 
-  /** Main category (enhanced/advanced) */
+  /** Main category (basic/enhanced/advanced) */
   category: string;
 
   /** Subcategory if applicable (reliability, ai-workflows, etc.) */
@@ -46,6 +46,9 @@ export interface ProcessResult {
  * Hierarchical structure for template display
  */
 export interface HierarchicalTemplates {
+  /** Basic templates (individual node examples) */
+  basic: TemplateInfo[];
+
   /** Enhanced templates (simpler, ready-to-use) */
   enhanced: TemplateInfo[];
 
