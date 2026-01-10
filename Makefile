@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate test-templates
+.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate test-templates qa
 
 # Default target
 help:
@@ -23,6 +23,7 @@ help:
 	@echo "  make lint         Run ESLint (with auto-fix)"
 	@echo "  make format       Format code with Prettier"
 	@echo "  make check        Run all quality checks (lint + format + test + build)"
+	@echo "  make qa           Comprehensive QA pipeline (check + examples-all + templates-all)"
 	@echo
 	@echo "🌊 Workflow Operations:"
 	@echo "  make example          Generate shell script from main example workflow"
@@ -44,6 +45,19 @@ help:
 	@echo "  make clean-all    Full cleanup including node_modules"
 
 # =============================================================================
+# Quality Assurance Pipeline
+# =============================================================================
+
+# Comprehensive quality assurance pipeline
+# Runs all checks: linting, formatting, unit tests, build, examples, and templates
+qa: check examples-all templates-all
+	@echo "🎉 All QA checks passed successfully!"
+
+# Unit tests only (npm test)
+test:
+	npm test
+
+# =============================================================================
 # Core Development Commands
 # =============================================================================
 
@@ -62,10 +76,6 @@ dev:
 # Run flowsh CLI without parameters (shows help)
 run: build
 	node dist/cli/index.js
-
-# Run test suite
-test:
-	npm test
 
 # Run ESLint with auto-fix
 lint:

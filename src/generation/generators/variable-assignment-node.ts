@@ -63,6 +63,20 @@ set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
           return `$(get_workflow_var "${sanitizedVar}" "default")`;
         }
       });
+
+      // Special handling for echo commands with single quotes containing template variables
+      // This fixes the unterminated quoted string issue
+      if (
+        result.startsWith("echo '") &&
+        result.endsWith("'") &&
+        result.includes('$(get_workflow_var')
+      ) {
+        // Convert single-quoted echo to use double quotes with proper escaping
+        const innerContent = result.slice(6, -1); // Remove 'echo ' and trailing quote
+        const escapedContent = innerContent.replace(/"/g, '\\"'); // Escape inner double quotes
+        result = `echo "${escapedContent}"`;
+      }
+
       return result;
     }
 

@@ -129,7 +129,8 @@ export class AgentNodeGenerator extends BaseNodeGenerator {
           (Array.isArray(args) && args.some(arg => String(arg) === '-c'))
         ) {
           // For shell commands, pass the prompt as a command argument
-          fullCommand = `${fullCommand} "\$prompt_content"`;
+          // Use single quotes to prevent interpretation of $() calls in the prompt
+          fullCommand = `${fullCommand} '\$prompt_content'`;
         } else if (fullCommand.includes('opencode')) {
           // For opencode commands, pass the prompt as a quoted argument
           fullCommand = `${fullCommand} "\$prompt_content"`;
