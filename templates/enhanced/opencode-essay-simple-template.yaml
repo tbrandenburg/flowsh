@@ -131,6 +131,9 @@ graph:
         command: 'opencode'
         args: ['run']
         timeout: 120
+        # Container membership - this agent should execute INSIDE the iteration loop
+        isInIteration: true
+        iteration_id: content_iterator
         prompt_template:
           type: prompt
           source: inline

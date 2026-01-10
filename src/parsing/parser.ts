@@ -546,6 +546,23 @@ function transformNodeData(data: Record<string, unknown> | undefined, nodeType: 
     baseData.description = String(data['description']);
   }
 
+  // Container membership properties - preserve for all node types
+  if (data['isInIteration'] !== undefined) {
+    baseData.isInIteration = Boolean(data['isInIteration']);
+  }
+
+  if (data['iteration_id']) {
+    baseData.iteration_id = String(data['iteration_id']);
+  }
+
+  if (data['isInLoop'] !== undefined) {
+    baseData.isInLoop = Boolean(data['isInLoop']);
+  }
+
+  if (data['loop_id']) {
+    baseData.loop_id = String(data['loop_id']);
+  }
+
   switch (nodeType) {
     case 'start':
       if (Array.isArray(data['variables'])) {
