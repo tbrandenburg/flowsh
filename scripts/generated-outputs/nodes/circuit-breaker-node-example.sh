@@ -379,7 +379,7 @@ set_var "FAILURE_COUNT" "0" "initialize_failure_count"
 
 # Node: setup_monitoring_context
 # Node: setup_monitoring_context
-MONITORING_CONTEXT=$(echo 'Circuit Breaker Monitor: Threshold=$(get_workflow_var "FAILURE_THRESHOLD" "default"), Timeout=$(get_workflow_var "TIMEOUT_DURATION" "default")s, Success=$(get_workflow_var "SUCCESS_THRESHOLD" "default"), Window=$(get_workflow_var "MONITOR_WINDOW" "default")s')
+MONITORING_CONTEXT=$(echo "Circuit Breaker Monitor: Threshold=$(get_workflow_var \"FAILURE_THRESHOLD\" \"default\"), Timeout=$(get_workflow_var \"TIMEOUT_DURATION\" \"default\")s, Success=$(get_workflow_var \"SUCCESS_THRESHOLD\" \"default\"), Window=$(get_workflow_var \"MONITOR_WINDOW\" \"default\")s")
 set_var "MONITORING_CONTEXT" "$MONITORING_CONTEXT" "setup_monitoring_context"
 
 # Node: basic_circuit_breaker
@@ -560,7 +560,7 @@ sh -c "echo 'Calling protected service: \${service_endpoint}' && case '\${failur
 
 # Node: record_basic_result
 # Node: record_basic_result
-BASIC_CIRCUIT_RESULT=$(echo 'Basic circuit breaker completed for $(get_workflow_var "SERVICE_ENDPOINT" "default") with $(get_workflow_var "FAILURE_SIMULATION_MODE" "default") simulation')
+BASIC_CIRCUIT_RESULT=$(echo "Basic circuit breaker completed for $(get_workflow_var \"SERVICE_ENDPOINT\" \"default\") with $(get_workflow_var \"FAILURE_SIMULATION_MODE\" \"default\") simulation")
 set_var "BASIC_CIRCUIT_RESULT" "$BASIC_CIRCUIT_RESULT" "record_basic_result"
 
 # Node: high_frequency_circuit_breaker
@@ -1093,12 +1093,12 @@ sh -c "echo 'Calling external API: \${service_endpoint}' && case '\${failure_sim
 
 # Node: monitor_circuit_states
 # Node: monitor_circuit_states
-CIRCUIT_STATES_SUMMARY=$(echo 'Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold=$(get_workflow_var "FAILURE_THRESHOLD" "default")')
+CIRCUIT_STATES_SUMMARY=$(echo "Circuit States Summary: Basic CB, High-freq CB, Database CB, External API CB - All monitored with failure_threshold=$(get_workflow_var \"FAILURE_THRESHOLD\" \"default\")")
 set_var "CIRCUIT_STATES_SUMMARY" "$CIRCUIT_STATES_SUMMARY" "monitor_circuit_states"
 
 # Node: generate_health_metrics
 # Node: generate_health_metrics
-HEALTH_METRICS=$(echo 'Health Metrics: Simulation=$(get_workflow_var "FAILURE_SIMULATION_MODE" "default"), Thresholds configured, Recovery patterns active, Monitoring window=$(get_workflow_var "MONITOR_WINDOW" "default")s')
+HEALTH_METRICS=$(echo "Health Metrics: Simulation=$(get_workflow_var \"FAILURE_SIMULATION_MODE\" \"default\"), Thresholds configured, Recovery patterns active, Monitoring window=$(get_workflow_var \"MONITOR_WINDOW\" \"default\")s")
 set_var "HEALTH_METRICS" "$HEALTH_METRICS" "generate_health_metrics"
 
 # Node: aggregate_circuit_results
@@ -1137,7 +1137,7 @@ execute_aggregation_aggregate_circuit_results
 
 # Node: generate_circuit_summary
 # Node: generate_circuit_summary
-CIRCUIT_SUMMARY=$(echo 'Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: $(get_workflow_var "FAILURE_THRESHOLD" "default") | Timeout: $(get_workflow_var "TIMEOUT_DURATION" "default")s | Success threshold: $(get_workflow_var "SUCCESS_THRESHOLD" "default") | Monitor window: $(get_workflow_var "MONITOR_WINDOW" "default")s | Simulation: $(get_workflow_var "FAILURE_SIMULATION_MODE" "default")')
+CIRCUIT_SUMMARY=$(echo "Circuit Breaker Summary: 4 patterns demonstrated | Failure threshold: $(get_workflow_var \"FAILURE_THRESHOLD\" \"default\") | Timeout: $(get_workflow_var \"TIMEOUT_DURATION\" \"default\")s | Success threshold: $(get_workflow_var \"SUCCESS_THRESHOLD\" \"default\") | Monitor window: $(get_workflow_var \"MONITOR_WINDOW\" \"default\")s | Simulation: $(get_workflow_var \"FAILURE_SIMULATION_MODE\" \"default\")")
 set_var "CIRCUIT_SUMMARY" "$CIRCUIT_SUMMARY" "generate_circuit_summary"
 
 # Node: final_report

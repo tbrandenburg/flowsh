@@ -1626,7 +1626,7 @@ fi
 
 # Node: include_priority_results
 # Node: include_priority_results
-FINAL_RESULTS_WITH_PRIORITY=$(echo '$(get_workflow_var "COMBINED_RESULTS" "default")' && echo && echo 'Priority Processing:' && echo '$(get_workflow_var "PRIORITY_RESULT" "default")')
+FINAL_RESULTS_WITH_PRIORITY=$(echo "$(get_workflow_var \"COMBINED_RESULTS\" \"default\")' && echo && echo 'Priority Processing:' && echo '$(get_workflow_var \"PRIORITY_RESULT\" \"default\")")
 set_var "FINAL_RESULTS_WITH_PRIORITY" "$FINAL_RESULTS_WITH_PRIORITY" "include_priority_results"
 
 # Node: standard_results

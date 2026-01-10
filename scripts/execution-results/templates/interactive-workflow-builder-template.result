@@ -1,20 +1,18 @@
 Starting workflow: Interactive Workflow Builder - Meta-Workflow Composition
 [0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
 [0;36mℹ️  LLMv7 API successful[0m
-你好！我是GLM，由智谱AI训练的大语言模型。很高兴能与你交流。
-
-我可以回答问题、提供信息或陪你聊天。有什么我能帮助你的吗？无论是学习、工作还是日常生活中的疑问，我都很乐意尽我所能提供帮助。
+Hello! 👋 How can I help you today? Feel free to ask me anything—I'm here to assist with questions, tasks, or just a friendly chat. 😊
 Analyzing workflow requirements...
-Selected pattern: Data Processing Pipeline
-SELECTED_PATTERN=$PATTERN
+Selected pattern: Content Automation
+SELECTED_PATTERN=content-automation
 Pattern selection completed successfully
 [0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
 [0;36mℹ️  LLMv7 API successful[0m
-Hey there! How’s it going?
+Hey there! 👋 How's your day going? What’s on your mind today?
 Validating generated workflow...
 ❌ Basic YAML structure validation failed
-VALIDATION_STATUS=$VALIDATION_STATUS
-VALIDATION_MESSAGE=$VALIDATION_MESSAGE
-GENERATED_WORKFLOW_FILE=$TEMP_FILE
+VALIDATION_STATUS=BASIC_FAILED
+VALIDATION_MESSAGE=Basic YAML structure validation failed
+GENERATED_WORKFLOW_FILE=/tmp/generated_workflow_1768044025.yaml
 [0;36m🚀 🔧 Template Transform: Create Deployment Guide[0m
 [0;31m❌ Failed to resolve template content[0m

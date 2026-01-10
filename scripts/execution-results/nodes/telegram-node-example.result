@@ -18,6 +18,8 @@ Condition passed
 [0;32m✅ Telegram message sent successfully (HTTP 200)[0m
 [0;36m🚀 📱 Sending Telegram message: Simple Completion Notice[0m
 [0;32m✅ Telegram message sent successfully (HTTP 200)[0m
+scripts/generated-outputs/nodes/telegram-node-example.sh: line 166: "USER_NAME": invalid variable name
+scripts/generated-outputs/nodes/telegram-node-example.sh: line 166: "NOTIFICATION_LEVEL": invalid variable name
 # 📱 Telegram Node Example Results
 
 ## Configuration Summary
@@ -64,7 +66,7 @@ Condition passed
 - **Content**: Detailed vs simple completion reports
 
 ## Summary
-Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User: $(get_workflow_var "USER_NAME" "default") | Level: $(get_workflow_var "NOTIFICATION_LEVEL" "default")
+Telegram Demo: 8+ messages sent | Parse modes: HTML/Markdown | User:  | Level: 
 
 ## Telegram Node Features Demonstrated
 

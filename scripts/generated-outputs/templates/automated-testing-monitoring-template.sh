@@ -61,26 +61,11 @@ get_var() {
 }
 
 # Environment Variables
-SERVICE_URL=${SERVICE_URL:-""}
-TEST_ENDPOINTS=${TEST_ENDPOINTS:-""}
-MONITORING_FREQUENCY=${MONITORING_FREQUENCY:-""}
-PERFORMANCE_THRESHOLDS=${PERFORMANCE_THRESHOLDS:-""}
-TEST_TYPES=${TEST_TYPES:-""}
-ALERT_CHANNELS=${ALERT_CHANNELS:-""}
-ENDPOINT=${ENDPOINT:-""}
-RESPONSE_TIME=${RESPONSE_TIME:-""}
-SUCCESS_RATE=${SUCCESS_RATE:-""}
-RESPONSE_TIME_THRESHOLD=${RESPONSE_TIME_THRESHOLD:-""}
-REQUEST_TIME_INT=${REQUEST_TIME_INT:-""}
-AVG_RESPONSE_TIME=${AVG_RESPONSE_TIME:-""}
-MAX_RESPONSE_TIME=${MAX_RESPONSE_TIME:-""}
-PERF_SUCCESS_RATE=${PERF_SUCCESS_RATE:-""}
 LLM_CONTENT=${LLM_CONTENT:-""}
 LLM_SUCCESS=${LLM_SUCCESS:-""}
-HEALTH_SUCCESS=${HEALTH_SUCCESS:-""}
-AVAILABILITY_THRESHOLD=${AVAILABILITY_THRESHOLD:-""}
-PERF_SUCCESS=${PERF_SUCCESS:-""}
-AVG_RESPONSE=${AVG_RESPONSE:-""}
+SERVICE_URL=${SERVICE_URL:-""}
+PERFORMANCE_THRESHOLDS=${PERFORMANCE_THRESHOLDS:-""}
+MONITORING_FREQUENCY=${MONITORING_FREQUENCY:-""}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-""}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-""}
 TELEGRAM_SUCCESS=${TELEGRAM_SUCCESS:-""}
@@ -400,17 +385,17 @@ mkdir -p /tmp/monitoring/alerts
 MONITORING_ID="mon_$(date +%s)"
 START_TIME=$(date -Iseconds)
 
-echo "🆔 Monitoring ID: \$MONITORING_ID"
-echo "⏰ Start Time: \$START_TIME"
-echo "🌐 Service URL: $(get_var "SERVICE_URL" "initialize_monitoring")"
-echo "🔍 Test Endpoints: $(get_var "TEST_ENDPOINTS" "initialize_monitoring")"
-echo "⏱️ Frequency: $(get_var "MONITORING_FREQUENCY" "initialize_monitoring")"
-echo "📊 Performance Thresholds: $(get_var "PERFORMANCE_THRESHOLDS" "initialize_monitoring")"
-echo "🧪 Test Types: $(get_var "TEST_TYPES" "initialize_monitoring")"
-echo "🚨 Alert Channels: $(get_var "ALERT_CHANNELS" "initialize_monitoring")"
+echo "🆔 Monitoring ID: $MONITORING_ID"
+echo "⏰ Start Time: $START_TIME"
+echo "🌐 Service URL: ${SERVICE_URL}"
+echo "🔍 Test Endpoints: ${TEST_ENDPOINTS}"
+echo "⏱️ Frequency: ${MONITORING_FREQUENCY}"
+echo "📊 Performance Thresholds: ${PERFORMANCE_THRESHOLDS}"
+echo "🧪 Test Types: ${TEST_TYPES}"
+echo "🚨 Alert Channels: ${ALERT_CHANNELS}"
 
 # Parse and validate service URL
-if curl -s --max-time 5 "$(get_var "SERVICE_URL" "initialize_monitoring")" >/dev/null 2>&1; then
+if curl -s --max-time 5 "${SERVICE_URL}" >/dev/null 2>&1; then
   echo "✅ Service URL is accessible"
   SERVICE_STATUS="ACCESSIBLE"
 else
@@ -419,12 +404,12 @@ else
 fi
 
 # Save configuration
-echo "\$MONITORING_ID" > /tmp/monitoring/monitoring_id.txt
-echo "\$START_TIME" > /tmp/monitoring/start_time.txt
-echo "\$SERVICE_STATUS" > /tmp/monitoring/service_status.txt
-echo "$(get_var "SERVICE_URL" "initialize_monitoring")" > /tmp/monitoring/service_url.txt
-echo "$(get_var "TEST_ENDPOINTS" "initialize_monitoring")" > /tmp/monitoring/endpoints.txt
-echo "$(get_var "PERFORMANCE_THRESHOLDS" "initialize_monitoring")" > /tmp/monitoring/thresholds.txt
+echo "$MONITORING_ID" > /tmp/monitoring/monitoring_id.txt
+echo "$START_TIME" > /tmp/monitoring/start_time.txt
+echo "$SERVICE_STATUS" > /tmp/monitoring/service_status.txt
+echo "${SERVICE_URL}" > /tmp/monitoring/service_url.txt
+echo "${TEST_ENDPOINTS}" > /tmp/monitoring/endpoints.txt
+echo "${PERFORMANCE_THRESHOLDS}" > /tmp/monitoring/thresholds.txt
 
 echo "✅ Monitoring environment initialized successfully"
 
@@ -433,53 +418,53 @@ echo "✅ Monitoring environment initialized successfully"
 echo "🏥 Running Health Check Tests"
 echo "============================"
 
-SERVICE_URL="$(get_var "SERVICE_URL" "run_health_checks")"
-ENDPOINTS="$(get_var "TEST_ENDPOINTS" "run_health_checks")"
-TEST_TYPES="$(get_var "TEST_TYPES" "run_health_checks")"
+SERVICE_URL="${SERVICE_URL}"
+ENDPOINTS="${TEST_ENDPOINTS}"
+TEST_TYPES="${TEST_TYPES}"
 
 # Initialize results
 HEALTH_PASSED=0
 HEALTH_FAILED=0
 HEALTH_RESULTS=""
 
-if echo "\$TEST_TYPES" | grep -q "health_check"; then
+if echo "$TEST_TYPES" | grep -q "health_check"; then
   echo "🔍 Executing health check tests..."
   
   # Convert comma-separated endpoints to array
-  IFS=',' read -ra ENDPOINT_ARRAY <<< "\$ENDPOINTS"
+  IFS=',' read -ra ENDPOINT_ARRAY <<< "$ENDPOINTS"
   
   for endpoint in "${ENDPOINT_ARRAY[@]}"; do
-    endpoint=$(echo "\$endpoint" | xargs) # trim whitespace
-    FULL_URL="$(get_var "SERVICE_URL" "run_health_checks")$(get_var "ENDPOINT" "run_health_checks")"
+    endpoint=$(echo "$endpoint" | xargs) # trim whitespace
+    FULL_URL="${SERVICE_URL}${endpoint}"
     
-    echo "  Testing: \$FULL_URL"
+    echo "  Testing: $FULL_URL"
     
     # Perform health check with timeout
     START_TIME=$(date +%s.%3N)
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "\$FULL_URL" 2>/dev/null || echo "000")
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$FULL_URL" 2>/dev/null || echo "000")
     END_TIME=$(date +%s.%3N)
-    RESPONSE_TIME=$(echo "\$END_TIME - \$START_TIME" | bc 2>/dev/null || echo "0")
+    RESPONSE_TIME=$(echo "$END_TIME - $START_TIME" | bc 2>/dev/null || echo "0")
     
-    if [ "\$HTTP_CODE" -ge 200 ] && [ "\$HTTP_CODE" -lt 400 ]; then
-      echo "    ✅ PASS - HTTP \$HTTP_CODE ($(get_var "RESPONSE_TIME" "run_health_checks")s)"
+    if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
+      echo "    ✅ PASS - HTTP $HTTP_CODE (${RESPONSE_TIME}s)"
       HEALTH_PASSED=$((HEALTH_PASSED + 1))
       STATUS="PASS"
     else
-      echo "    ❌ FAIL - HTTP \$HTTP_CODE ($(get_var "RESPONSE_TIME" "run_health_checks")s)"
+      echo "    ❌ FAIL - HTTP $HTTP_CODE (${RESPONSE_TIME}s)"
       HEALTH_FAILED=$((HEALTH_FAILED + 1))
       STATUS="FAIL"
     fi
     
     # Store individual result
-    RESULT_LINE="\$endpoint,\$HTTP_CODE,\$RESPONSE_TIME,\$STATUS"
-    HEALTH_RESULTS="\$HEALTH_RESULTS\$RESULT_LINE\n"
+    RESULT_LINE="$endpoint,$HTTP_CODE,$RESPONSE_TIME,$STATUS"
+    HEALTH_RESULTS="$HEALTH_RESULTS$RESULT_LINE\n"
   done
 else
   echo "⏩ Health check tests skipped (not in test types)"
 fi
 
 TOTAL_TESTS=$((HEALTH_PASSED + HEALTH_FAILED))
-if [ "\$TOTAL_TESTS" -gt 0 ]; then
+if [ "$TOTAL_TESTS" -gt 0 ]; then
   SUCCESS_RATE=$(( (HEALTH_PASSED * 100) / TOTAL_TESTS ))
 else
   SUCCESS_RATE=0
@@ -487,27 +472,27 @@ fi
 
 echo ""
 echo "📊 Health Check Results:"
-echo "   Tests Passed: \$HEALTH_PASSED"
-echo "   Tests Failed: \$HEALTH_FAILED"
-echo "   Success Rate: $(get_var "SUCCESS_RATE" "run_health_checks")%"
+echo "   Tests Passed: $HEALTH_PASSED"
+echo "   Tests Failed: $HEALTH_FAILED"
+echo "   Success Rate: ${SUCCESS_RATE}%"
 
 # Save results
-echo -e "\$HEALTH_RESULTS" > /tmp/monitoring/results/health_results.txt
-echo "\$HEALTH_PASSED" > /tmp/monitoring/health_passed.txt
-echo "\$HEALTH_FAILED" > /tmp/monitoring/health_failed.txt
-echo "\$SUCCESS_RATE" > /tmp/monitoring/health_success_rate.txt
+echo -e "$HEALTH_RESULTS" > /tmp/monitoring/results/health_results.txt
+echo "$HEALTH_PASSED" > /tmp/monitoring/health_passed.txt
+echo "$HEALTH_FAILED" > /tmp/monitoring/health_failed.txt
+echo "$SUCCESS_RATE" > /tmp/monitoring/health_success_rate.txt
 
 echo "HEALTH_CHECK_STATUS=COMPLETED"
-echo "HEALTH_SUCCESS_RATE=$(get_var "SUCCESS_RATE" "run_health_checks")%"
+echo "HEALTH_SUCCESS_RATE=${SUCCESS_RATE}%"
 
 
 # Node: run_performance_tests
 echo "⚡ Running Performance Tests"
 echo "=========================="
 
-SERVICE_URL="$(get_var "SERVICE_URL" "run_performance_tests")"
-THRESHOLDS="$(get_var "PERFORMANCE_THRESHOLDS" "run_performance_tests")"
-TEST_TYPES="$(get_var "TEST_TYPES" "run_performance_tests")"
+SERVICE_URL="${SERVICE_URL}"
+THRESHOLDS="${PERFORMANCE_THRESHOLDS}"
+TEST_TYPES="${TEST_TYPES}"
 
 # Initialize performance tracking
 PERF_PASSED=0
@@ -515,42 +500,42 @@ PERF_FAILED=0
 AVG_RESPONSE_TIME=0
 MAX_RESPONSE_TIME=0
 
-if echo "\$TEST_TYPES" | grep -q "performance"; then
+if echo "$TEST_TYPES" | grep -q "performance"; then
   echo "⏱️ Executing performance tests..."
   
   # Parse performance thresholds
-  RESPONSE_TIME_THRESHOLD=$(echo "\$THRESHOLDS" | grep -o '"response_time":[0-9]*' | cut -d':' -f2 || echo "2000")
-  echo "📊 Response Time Threshold: $(get_var "RESPONSE_TIME_THRESHOLD" "run_performance_tests")ms"
+  RESPONSE_TIME_THRESHOLD=$(echo "$THRESHOLDS" | grep -o '"response_time":[0-9]*' | cut -d':' -f2 || echo "2000")
+  echo "📊 Response Time Threshold: ${RESPONSE_TIME_THRESHOLD}ms"
   
   # Run multiple requests to get average performance
   TOTAL_TIME=0
   REQUEST_COUNT=5
   
-  for i in $(seq 1 \$REQUEST_COUNT); do
-    echo "  Request \$i/\$REQUEST_COUNT..."
+  for i in $(seq 1 $REQUEST_COUNT); do
+    echo "  Request $i/$REQUEST_COUNT..."
     
     START_TIME=$(date +%s.%3N)
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$(get_var "SERVICE_URL" "run_performance_tests")/delay/1" 2>/dev/null || echo "000")
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${SERVICE_URL}/delay/1" 2>/dev/null || echo "000")
     END_TIME=$(date +%s.%3N)
     
-    REQUEST_TIME=$(echo "(\$END_TIME - \$START_TIME) * 1000" | bc 2>/dev/null || echo "0")
-    REQUEST_TIME_INT=$(echo "\$REQUEST_TIME" | cut -d'.' -f1)
+    REQUEST_TIME=$(echo "($END_TIME - $START_TIME) * 1000" | bc 2>/dev/null || echo "0")
+    REQUEST_TIME_INT=$(echo "$REQUEST_TIME" | cut -d'.' -f1)
     
-    echo "    Response time: $(get_var "REQUEST_TIME_INT" "run_performance_tests")ms"
-    TOTAL_TIME=$(echo "\$TOTAL_TIME + \$REQUEST_TIME_INT" | bc 2>/dev/null || echo "\$TOTAL_TIME")
+    echo "    Response time: ${REQUEST_TIME_INT}ms"
+    TOTAL_TIME=$(echo "$TOTAL_TIME + $REQUEST_TIME_INT" | bc 2>/dev/null || echo "$TOTAL_TIME")
     
-    if [ "\$REQUEST_TIME_INT" -gt "\$MAX_RESPONSE_TIME" ]; then
-      MAX_RESPONSE_TIME=\$REQUEST_TIME_INT
+    if [ "$REQUEST_TIME_INT" -gt "$MAX_RESPONSE_TIME" ]; then
+      MAX_RESPONSE_TIME=$REQUEST_TIME_INT
     fi
     
-    if [ "\$REQUEST_TIME_INT" -le "\$RESPONSE_TIME_THRESHOLD" ]; then
+    if [ "$REQUEST_TIME_INT" -le "$RESPONSE_TIME_THRESHOLD" ]; then
       PERF_PASSED=$((PERF_PASSED + 1))
     else
       PERF_FAILED=$((PERF_FAILED + 1))
     fi
   done
   
-  AVG_RESPONSE_TIME=$(echo "\$TOTAL_TIME / \$REQUEST_COUNT" | bc 2>/dev/null || echo "0")
+  AVG_RESPONSE_TIME=$(echo "$TOTAL_TIME / $REQUEST_COUNT" | bc 2>/dev/null || echo "0")
   
 else
   echo "⏩ Performance tests skipped (not in test types)"
@@ -563,21 +548,21 @@ fi
 
 echo ""
 echo "📊 Performance Test Results:"
-echo "   Average Response Time: $(get_var "AVG_RESPONSE_TIME" "run_performance_tests")ms"
-echo "   Max Response Time: $(get_var "MAX_RESPONSE_TIME" "run_performance_tests")ms"
-echo "   Threshold: $(get_var "RESPONSE_TIME_THRESHOLD" "run_performance_tests")ms"
-echo "   Requests Passed: \$PERF_PASSED"
-echo "   Requests Failed: \$PERF_FAILED"
-echo "   Performance Success Rate: $(get_var "PERF_SUCCESS_RATE" "run_performance_tests")%"
+echo "   Average Response Time: ${AVG_RESPONSE_TIME}ms"
+echo "   Max Response Time: ${MAX_RESPONSE_TIME}ms"
+echo "   Threshold: ${RESPONSE_TIME_THRESHOLD}ms"
+echo "   Requests Passed: $PERF_PASSED"
+echo "   Requests Failed: $PERF_FAILED"
+echo "   Performance Success Rate: ${PERF_SUCCESS_RATE}%"
 
 # Save results
-echo "\$AVG_RESPONSE_TIME" > /tmp/monitoring/avg_response_time.txt
-echo "\$MAX_RESPONSE_TIME" > /tmp/monitoring/max_response_time.txt
-echo "\$PERF_SUCCESS_RATE" > /tmp/monitoring/perf_success_rate.txt
+echo "$AVG_RESPONSE_TIME" > /tmp/monitoring/avg_response_time.txt
+echo "$MAX_RESPONSE_TIME" > /tmp/monitoring/max_response_time.txt
+echo "$PERF_SUCCESS_RATE" > /tmp/monitoring/perf_success_rate.txt
 
 echo "PERFORMANCE_TEST_STATUS=COMPLETED"
-echo "PERF_SUCCESS_RATE=$(get_var "PERF_SUCCESS_RATE" "run_performance_tests")%"
-echo "AVG_RESPONSE_TIME=$(get_var "AVG_RESPONSE_TIME" "run_performance_tests")ms"
+echo "PERF_SUCCESS_RATE=${PERF_SUCCESS_RATE}%"
+echo "AVG_RESPONSE_TIME=${AVG_RESPONSE_TIME}ms"
 
 
 # Node: analyze_test_results
@@ -637,8 +622,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -816,47 +801,47 @@ execute_template_transform_generate_monitoring_report
 echo "🚨 Checking Alert Thresholds"
 echo "=========================="
 
-THRESHOLDS="$(get_var "PERFORMANCE_THRESHOLDS" "check_alert_thresholds")"
+THRESHOLDS="${PERFORMANCE_THRESHOLDS}"
 HEALTH_SUCCESS=$(cat /tmp/monitoring/health_success_rate.txt 2>/dev/null || echo "0")
 PERF_SUCCESS=$(cat /tmp/monitoring/perf_success_rate.txt 2>/dev/null || echo "0")
 AVG_RESPONSE=$(cat /tmp/monitoring/avg_response_time.txt 2>/dev/null || echo "0")
 
 # Parse thresholds
-ERROR_RATE_THRESHOLD=$(echo "\$THRESHOLDS" | grep -o '"error_rate":[0-9]*' | cut -d':' -f2 || echo "5")
-AVAILABILITY_THRESHOLD=$(echo "\$THRESHOLDS" | grep -o '"availability":[0-9]*' | cut -d':' -f2 || echo "99")
-RESPONSE_TIME_THRESHOLD=$(echo "\$THRESHOLDS" | grep -o '"response_time":[0-9]*' | cut -d':' -f2 || echo "2000")
+ERROR_RATE_THRESHOLD=$(echo "$THRESHOLDS" | grep -o '"error_rate":[0-9]*' | cut -d':' -f2 || echo "5")
+AVAILABILITY_THRESHOLD=$(echo "$THRESHOLDS" | grep -o '"availability":[0-9]*' | cut -d':' -f2 || echo "99")
+RESPONSE_TIME_THRESHOLD=$(echo "$THRESHOLDS" | grep -o '"response_time":[0-9]*' | cut -d':' -f2 || echo "2000")
 
 echo "📊 Threshold Analysis:"
-echo "   Health Success Rate: $(get_var "HEALTH_SUCCESS" "check_alert_thresholds")% (threshold: $(get_var "AVAILABILITY_THRESHOLD" "check_alert_thresholds")%)"
-echo "   Performance Success Rate: $(get_var "PERF_SUCCESS" "check_alert_thresholds")%"
-echo "   Average Response Time: $(get_var "AVG_RESPONSE" "check_alert_thresholds")ms (threshold: $(get_var "RESPONSE_TIME_THRESHOLD" "check_alert_thresholds")ms)"
+echo "   Health Success Rate: ${HEALTH_SUCCESS}% (threshold: ${AVAILABILITY_THRESHOLD}%)"
+echo "   Performance Success Rate: ${PERF_SUCCESS}%"
+echo "   Average Response Time: ${AVG_RESPONSE}ms (threshold: ${RESPONSE_TIME_THRESHOLD}ms)"
 
 # Determine alert level
 ALERT_LEVEL="INFO"
 ALERT_MESSAGE="All systems operating normally"
 
-if [ "\$HEALTH_SUCCESS" -lt "\$AVAILABILITY_THRESHOLD" ]; then
+if [ "$HEALTH_SUCCESS" -lt "$AVAILABILITY_THRESHOLD" ]; then
   ALERT_LEVEL="CRITICAL"
   ALERT_MESSAGE="Health check failure - availability below threshold"
-elif [ "\$AVG_RESPONSE" -gt "\$RESPONSE_TIME_THRESHOLD" ]; then
+elif [ "$AVG_RESPONSE" -gt "$RESPONSE_TIME_THRESHOLD" ]; then
   ALERT_LEVEL="WARNING" 
   ALERT_MESSAGE="Performance degradation - response time above threshold"
-elif [ "\$PERF_SUCCESS" -lt 80 ]; then
+elif [ "$PERF_SUCCESS" -lt 80 ]; then
   ALERT_LEVEL="WARNING"
   ALERT_MESSAGE="Performance issues detected"
 fi
 
 echo ""
 echo "🚨 Alert Assessment:"
-echo "   Alert Level: \$ALERT_LEVEL"
-echo "   Message: \$ALERT_MESSAGE"
+echo "   Alert Level: $ALERT_LEVEL"
+echo "   Message: $ALERT_MESSAGE"
 
 # Save alert information
-echo "\$ALERT_LEVEL" > /tmp/monitoring/alert_level.txt
-echo "\$ALERT_MESSAGE" > /tmp/monitoring/alert_message.txt
+echo "$ALERT_LEVEL" > /tmp/monitoring/alert_level.txt
+echo "$ALERT_MESSAGE" > /tmp/monitoring/alert_message.txt
 
-echo "ALERT_LEVEL=\$ALERT_LEVEL"
-echo "ALERT_MESSAGE=\$ALERT_MESSAGE"
+echo "ALERT_LEVEL=$ALERT_LEVEL"
+echo "ALERT_MESSAGE=$ALERT_MESSAGE"
 
 
 # Node: send_monitoring_alert
@@ -1016,10 +1001,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -1045,11 +1030,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")

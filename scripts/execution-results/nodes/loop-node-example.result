@@ -1,17 +1,4 @@
 Starting workflow: loop-node-example
-[0;36m🚀 🔄 Starting Loop: Main Processing Loop[0m
-[0;36mℹ️  Loop will execute 10 iterations[0m
-[0;36mℹ️  Loop iteration 1/10[0m
-[0;36mℹ️  Loop iteration 2/10[0m
-[0;36mℹ️  Loop iteration 3/10[0m
-[0;36mℹ️  Loop iteration 4/10[0m
-[0;36mℹ️  Loop iteration 5/10[0m
-[0;36mℹ️  Loop iteration 6/10[0m
-[0;36mℹ️  Loop iteration 7/10[0m
-[0;36mℹ️  Loop iteration 8/10[0m
-[0;36mℹ️  Loop iteration 9/10[0m
-[0;36mℹ️  Loop iteration 10/10[0m
-[0;32m✅ Loop completed after 10 iterations[0m
 Iteration ${iteration_count}: current_value=${current_value}, target=${target_value}
 Condition passed
 # ⚠️ Loop Terminated - Maximum Iterations Reached
@@ -49,29 +36,6 @@ The target value was reached within the iteration limit.
 
 **Status**: ✅ Target reached successfully!
 
-[0;36m🚀 🔄 Starting Loop: Countdown Loop[0m
-[0;36mℹ️  Loop will execute 20 iterations[0m
-[0;36mℹ️  Loop iteration 1/20[0m
-[0;36mℹ️  Loop iteration 2/20[0m
-[0;36mℹ️  Loop iteration 3/20[0m
-[0;36mℹ️  Loop iteration 4/20[0m
-[0;36mℹ️  Loop iteration 5/20[0m
-[0;36mℹ️  Loop iteration 6/20[0m
-[0;36mℹ️  Loop iteration 7/20[0m
-[0;36mℹ️  Loop iteration 8/20[0m
-[0;36mℹ️  Loop iteration 9/20[0m
-[0;36mℹ️  Loop iteration 10/20[0m
-[0;36mℹ️  Loop iteration 11/20[0m
-[0;36mℹ️  Loop iteration 12/20[0m
-[0;36mℹ️  Loop iteration 13/20[0m
-[0;36mℹ️  Loop iteration 14/20[0m
-[0;36mℹ️  Loop iteration 15/20[0m
-[0;36mℹ️  Loop iteration 16/20[0m
-[0;36mℹ️  Loop iteration 17/20[0m
-[0;36mℹ️  Loop iteration 18/20[0m
-[0;36mℹ️  Loop iteration 19/20[0m
-[0;36mℹ️  Loop iteration 20/20[0m
-[0;32m✅ Loop completed after 20 iterations[0m
 # 🔄 Both Loop Examples Completed!
 
 ## Loop Example Summary

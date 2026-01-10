@@ -372,7 +372,7 @@ set_var "FALLBACK_ATTEMPT_COUNT" "0" "initialize_tracking"
 
 # Node: setup_fallback_context
 # Node: setup_fallback_context
-FALLBACK_CONTEXT=$(echo 'Fallback context: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default")')
+FALLBACK_CONTEXT=$(echo "Fallback context: Strategy=$(get_workflow_var \"FALLBACK_STRATEGY\" \"default\"), Max time=$(get_workflow_var \"MAX_FALLBACK_TIME\" \"default\")s, Continue=$(get_workflow_var \"CONTINUE_ON_SUCCESS\" \"default\"), Simulation=$(get_workflow_var \"FAILURE_SIMULATION\" \"default\")")
 set_var "FALLBACK_CONTEXT" "$FALLBACK_CONTEXT" "setup_fallback_context"
 
 # Node: primary_service_fallback
@@ -507,7 +507,7 @@ sh -c "echo 'Using default response fallback...' && echo 'Default response: LIMI
 
 # Node: record_primary_fallback_result
 # Node: record_primary_fallback_result
-PRIMARY_FALLBACK_RESULT=$(echo 'Primary fallback completed with strategy: $(get_workflow_var "FALLBACK_STRATEGY" "default")')
+PRIMARY_FALLBACK_RESULT=$(echo "Primary fallback completed with strategy: $(get_workflow_var \"FALLBACK_STRATEGY\" \"default\")")
 set_var "PRIMARY_FALLBACK_RESULT" "$PRIMARY_FALLBACK_RESULT" "record_primary_fallback_result"
 
 # Node: database_fallback_example

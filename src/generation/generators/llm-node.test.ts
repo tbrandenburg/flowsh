@@ -11,7 +11,8 @@ import { LLMNodeGenerator } from './llm-node.js';
 interface SimpleLLMData {
   title?: string;
   model?: string | { name?: string; model?: string };
-  prompt?: string;
+  prompt?: string; // Legacy format for backward compatibility
+  prompt_template?: Array<{ role: string; text: string }> | { content: string }; // New format
 }
 
 describe('LLMNodeGenerator', () => {
@@ -52,7 +53,7 @@ describe('LLMNodeGenerator', () => {
       expect(result).toContain('extract_llm_content()');
       expect(result).toContain('Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo');
       expect(result).toContain('"model": "gpt-3.5-turbo"');
-      expect(result).toContain('"content": "Hello, how are you?"');
+      expect(result).toContain('"content":"Hello, how are you?"'); // Adjusted for JSON format
       expect(result).toContain('set_workflow_var "LLM_CONTENT"');
       expect(result).toContain('set_workflow_var "LLM_SUCCESS"');
     });
@@ -71,7 +72,7 @@ describe('LLMNodeGenerator', () => {
       const result = generator.generate(node, mockContext);
 
       expect(result).toContain('"model": "gpt-4"');
-      expect(result).toContain('"content": "Analyze this data"');
+      expect(result).toContain('"content":"Analyze this data"'); // Adjusted for JSON format
     });
 
     it('should handle template variables in prompt', () => {
@@ -104,7 +105,7 @@ describe('LLMNodeGenerator', () => {
       const result = generator.generate(node, mockContext);
 
       expect(result).toContain('"model": "gpt-4"');
-      expect(result).toContain('"content": "What is AI?"');
+      expect(result).toContain('"content":"What is AI?"'); // Adjusted for JSON format
     });
 
     it('should include OpenAI API key check', () => {
@@ -253,7 +254,7 @@ describe('LLMNodeGenerator', () => {
         type: 'llm',
         data: {
           model: 'gpt-4',
-          prompt: 'Analyze {{USER_INPUT}} and provide {{RESPONSE_TYPE}} response',
+          prompt: 'Analyze ${USER_INPUT} and provide ${RESPONSE_TYPE} response',
         } as SimpleLLMData,
       };
 

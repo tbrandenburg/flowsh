@@ -1,3 +1,2 @@
 Starting workflow: Content Moderation Pipeline - Production Safety
-🛡️ Initializing Content Moderation Pipeline...
-/bin/bash: line 5: get_var: command not found
+scripts/generated-outputs/templates/content-moderation-template.sh: line 364: STRICTNESS: unbound variable

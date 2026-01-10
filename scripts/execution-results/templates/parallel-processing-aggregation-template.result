@@ -1,63 +1,7 @@
 Starting workflow: Parallel Processing with Aggregation - Scalable Data Processing
 ⚡ Initializing Parallel Processing & Aggregation System
 =====================================================
-🆔 Processing ID: $PROCESSING_ID
-⏰ Start Time: $START_TIME
+🆔 Processing ID: par_1768044012
+⏰ Start Time: 2026-01-10T12:20:12+01:00
 📊 Data Sources: 
-🔄 Operations: 
-👥 Parallel Workers: 
-📋 Aggregation Method: 
-📁 Output Format: 
-⚡ Optimizations: 
-🚨 Error Handling: 
-⏱️ Timeout: s
-
-📋 Workload Distribution:
-   Total Data Sources: $SOURCE_COUNT
-   Parallel Workers: 
-scripts/generated-outputs/templates/parallel-processing-aggregation-template.sh: line 426: [: $SOURCE_COUNT: integer expression expected
-scripts/generated-outputs/templates/parallel-processing-aggregation-template.sh: line 431: (SOURCE_COUNT + WORKERS_TO_USE - 1) / WORKERS_TO_USE : division by 0 (error token is "WORKERS_TO_USE ")
-   Active Workers: $WORKERS_TO_USE
-   Sources per Worker: ~$SOURCES_PER_WORKER
-✅ Parallel processing system initialized successfully
-Error generating node execute_parallel_worker_1: Failed to generate code for node 'execute_parallel_worker_1': headers.trim is not a function
-Error generating node execute_parallel_worker_2: Failed to generate code for node 'execute_parallel_worker_2': headers.trim is not a function
-Error generating node execute_parallel_worker_3: Failed to generate code for node 'execute_parallel_worker_3': headers.trim is not a function
-📊 Collecting Parallel Worker Results
-===================================
-⏰ Collection Start: $COLLECTION_START
-👥 Total Workers: $TOTAL_WORKERS
-❌ Worker 1: FAILED - No valid data retrieved
-❌ Worker 2: FAILED - No valid data retrieved
-❌ Worker 3: FAILED - No valid data retrieved
-
-📊 Collection Summary:
-   Successful Workers: $SUCCESS_COUNT/$TOTAL_WORKERS
-   Failed Workers: $ERROR_COUNT/$TOTAL_WORKERS
-   Success Rate: 0%
-scripts/generated-outputs/templates/parallel-processing-aggregation-template.sh: line 537: [: $SUCCESS_COUNT: integer expression expected
-❌ Processing FAILED (no successful workers)
-COLLECTION_STATUS=COMPLETED
-SUCCESS_RATE=0%
-PROCESSING_STATUS=$PROCESSING_STATUS
-🔄 Aggregating Parallel Processing Results
-========================================
-📊 Aggregation Configuration:
-   Method: $AGGREGATION_METHOD
-   Output Format: $OUTPUT_FORMAT
-   Processing Status: $PROCESSING_STATUS
-⚠️ Unknown aggregation method, using default merge
-❌ Aggregation failed: No output file created
-
-📊 Aggregation Results:
-   Method Used: $AGGREGATION_METHOD
-   Output Size: $AGGREGATED_SIZE bytes
-   Status: FAILED
-AGGREGATION_METHOD=$AGGREGATION_METHOD
-AGGREGATION_SIZE=0 bytes
-AGGREGATION_STATUS=FAILED
-[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
-[0;36mℹ️  LLMv7 API successful[0m
-Hey there! 👋 How's your day going? What’s on your mind today?
-[0;36m🚀 🔧 Template Transform: Generate Comprehensive Processing Report[0m
-[0;31m❌ Failed to resolve template content[0m
+scripts/generated-outputs/templates/parallel-processing-aggregation-template.sh: line 401: PROCESSING_OPERATIONS: unbound variable

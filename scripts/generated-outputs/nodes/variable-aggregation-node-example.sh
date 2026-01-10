@@ -383,17 +383,17 @@ execute_fallback_path() {
 
 # Node: create_text_source_1
 # Node: create_text_source_1
-TEXT_SOURCE_A=$(echo 'Source A: $(get_workflow_var "DATASET_1" "default")')
+TEXT_SOURCE_A=$(echo "Source A: $(get_workflow_var \"DATASET_1\" \"default\")")
 set_var "TEXT_SOURCE_A" "$TEXT_SOURCE_A" "create_text_source_1"
 
 # Node: create_text_source_2
 # Node: create_text_source_2
-TEXT_SOURCE_B=$(echo 'Source B: $(get_workflow_var "DATASET_2" "default")')
+TEXT_SOURCE_B=$(echo "Source B: $(get_workflow_var \"DATASET_2\" \"default\")")
 set_var "TEXT_SOURCE_B" "$TEXT_SOURCE_B" "create_text_source_2"
 
 # Node: create_text_source_3
 # Node: create_text_source_3
-TEXT_SOURCE_C=$(echo 'Source C: $(get_workflow_var "DATASET_3" "default")')
+TEXT_SOURCE_C=$(echo "Source C: $(get_workflow_var \"DATASET_3\" \"default\")")
 set_var "TEXT_SOURCE_C" "$TEXT_SOURCE_C" "create_text_source_3"
 
 # Node: concat_with_newlines
@@ -561,17 +561,17 @@ execute_aggregation_average_numbers
 
 # Node: create_json_object_1
 # Node: create_json_object_1
-JSON_OBJ_1=$(echo '{"name": "object1", "type": "fruit", "items": ["$(get_workflow_var "DATASET_1" "default")"], "count": 3}')
+JSON_OBJ_1=$(echo "{\"name\": \"object1\", \"type\": \"fruit\", \"items\": [\"$(get_workflow_var \"DATASET_1\" \"default\")\"], \"count\": 3}")
 set_var "JSON_OBJ_1" "$JSON_OBJ_1" "create_json_object_1"
 
 # Node: create_json_object_2
 # Node: create_json_object_2
-JSON_OBJ_2=$(echo '{"name": "object2", "type": "animal", "items": ["$(get_workflow_var "DATASET_2" "default")"], "count": 3}')
+JSON_OBJ_2=$(echo "{\"name\": \"object2\", \"type\": \"animal\", \"items\": [\"$(get_workflow_var \"DATASET_2\" \"default\")\"], \"count\": 3}")
 set_var "JSON_OBJ_2" "$JSON_OBJ_2" "create_json_object_2"
 
 # Node: create_json_object_3
 # Node: create_json_object_3
-JSON_OBJ_3=$(echo '{"name": "object3", "type": "tool", "items": ["$(get_workflow_var "DATASET_3" "default")"], "count": 3}')
+JSON_OBJ_3=$(echo "{\"name\": \"object3\", \"type\": \"tool\", \"items\": [\"$(get_workflow_var \"DATASET_3\" \"default\")\"], \"count\": 3}")
 set_var "JSON_OBJ_3" "$JSON_OBJ_3" "create_json_object_3"
 
 # Node: merge_json_objects
@@ -647,17 +647,17 @@ execute_aggregation_collect_all_datasets
 
 # Node: process_numbers_for_aggregation
 # Node: process_numbers_for_aggregation
-PROCESSED_NUMBERS_1=$(echo '$(get_workflow_var "NUMBERS_1" "default")' | tr ',' ' ')
+PROCESSED_NUMBERS_1=$(echo "$(get_workflow_var \"NUMBERS_1\" \"default\")' | tr ',' ' ")
 set_var "PROCESSED_NUMBERS_1" "$PROCESSED_NUMBERS_1" "process_numbers_for_aggregation"
 
 # Node: process_numbers_2
 # Node: process_numbers_2
-PROCESSED_NUMBERS_2=$(echo '$(get_workflow_var "NUMBERS_2" "default")' | tr ',' ' ')
+PROCESSED_NUMBERS_2=$(echo "$(get_workflow_var \"NUMBERS_2\" \"default\")' | tr ',' ' ")
 set_var "PROCESSED_NUMBERS_2" "$PROCESSED_NUMBERS_2" "process_numbers_2"
 
 # Node: process_numbers_3
 # Node: process_numbers_3
-PROCESSED_NUMBERS_3=$(echo '$(get_workflow_var "NUMBERS_3" "default")' | tr ',' ' ')
+PROCESSED_NUMBERS_3=$(echo "$(get_workflow_var \"NUMBERS_3\" \"default\")' | tr ',' ' ")
 set_var "PROCESSED_NUMBERS_3" "$PROCESSED_NUMBERS_3" "process_numbers_3"
 
 # Node: aggregate_processed_numbers

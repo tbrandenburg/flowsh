@@ -367,36 +367,15 @@ execute_fallback_path() {
 
 # Workflow Execution
 
+# Loop containers not yet implemented for node: main_loop
+
+# Loop containers not yet implemented for node: countdown_loop
+
 # Node: initialize_counter
 set_var "CURRENT_VALUE" "0" "initialize_counter"
 
 # Node: initialize_iteration_count
 set_var "ITERATION_COUNT" "0" "initialize_iteration_count"
-
-# Node: main_loop
-
-# Node: main_loop (Main Processing Loop)
-execute_loop_main_loop() {
-    log_step "🔄 Starting Loop: Main Processing Loop"
-    
-    # Extremely simple demo loop
-    local max_iterations=$(get_workflow_var "max_iterations" "5")
-    
-    log_info "Loop will execute $max_iterations iterations"
-    
-    # Hardcoded simple loop execution
-    for i in $(seq 1 $max_iterations); do
-        log_info "Loop iteration $i/$max_iterations"
-        set_workflow_var "loop_iteration" "$i"
-    done
-    
-    # Set final loop variables
-    set_workflow_var "loop_final_count" "$max_iterations"
-    set_workflow_var "loop_completed" "true"
-    
-    log_success "Loop completed after $max_iterations iterations"
-}
-execute_loop_main_loop
 
 # Node: increment_counter
 # Node: increment_counter
@@ -459,31 +438,6 @@ The target value was reached within the iteration limit.
 
 # Node: setup_second_loop
 set_var "COUNTDOWN_VALUE" "" "setup_second_loop"
-
-# Node: countdown_loop
-
-# Node: countdown_loop (Countdown Loop)
-execute_loop_countdown_loop() {
-    log_step "🔄 Starting Loop: Countdown Loop"
-    
-    # Extremely simple demo loop
-    local max_iterations=20
-    
-    log_info "Loop will execute $max_iterations iterations"
-    
-    # Hardcoded simple loop execution
-    for i in $(seq 1 $max_iterations); do
-        log_info "Loop iteration $i/$max_iterations"
-        set_workflow_var "loop_iteration" "$i"
-    done
-    
-    # Set final loop variables
-    set_workflow_var "loop_final_count" "$max_iterations"
-    set_workflow_var "loop_completed" "true"
-    
-    log_success "Loop completed after $max_iterations iterations"
-}
-execute_loop_countdown_loop
 
 # Node: decrement_countdown
 # Node: decrement_countdown

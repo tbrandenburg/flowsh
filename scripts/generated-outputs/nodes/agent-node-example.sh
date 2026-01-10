@@ -375,7 +375,7 @@ execute_fallback_path() {
 
 # Node: prepare_agent_prompt
 # Node: prepare_agent_prompt
-AGENT_INSTRUCTIONS=$(echo 'Task: $(get_workflow_var "TASK_DESCRIPTION" "default"). Format: $(get_workflow_var "OUTPUT_FORMAT" "default"). Safety: $(get_workflow_var "SAFETY_MODE" "default"). Generate safe shell commands only.')
+AGENT_INSTRUCTIONS=$(echo "Task: $(get_workflow_var \"TASK_DESCRIPTION\" \"default\"). Format: $(get_workflow_var \"OUTPUT_FORMAT\" \"default\"). Safety: $(get_workflow_var \"SAFETY_MODE\" \"default\"). Generate safe shell commands only.")
 set_var "AGENT_INSTRUCTIONS" "$AGENT_INSTRUCTIONS" "prepare_agent_prompt"
 
 # Node: system_info_agent
@@ -423,20 +423,20 @@ AGENT_PROMPT_EOF
 
     # Execute with 30s timeout
     if command -v timeout >/dev/null 2>&1; then
-        agent_output=$(timeout 30 sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(timeout 30 sh -c '$prompt_content' 2>&1) || exit_code=$?
     else
         # Fallback for systems without timeout command
-        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(sh -c '$prompt_content' 2>&1) || exit_code=$?
     fi
 
     # Store agent execution results
-    set_workflow_var "agent_system_info_agent_output" "$agent_output"
-    set_workflow_var "agent_system_info_agent_exit_code" "$exit_code"
-    set_workflow_var "agent_system_info_agent_success" "false"
+    set_workflow_var "AGENT_SYSTEM_INFO_AGENT_OUTPUT" "$agent_output"
+    set_workflow_var "AGENT_SYSTEM_INFO_AGENT_EXIT_CODE" "$exit_code"
+    set_workflow_var "AGENT_SYSTEM_INFO_AGENT_SUCCESS" "false"
 
     # Handle execution result
     if [[ $exit_code -eq 0 ]]; then
-        set_workflow_var "agent_system_info_agent_success" "true"
+        set_workflow_var "AGENT_SYSTEM_INFO_AGENT_SUCCESS" "true"
         log_success "Agent execution completed successfully"
         echo "$agent_output"
     else
@@ -503,20 +503,20 @@ AGENT_PROMPT_EOF
 
     # Execute with 20s timeout
     if command -v timeout >/dev/null 2>&1; then
-        agent_output=$(timeout 20 sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(timeout 20 sh -c '$prompt_content' 2>&1) || exit_code=$?
     else
         # Fallback for systems without timeout command
-        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(sh -c '$prompt_content' 2>&1) || exit_code=$?
     fi
 
     # Store agent execution results
-    set_workflow_var "agent_file_operations_agent_output" "$agent_output"
-    set_workflow_var "agent_file_operations_agent_exit_code" "$exit_code"
-    set_workflow_var "agent_file_operations_agent_success" "false"
+    set_workflow_var "AGENT_FILE_OPERATIONS_AGENT_OUTPUT" "$agent_output"
+    set_workflow_var "AGENT_FILE_OPERATIONS_AGENT_EXIT_CODE" "$exit_code"
+    set_workflow_var "AGENT_FILE_OPERATIONS_AGENT_SUCCESS" "false"
 
     # Handle execution result
     if [[ $exit_code -eq 0 ]]; then
-        set_workflow_var "agent_file_operations_agent_success" "true"
+        set_workflow_var "AGENT_FILE_OPERATIONS_AGENT_SUCCESS" "true"
         log_success "Agent execution completed successfully"
         echo "$agent_output"
     else
@@ -583,20 +583,20 @@ AGENT_PROMPT_EOF
 
     # Execute with 10s timeout
     if command -v timeout >/dev/null 2>&1; then
-        agent_output=$(timeout 10 sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(timeout 10 sh -c '$prompt_content' 2>&1) || exit_code=$?
     else
         # Fallback for systems without timeout command
-        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(sh -c '$prompt_content' 2>&1) || exit_code=$?
     fi
 
     # Store agent execution results
-    set_workflow_var "agent_validation_agent_output" "$agent_output"
-    set_workflow_var "agent_validation_agent_exit_code" "$exit_code"
-    set_workflow_var "agent_validation_agent_success" "false"
+    set_workflow_var "AGENT_VALIDATION_AGENT_OUTPUT" "$agent_output"
+    set_workflow_var "AGENT_VALIDATION_AGENT_EXIT_CODE" "$exit_code"
+    set_workflow_var "AGENT_VALIDATION_AGENT_SUCCESS" "false"
 
     # Handle execution result
     if [[ $exit_code -eq 0 ]]; then
-        set_workflow_var "agent_validation_agent_success" "true"
+        set_workflow_var "AGENT_VALIDATION_AGENT_SUCCESS" "true"
         log_success "Agent execution completed successfully"
         echo "$agent_output"
     else
@@ -664,20 +664,20 @@ AGENT_PROMPT_EOF
 
     # Execute with 10s timeout
     if command -v timeout >/dev/null 2>&1; then
-        agent_output=$(timeout 10 sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(timeout 10 sh -c '$prompt_content' 2>&1) || exit_code=$?
     else
         # Fallback for systems without timeout command
-        agent_output=$(sh -c "$prompt_content" 2>&1) || exit_code=$?
+        agent_output=$(sh -c '$prompt_content' 2>&1) || exit_code=$?
     fi
 
     # Store agent execution results
-    set_workflow_var "agent_cleanup_agent_output" "$agent_output"
-    set_workflow_var "agent_cleanup_agent_exit_code" "$exit_code"
-    set_workflow_var "agent_cleanup_agent_success" "false"
+    set_workflow_var "AGENT_CLEANUP_AGENT_OUTPUT" "$agent_output"
+    set_workflow_var "AGENT_CLEANUP_AGENT_EXIT_CODE" "$exit_code"
+    set_workflow_var "AGENT_CLEANUP_AGENT_SUCCESS" "false"
 
     # Handle execution result
     if [[ $exit_code -eq 0 ]]; then
-        set_workflow_var "agent_cleanup_agent_success" "true"
+        set_workflow_var "AGENT_CLEANUP_AGENT_SUCCESS" "true"
         log_success "Agent execution completed successfully"
         echo "$agent_output"
     else

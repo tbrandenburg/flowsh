@@ -438,29 +438,29 @@ execute_http_fetch_public_api() {
             local response_body=$(cat "$response_file" 2>/dev/null)
 
             # Set response variables
-            set_workflow_var "http_status_code" "$http_code"
-            set_workflow_var "http_response_body" "$response_body"
-            set_workflow_var "http_response_time" "$time_total"
-            set_workflow_var "http_response_size" "$size_download"
-            set_workflow_var "http_effective_url" "$effective_url"
-            set_workflow_var "http_request_method" "$method"
+            set_workflow_var "HTTP_STATUS_CODE" "$http_code"
+            set_workflow_var "HTTP_RESPONSE_BODY" "$response_body"
+            set_workflow_var "HTTP_RESPONSE_TIME" "$time_total"
+            set_workflow_var "HTTP_RESPONSE_SIZE" "$size_download"
+            set_workflow_var "HTTP_EFFECTIVE_URL" "$effective_url"
+            set_workflow_var "HTTP_REQUEST_METHOD" "$method"
 
             # Handle success/error based on status code
             case "$http_code" in
                 2*)
                     log_success "HTTP $method completed successfully (status: $http_code, time: ${time_total}s, size: ${size_download} bytes)"
-                    set_workflow_var "http_success" "true"
-                    set_workflow_var "http_error" ""
+                    set_workflow_var "HTTP_SUCCESS" "true"
+                    set_workflow_var "HTTP_ERROR" ""
                     ;;
                 3*)
                     log_info "HTTP $method returned redirect (status: $http_code)"
-                    set_workflow_var "http_success" "true"
-                    set_workflow_var "http_error" ""
+                    set_workflow_var "HTTP_SUCCESS" "true"
+                    set_workflow_var "HTTP_ERROR" ""
                     ;;
                 4*|5*)
                     log_error "HTTP $method failed with status $http_code"
-                    set_workflow_var "http_success" "false"
-                    set_workflow_var "http_error" "HTTP_${http_code}"
+                    set_workflow_var "HTTP_SUCCESS" "false"
+                    set_workflow_var "HTTP_ERROR" "HTTP_${http_code}"
 
                     case "$error_handling" in
                         "ignore") 
@@ -478,8 +478,8 @@ execute_http_fetch_public_api() {
             esac
         else
             log_error "Failed to parse curl metrics: $metrics"
-            set_workflow_var "http_success" "false"
-            set_workflow_var "http_error" "PARSE_ERROR"
+            set_workflow_var "HTTP_SUCCESS" "false"
+            set_workflow_var "HTTP_ERROR" "PARSE_ERROR"
             cleanup_temp_files "$response_file" "$metrics_file" "$stderr_file"
             return 1
         fi
@@ -490,10 +490,10 @@ execute_http_fetch_public_api() {
         log_error "HTTP request failed (curl exit code: $curl_exit_code)"
         [[ -n "$curl_stderr" ]] && log_error "Curl error: $curl_stderr"
         
-        set_workflow_var "http_success" "false"
-        set_workflow_var "http_error" "CURL_${curl_exit_code}"
-        set_workflow_var "http_status_code" "0"
-        set_workflow_var "http_response_body" ""
+        set_workflow_var "HTTP_SUCCESS" "false"
+        set_workflow_var "HTTP_ERROR" "CURL_${curl_exit_code}"
+        set_workflow_var "HTTP_STATUS_CODE" "0"
+        set_workflow_var "HTTP_RESPONSE_BODY" ""
 
         case "$error_handling" in
             "ignore")
@@ -574,29 +574,29 @@ execute_http_fetch_quote_data() {
             local response_body=$(cat "$response_file" 2>/dev/null)
 
             # Set response variables
-            set_workflow_var "http_status_code" "$http_code"
-            set_workflow_var "http_response_body" "$response_body"
-            set_workflow_var "http_response_time" "$time_total"
-            set_workflow_var "http_response_size" "$size_download"
-            set_workflow_var "http_effective_url" "$effective_url"
-            set_workflow_var "http_request_method" "$method"
+            set_workflow_var "HTTP_STATUS_CODE" "$http_code"
+            set_workflow_var "HTTP_RESPONSE_BODY" "$response_body"
+            set_workflow_var "HTTP_RESPONSE_TIME" "$time_total"
+            set_workflow_var "HTTP_RESPONSE_SIZE" "$size_download"
+            set_workflow_var "HTTP_EFFECTIVE_URL" "$effective_url"
+            set_workflow_var "HTTP_REQUEST_METHOD" "$method"
 
             # Handle success/error based on status code
             case "$http_code" in
                 2*)
                     log_success "HTTP $method completed successfully (status: $http_code, time: ${time_total}s, size: ${size_download} bytes)"
-                    set_workflow_var "http_success" "true"
-                    set_workflow_var "http_error" ""
+                    set_workflow_var "HTTP_SUCCESS" "true"
+                    set_workflow_var "HTTP_ERROR" ""
                     ;;
                 3*)
                     log_info "HTTP $method returned redirect (status: $http_code)"
-                    set_workflow_var "http_success" "true"
-                    set_workflow_var "http_error" ""
+                    set_workflow_var "HTTP_SUCCESS" "true"
+                    set_workflow_var "HTTP_ERROR" ""
                     ;;
                 4*|5*)
                     log_error "HTTP $method failed with status $http_code"
-                    set_workflow_var "http_success" "false"
-                    set_workflow_var "http_error" "HTTP_${http_code}"
+                    set_workflow_var "HTTP_SUCCESS" "false"
+                    set_workflow_var "HTTP_ERROR" "HTTP_${http_code}"
 
                     case "$error_handling" in
                         "ignore") 
@@ -614,8 +614,8 @@ execute_http_fetch_quote_data() {
             esac
         else
             log_error "Failed to parse curl metrics: $metrics"
-            set_workflow_var "http_success" "false"
-            set_workflow_var "http_error" "PARSE_ERROR"
+            set_workflow_var "HTTP_SUCCESS" "false"
+            set_workflow_var "HTTP_ERROR" "PARSE_ERROR"
             cleanup_temp_files "$response_file" "$metrics_file" "$stderr_file"
             return 1
         fi
@@ -626,10 +626,10 @@ execute_http_fetch_quote_data() {
         log_error "HTTP request failed (curl exit code: $curl_exit_code)"
         [[ -n "$curl_stderr" ]] && log_error "Curl error: $curl_stderr"
         
-        set_workflow_var "http_success" "false"
-        set_workflow_var "http_error" "CURL_${curl_exit_code}"
-        set_workflow_var "http_status_code" "0"
-        set_workflow_var "http_response_body" ""
+        set_workflow_var "HTTP_SUCCESS" "false"
+        set_workflow_var "HTTP_ERROR" "CURL_${curl_exit_code}"
+        set_workflow_var "HTTP_STATUS_CODE" "0"
+        set_workflow_var "HTTP_RESPONSE_BODY" ""
 
         case "$error_handling" in
             "ignore")

@@ -61,15 +61,11 @@ get_var() {
 }
 
 # Environment Variables
-INPUT_DATA_SOURCE=${INPUT_DATA_SOURCE:-""}
-VALIDATION_RULES=${VALIDATION_RULES:-""}
-CLEANUP_ACTIONS=${CLEANUP_ACTIONS:-""}
-OUTPUT_FORMAT=${OUTPUT_FORMAT:-""}
-ERROR_THRESHOLD=${ERROR_THRESHOLD:-""}
-DATA_CONTENT=${DATA_CONTENT:-""}
 LLM_CONTENT=${LLM_CONTENT:-""}
 LLM_SUCCESS=${LLM_SUCCESS:-""}
-ERROR_PERCENTAGE=${ERROR_PERCENTAGE:-""}
+INPUT_DATA_SOURCE=${INPUT_DATA_SOURCE:-""}
+VALIDATION_RULES=${VALIDATION_RULES:-""}
+ERROR_THRESHOLD=${ERROR_THRESHOLD:-""}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-""}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-""}
 TELEGRAM_SUCCESS=${TELEGRAM_SUCCESS:-""}
@@ -388,20 +384,20 @@ mkdir -p /tmp/data_validation/backups
 VALIDATION_ID="val_$(date +%s)"
 CURRENT_TIME=$(date -Iseconds)
 
-echo "🆔 Validation ID: \$VALIDATION_ID" 
-echo "⏰ Start Time: \$CURRENT_TIME"
-echo "📊 Data Source: $(get_var "INPUT_DATA_SOURCE" "initialize_validation")"
-echo "🔧 Validation Rules: $(get_var "VALIDATION_RULES" "initialize_validation")"
-echo "🧹 Cleanup Actions: $(get_var "CLEANUP_ACTIONS" "initialize_validation")"
-echo "📝 Output Format: $(get_var "OUTPUT_FORMAT" "initialize_validation")"
-echo "🚫 Error Threshold: $(get_var "ERROR_THRESHOLD" "initialize_validation")%"
+echo "🆔 Validation ID: $VALIDATION_ID" 
+echo "⏰ Start Time: $CURRENT_TIME"
+echo "📊 Data Source: ${INPUT_DATA_SOURCE}"
+echo "🔧 Validation Rules: ${VALIDATION_RULES}"
+echo "🧹 Cleanup Actions: ${CLEANUP_ACTIONS}"
+echo "📝 Output Format: ${OUTPUT_FORMAT}"
+echo "🚫 Error Threshold: ${ERROR_THRESHOLD}%"
 
 # Save configuration
-echo "\$VALIDATION_ID" > /tmp/data_validation/validation_id.txt
-echo "$(get_var "INPUT_DATA_SOURCE" "initialize_validation")" > /tmp/data_validation/input_source.txt
-echo "$(get_var "DATA_CONTENT" "initialize_validation")" > /tmp/data_validation/input/raw_data.txt
-echo "$(get_var "VALIDATION_RULES" "initialize_validation")" > /tmp/data_validation/validation_rules.txt
-echo "$(get_var "CLEANUP_ACTIONS" "initialize_validation")" > /tmp/data_validation/cleanup_actions.txt
+echo "$VALIDATION_ID" > /tmp/data_validation/validation_id.txt
+echo "${INPUT_DATA_SOURCE}" > /tmp/data_validation/input_source.txt
+echo "${DATA_CONTENT}" > /tmp/data_validation/input/raw_data.txt
+echo "${VALIDATION_RULES}" > /tmp/data_validation/validation_rules.txt
+echo "${CLEANUP_ACTIONS}" > /tmp/data_validation/cleanup_actions.txt
 
 echo "✅ Validation environment initialized successfully"
 
@@ -463,8 +459,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -473,8 +469,8 @@ echo "$llm_content"
 echo "🔍 Performing Initial Data Validation"
 echo "====================================="
 
-RAW_DATA="$(get_var "DATA_CONTENT" "perform_initial_validation")"
-VALIDATION_RULES="$(get_var "VALIDATION_RULES" "perform_initial_validation")"
+RAW_DATA="${DATA_CONTENT}"
+VALIDATION_RULES="${VALIDATION_RULES}"
 
 # Initialize counters
 TOTAL_RECORDS=0
@@ -483,38 +479,38 @@ ERROR_COUNT=0
 WARNINGS_COUNT=0
 
 # Count total records (assuming CSV-like format)
-TOTAL_RECORDS=$(echo "\$RAW_DATA" | grep -c ';' || echo "1")
-echo "📊 Total Records Found: \$TOTAL_RECORDS"
+TOTAL_RECORDS=$(echo "$RAW_DATA" | grep -c ';' || echo "1")
+echo "📊 Total Records Found: $TOTAL_RECORDS"
 
 # Validate email formats if rule is active
-if echo "\$VALIDATION_RULES" | grep -q "email_format"; then
+if echo "$VALIDATION_RULES" | grep -q "email_format"; then
   echo "✉️ Validating email formats..."
-  INVALID_EMAILS=$(echo "\$RAW_DATA" | grep -o '[^,;]*@[^,;]*' | grep -v '@.*\.' | wc -l)
+  INVALID_EMAILS=$(echo "$RAW_DATA" | grep -o '[^,;]*@[^,;]*' | grep -v '@.*\.' | wc -l)
   ERROR_COUNT=$((ERROR_COUNT + INVALID_EMAILS))
-  echo "   Found \$INVALID_EMAILS invalid email formats"
+  echo "   Found $INVALID_EMAILS invalid email formats"
 fi
 
 # Check for required fields if rule is active
-if echo "\$VALIDATION_RULES" | grep -q "required_fields"; then
+if echo "$VALIDATION_RULES" | grep -q "required_fields"; then
   echo "📋 Checking required fields..."
-  EMPTY_FIELDS=$(echo "\$RAW_DATA" | grep -o ',,' | wc -l)
-  MISSING_EMAILS=$(echo "\$RAW_DATA" | grep -o ',[[:space:]]*,' | wc -l)
+  EMPTY_FIELDS=$(echo "$RAW_DATA" | grep -o ',,' | wc -l)
+  MISSING_EMAILS=$(echo "$RAW_DATA" | grep -o ',[[:space:]]*,' | wc -l)
   MISSING_COUNT=$((EMPTY_FIELDS + MISSING_EMAILS))
   ERROR_COUNT=$((ERROR_COUNT + MISSING_COUNT))
-  echo "   Found \$MISSING_COUNT missing required fields"
+  echo "   Found $MISSING_COUNT missing required fields"
 fi
 
 # Check data completeness if rule is active
-if echo "\$VALIDATION_RULES" | grep -q "data_completeness"; then
+if echo "$VALIDATION_RULES" | grep -q "data_completeness"; then
   echo "📈 Checking data completeness..."
   # Simple completeness check
-  INCOMPLETE_RECORDS=$(echo "\$RAW_DATA" | grep -c ',,' || echo "0")
+  INCOMPLETE_RECORDS=$(echo "$RAW_DATA" | grep -c ',,' || echo "0")
   WARNINGS_COUNT=$((WARNINGS_COUNT + INCOMPLETE_RECORDS))
-  echo "   Found \$INCOMPLETE_RECORDS potentially incomplete records"
+  echo "   Found $INCOMPLETE_RECORDS potentially incomplete records"
 fi
 
 # Calculate error percentage
-if [ "\$TOTAL_RECORDS" -gt 0 ]; then
+if [ "$TOTAL_RECORDS" -gt 0 ]; then
   ERROR_PERCENTAGE=$(( (ERROR_COUNT * 100) / TOTAL_RECORDS ))
 else
   ERROR_PERCENTAGE=100
@@ -524,21 +520,21 @@ VALID_RECORDS=$((TOTAL_RECORDS - ERROR_COUNT))
 
 echo ""
 echo "📊 Validation Summary:"
-echo "   Total Records: \$TOTAL_RECORDS"
-echo "   Valid Records: \$VALID_RECORDS"
-echo "   Errors Found: \$ERROR_COUNT"
-echo "   Warnings: \$WARNINGS_COUNT"
-echo "   Error Rate: $(get_var "ERROR_PERCENTAGE" "perform_initial_validation")%"
-echo "   Error Threshold: $(get_var "ERROR_THRESHOLD" "perform_initial_validation")%"
+echo "   Total Records: $TOTAL_RECORDS"
+echo "   Valid Records: $VALID_RECORDS"
+echo "   Errors Found: $ERROR_COUNT"
+echo "   Warnings: $WARNINGS_COUNT"
+echo "   Error Rate: ${ERROR_PERCENTAGE}%"
+echo "   Error Threshold: ${ERROR_THRESHOLD}%"
 
 # Save validation results
-echo "\$TOTAL_RECORDS" > /tmp/data_validation/total_records.txt
-echo "\$VALID_RECORDS" > /tmp/data_validation/valid_records.txt
-echo "\$ERROR_COUNT" > /tmp/data_validation/error_count.txt
-echo "\$ERROR_PERCENTAGE" > /tmp/data_validation/error_percentage.txt
+echo "$TOTAL_RECORDS" > /tmp/data_validation/total_records.txt
+echo "$VALID_RECORDS" > /tmp/data_validation/valid_records.txt
+echo "$ERROR_COUNT" > /tmp/data_validation/error_count.txt
+echo "$ERROR_PERCENTAGE" > /tmp/data_validation/error_percentage.txt
 
-if [ "\$ERROR_PERCENTAGE" -gt "$(get_var "ERROR_THRESHOLD" "perform_initial_validation")" ]; then
-  echo "❌ Error rate exceeds threshold ($(get_var "ERROR_PERCENTAGE" "perform_initial_validation")% > $(get_var "ERROR_THRESHOLD" "perform_initial_validation")%)"
+if [ "$ERROR_PERCENTAGE" -gt "${ERROR_THRESHOLD}" ]; then
+  echo "❌ Error rate exceeds threshold (${ERROR_PERCENTAGE}% > ${ERROR_THRESHOLD}%)"
   echo "VALIDATION_STATUS=FAILED_THRESHOLD" >> /tmp/data_validation/status.txt
 else
   echo "✅ Error rate within acceptable threshold"
@@ -550,58 +546,58 @@ fi
 echo "🧹 Starting Data Cleaning and Normalization"
 echo "==========================================="
 
-RAW_DATA="$(get_var "DATA_CONTENT" "clean_and_normalize")"
-CLEANUP_ACTIONS="$(get_var "CLEANUP_ACTIONS" "clean_and_normalize")"
-CLEANED_DATA="\$RAW_DATA"
+RAW_DATA="${DATA_CONTENT}"
+CLEANUP_ACTIONS="${CLEANUP_ACTIONS}"
+CLEANED_DATA="$RAW_DATA"
 
 # Backup original data
-echo "\$RAW_DATA" > /tmp/data_validation/backups/original_data.txt
+echo "$RAW_DATA" > /tmp/data_validation/backups/original_data.txt
 
 # Apply normalize_text action if specified
-if echo "\$CLEANUP_ACTIONS" | grep -q "normalize_text"; then
+if echo "$CLEANUP_ACTIONS" | grep -q "normalize_text"; then
   echo "🔤 Normalizing text formatting..."
   # Remove extra spaces, normalize case for emails
-  CLEANED_DATA=$(echo "\$CLEANED_DATA" | sed 's/[[:space:]]*,[[:space:]]*/,/g' | sed 's/[[:space:]]*;[[:space:]]*/;/g')
+  CLEANED_DATA=$(echo "$CLEANED_DATA" | sed 's/[[:space:]]*,[[:space:]]*/,/g' | sed 's/[[:space:]]*;[[:space:]]*/;/g')
   # Convert emails to lowercase
-  CLEANED_DATA=$(echo "\$CLEANED_DATA" | sed 's/\([^,;]*@[^,;]*\)/\L\1/g')
+  CLEANED_DATA=$(echo "$CLEANED_DATA" | sed 's/\([^,;]*@[^,;]*\)/\L\1/g')
   echo "   ✅ Text normalization completed"
 fi
 
 # Apply remove_duplicates action if specified
-if echo "\$CLEANUP_ACTIONS" | grep -q "remove_duplicates"; then
+if echo "$CLEANUP_ACTIONS" | grep -q "remove_duplicates"; then
   echo "🔄 Removing duplicate entries..."
-  ORIGINAL_COUNT=$(echo "\$CLEANED_DATA" | grep -c ';' || echo "1")
-  CLEANED_DATA=$(echo "\$CLEANED_DATA" | tr ';' '\n' | sort | uniq | tr '\n' ';' | sed 's/;\$//')
-  CLEANED_COUNT=$(echo "\$CLEANED_DATA" | grep -c ';' || echo "1")
+  ORIGINAL_COUNT=$(echo "$CLEANED_DATA" | grep -c ';' || echo "1")
+  CLEANED_DATA=$(echo "$CLEANED_DATA" | tr ';' '\n' | sort | uniq | tr '\n' ';' | sed 's/;$//')
+  CLEANED_COUNT=$(echo "$CLEANED_DATA" | grep -c ';' || echo "1")
   REMOVED_DUPLICATES=$((ORIGINAL_COUNT - CLEANED_COUNT))
-  echo "   ✅ Removed \$REMOVED_DUPLICATES duplicate entries"
+  echo "   ✅ Removed $REMOVED_DUPLICATES duplicate entries"
 fi
 
 # Apply standardize_formats action if specified
-if echo "\$CLEANUP_ACTIONS" | grep -q "standardize_formats"; then
+if echo "$CLEANUP_ACTIONS" | grep -q "standardize_formats"; then
   echo "📏 Standardizing data formats..."
   # Standardize email domains
-  CLEANED_DATA=$(echo "\$CLEANED_DATA" | sed 's/@INVALID-EMAIL/@invalid.domain/g')
+  CLEANED_DATA=$(echo "$CLEANED_DATA" | sed 's/@INVALID-EMAIL/@invalid.domain/g')
   # Add placeholder for missing emails
-  CLEANED_DATA=$(echo "\$CLEANED_DATA" | sed 's/,,/,placeholder@domain.com,/g')
+  CLEANED_DATA=$(echo "$CLEANED_DATA" | sed 's/,,/,placeholder@domain.com,/g')
   echo "   ✅ Format standardization completed"
 fi
 
 # Save cleaned data
-echo "\$CLEANED_DATA" > /tmp/data_validation/output/cleaned_data.txt
+echo "$CLEANED_DATA" > /tmp/data_validation/output/cleaned_data.txt
 
 # Calculate improvement metrics
-ORIGINAL_ISSUES=$(echo "\$RAW_DATA" | grep -o 'INVALID\|,,' | wc -l)
-REMAINING_ISSUES=$(echo "\$CLEANED_DATA" | grep -o 'INVALID\|,,' | wc -l)
+ORIGINAL_ISSUES=$(echo "$RAW_DATA" | grep -o 'INVALID\|,,' | wc -l)
+REMAINING_ISSUES=$(echo "$CLEANED_DATA" | grep -o 'INVALID\|,,' | wc -l)
 IMPROVEMENT=$((ORIGINAL_ISSUES - REMAINING_ISSUES))
 
 echo ""
 echo "🎯 Cleaning Results:"
-echo "   Original Issues: \$ORIGINAL_ISSUES"
-echo "   Remaining Issues: \$REMAINING_ISSUES" 
-echo "   Issues Fixed: \$IMPROVEMENT"
+echo "   Original Issues: $ORIGINAL_ISSUES"
+echo "   Remaining Issues: $REMAINING_ISSUES" 
+echo "   Issues Fixed: $IMPROVEMENT"
 
-echo "CLEANING_IMPROVEMENT=\$IMPROVEMENT" >> /tmp/data_validation/status.txt
+echo "CLEANING_IMPROVEMENT=$IMPROVEMENT" >> /tmp/data_validation/status.txt
 echo "✅ Data cleaning completed successfully"
 
 
@@ -831,8 +827,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -992,10 +988,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -1021,11 +1017,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")

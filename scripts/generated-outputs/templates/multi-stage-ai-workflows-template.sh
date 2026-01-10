@@ -61,15 +61,10 @@ get_var() {
 }
 
 # Environment Variables
-INPUT_CONTENT=${INPUT_CONTENT:-""}
-PROCESSING_STAGES=${PROCESSING_STAGES:-""}
-AI_MODELS=${AI_MODELS:-""}
-OUTPUT_FORMAT=${OUTPUT_FORMAT:-""}
-QUALITY_THRESHOLD=${QUALITY_THRESHOLD:-""}
-PARALLEL_PROCESSING=${PARALLEL_PROCESSING:-""}
 LLM_CONTENT=${LLM_CONTENT:-""}
 LLM_SUCCESS=${LLM_SUCCESS:-""}
-OVERALL_SCORE=${OVERALL_SCORE:-""}
+PROCESSING_STAGES=${PROCESSING_STAGES:-""}
+OUTPUT_FORMAT=${OUTPUT_FORMAT:-""}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-""}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-""}
 TELEGRAM_SUCCESS=${TELEGRAM_SUCCESS:-""}
@@ -389,35 +384,35 @@ mkdir -p /tmp/ai_pipeline/reports
 PIPELINE_ID="ai_$(date +%s)"
 START_TIME=$(date -Iseconds)
 
-echo "🆔 Pipeline ID: \$PIPELINE_ID"
-echo "⏰ Start Time: \$START_TIME"
-echo "📝 Input Content Length: $(echo "$(get_var "INPUT_CONTENT" "initialize_pipeline")" | wc -c) characters"
-echo "🔄 Processing Stages: $(get_var "PROCESSING_STAGES" "initialize_pipeline")"
-echo "🧠 AI Models Config: $(get_var "AI_MODELS" "initialize_pipeline")"
-echo "📊 Output Format: $(get_var "OUTPUT_FORMAT" "initialize_pipeline")"
-echo "🎯 Quality Threshold: $(get_var "QUALITY_THRESHOLD" "initialize_pipeline")/10"
-echo "⚡ Parallel Processing: $(get_var "PARALLEL_PROCESSING" "initialize_pipeline")"
+echo "🆔 Pipeline ID: $PIPELINE_ID"
+echo "⏰ Start Time: $START_TIME"
+echo "📝 Input Content Length: $(echo "${INPUT_CONTENT}" | wc -c) characters"
+echo "🔄 Processing Stages: ${PROCESSING_STAGES}"
+echo "🧠 AI Models Config: ${AI_MODELS}"
+echo "📊 Output Format: ${OUTPUT_FORMAT}"
+echo "🎯 Quality Threshold: ${QUALITY_THRESHOLD}/10"
+echo "⚡ Parallel Processing: ${PARALLEL_PROCESSING}"
 
 # Save configuration and input
-echo "\$PIPELINE_ID" > /tmp/ai_pipeline/pipeline_id.txt
-echo "\$START_TIME" > /tmp/ai_pipeline/start_time.txt
-echo "$(get_var "INPUT_CONTENT" "initialize_pipeline")" > /tmp/ai_pipeline/input_content.txt
-echo "$(get_var "PROCESSING_STAGES" "initialize_pipeline")" > /tmp/ai_pipeline/stages_config.txt
-echo "$(get_var "AI_MODELS" "initialize_pipeline")" > /tmp/ai_pipeline/models_config.txt
+echo "$PIPELINE_ID" > /tmp/ai_pipeline/pipeline_id.txt
+echo "$START_TIME" > /tmp/ai_pipeline/start_time.txt
+echo "${INPUT_CONTENT}" > /tmp/ai_pipeline/input_content.txt
+echo "${PROCESSING_STAGES}" > /tmp/ai_pipeline/stages_config.txt
+echo "${AI_MODELS}" > /tmp/ai_pipeline/models_config.txt
 
 # Parse AI models configuration
-ANALYSIS_MODEL=$(echo "$(get_var "AI_MODELS" "initialize_pipeline")" | grep -o '"analysis":[^,}]*' | cut -d'"' -f4 || echo "gpt-4")
-GENERATION_MODEL=$(echo "$(get_var "AI_MODELS" "initialize_pipeline")" | grep -o '"generation":[^,}]*' | cut -d'"' -f4 || echo "gpt-3.5-turbo")
-VALIDATION_MODEL=$(echo "$(get_var "AI_MODELS" "initialize_pipeline")" | grep -o '"validation":[^,}]*' | cut -d'"' -f4 || echo "gpt-4")
+ANALYSIS_MODEL=$(echo "${AI_MODELS}" | grep -o '"analysis":[^,}]*' | cut -d'"' -f4 || echo "gpt-4")
+GENERATION_MODEL=$(echo "${AI_MODELS}" | grep -o '"generation":[^,}]*' | cut -d'"' -f4 || echo "gpt-3.5-turbo")
+VALIDATION_MODEL=$(echo "${AI_MODELS}" | grep -o '"validation":[^,}]*' | cut -d'"' -f4 || echo "gpt-4")
 
 echo "📋 Parsed AI Models:"
-echo "   Analysis Model: \$ANALYSIS_MODEL"
-echo "   Generation Model: \$GENERATION_MODEL"
-echo "   Validation Model: \$VALIDATION_MODEL"
+echo "   Analysis Model: $ANALYSIS_MODEL"
+echo "   Generation Model: $GENERATION_MODEL"
+echo "   Validation Model: $VALIDATION_MODEL"
 
-echo "\$ANALYSIS_MODEL" > /tmp/ai_pipeline/analysis_model.txt
-echo "\$GENERATION_MODEL" > /tmp/ai_pipeline/generation_model.txt
-echo "\$VALIDATION_MODEL" > /tmp/ai_pipeline/validation_model.txt
+echo "$ANALYSIS_MODEL" > /tmp/ai_pipeline/analysis_model.txt
+echo "$GENERATION_MODEL" > /tmp/ai_pipeline/generation_model.txt
+echo "$VALIDATION_MODEL" > /tmp/ai_pipeline/validation_model.txt
 
 echo "✅ AI processing pipeline initialized successfully"
 
@@ -479,8 +474,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -542,8 +537,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -605,8 +600,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -668,8 +663,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -678,51 +673,51 @@ echo "$llm_content"
 echo "🎯 Checking Quality Threshold"
 echo "=========================="
 
-QUALITY_THRESHOLD="$(get_var "QUALITY_THRESHOLD" "check_quality_threshold")"
+QUALITY_THRESHOLD="${QUALITY_THRESHOLD}"
 VALIDATION_RESULT='{{stage4_quality_validation.content}}'
 
 echo "📊 Quality Threshold Analysis:"
-echo "   Required Threshold: $(get_var "QUALITY_THRESHOLD" "check_quality_threshold")/10"
+echo "   Required Threshold: ${QUALITY_THRESHOLD}/10"
 
 # Extract quality scores from validation result
-OVERALL_SCORE=$(echo "\$VALIDATION_RESULT" | grep -o "overall.*[0-9]" | grep -o "[0-9]" | tail -1 || echo "0")
-if [ -z "\$OVERALL_SCORE" ]; then
-  OVERALL_SCORE=$(echo "\$VALIDATION_RESULT" | grep -o "[0-9]/10" | cut -d'/' -f1 | head -1 || echo "0")
+OVERALL_SCORE=$(echo "$VALIDATION_RESULT" | grep -o "overall.*[0-9]" | grep -o "[0-9]" | tail -1 || echo "0")
+if [ -z "$OVERALL_SCORE" ]; then
+  OVERALL_SCORE=$(echo "$VALIDATION_RESULT" | grep -o "[0-9]/10" | cut -d'/' -f1 | head -1 || echo "0")
 fi
 
-echo "   Achieved Score: $(get_var "OVERALL_SCORE" "check_quality_threshold")/10"
+echo "   Achieved Score: ${OVERALL_SCORE}/10"
 
 # Determine if threshold is met
-if [ "\$OVERALL_SCORE" -ge "\$QUALITY_THRESHOLD" ]; then
+if [ "$OVERALL_SCORE" -ge "$QUALITY_THRESHOLD" ]; then
   THRESHOLD_STATUS="PASSED"
   THRESHOLD_MESSAGE="Content quality meets required standards"
-  echo "✅ Quality threshold PASSED ($(get_var "OVERALL_SCORE" "check_quality_threshold") >= $(get_var "QUALITY_THRESHOLD" "check_quality_threshold"))"
+  echo "✅ Quality threshold PASSED (${OVERALL_SCORE} >= ${QUALITY_THRESHOLD})"
 else
   THRESHOLD_STATUS="FAILED" 
   THRESHOLD_MESSAGE="Content quality below required threshold"
-  echo "❌ Quality threshold FAILED ($(get_var "OVERALL_SCORE" "check_quality_threshold") < $(get_var "QUALITY_THRESHOLD" "check_quality_threshold"))"
+  echo "❌ Quality threshold FAILED (${OVERALL_SCORE} < ${QUALITY_THRESHOLD})"
 fi
 
 # Additional quality metrics
-if echo "\$VALIDATION_RESULT" | grep -qi "excellent\|outstanding\|high.quality"; then
+if echo "$VALIDATION_RESULT" | grep -qi "excellent\|outstanding\|high.quality"; then
   QUALITY_LEVEL="EXCELLENT"
-elif echo "\$VALIDATION_RESULT" | grep -qi "good\|satisfactory\|adequate"; then
+elif echo "$VALIDATION_RESULT" | grep -qi "good\|satisfactory\|adequate"; then
   QUALITY_LEVEL="GOOD"
 else
   QUALITY_LEVEL="NEEDS_IMPROVEMENT"
 fi
 
-echo "   Quality Level: \$QUALITY_LEVEL"
-echo "   Status: \$THRESHOLD_STATUS"
+echo "   Quality Level: $QUALITY_LEVEL"
+echo "   Status: $THRESHOLD_STATUS"
 
 # Save results
-echo "\$OVERALL_SCORE" > /tmp/ai_pipeline/quality_score.txt
-echo "\$THRESHOLD_STATUS" > /tmp/ai_pipeline/threshold_status.txt
-echo "\$QUALITY_LEVEL" > /tmp/ai_pipeline/quality_level.txt
+echo "$OVERALL_SCORE" > /tmp/ai_pipeline/quality_score.txt
+echo "$THRESHOLD_STATUS" > /tmp/ai_pipeline/threshold_status.txt
+echo "$QUALITY_LEVEL" > /tmp/ai_pipeline/quality_level.txt
 
-echo "THRESHOLD_STATUS=\$THRESHOLD_STATUS"
-echo "QUALITY_SCORE=$(get_var "OVERALL_SCORE" "check_quality_threshold")/10"
-echo "QUALITY_LEVEL=\$QUALITY_LEVEL"
+echo "THRESHOLD_STATUS=$THRESHOLD_STATUS"
+echo "QUALITY_SCORE=${OVERALL_SCORE}/10"
+echo "QUALITY_LEVEL=$QUALITY_LEVEL"
 
 
 # Node: generate_final_output
@@ -1052,10 +1047,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -1081,11 +1076,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")

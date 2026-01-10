@@ -61,8 +61,6 @@ get_var() {
 }
 
 # Environment Variables
-CONTENT_TITLE=${CONTENT_TITLE:-""}
-CONTENT_BODY=${CONTENT_BODY:-""}
 EMAIL_CONTENT=${EMAIL_CONTENT:-""}
 TELEGRAM_CONTENT=${TELEGRAM_CONTENT:-""}
 WEBHOOK_CONTENT=${WEBHOOK_CONTENT:-""}
@@ -82,10 +80,6 @@ HTTP_EFFECTIVE_URL=${HTTP_EFFECTIVE_URL:-""}
 HTTP_REQUEST_METHOD=${HTTP_REQUEST_METHOD:-""}
 HTTP_SUCCESS=${HTTP_SUCCESS:-""}
 HTTP_ERROR=${HTTP_ERROR:-""}
-SUCCESS_RATE=${SUCCESS_RATE:-""}
-CONTENT_PRIORITY=${CONTENT_PRIORITY:-""}
-TARGET_PLATFORMS=${TARGET_PLATFORMS:-""}
-ENABLE_TRACKING=${ENABLE_TRACKING:-""}
 DISTRIBUTION_REPORT=${DISTRIBUTION_REPORT:-""}
 
 # =============================================================================
@@ -388,8 +382,8 @@ execute_fallback_path() {
 echo \"📡 Initializing Multi-Format Content Distribution...\"
 
 # Configuration validation
-TITLE=\"\$(get_var "CONTENT_TITLE" "initialize_distribution")\"
-BODY=\"\$(get_var "CONTENT_BODY" "initialize_distribution")\"
+TITLE=\"\${CONTENT_TITLE}\"
+BODY=\"\${CONTENT_BODY}\"
 PLATFORMS=\"\${TARGET_PLATFORMS:-email,telegram,webhook}\"
 PRIORITY=\"\${CONTENT_PRIORITY:-medium}\"
 TRACKING=\"\${ENABLE_TRACKING:-true}\"
@@ -397,9 +391,9 @@ TRACKING=\"\${ENABLE_TRACKING:-true}\"
 echo \"🔧 Distribution Configuration:\"
 echo \"  Title: \${TITLE:0:50}\${TITLE:50:+...}\"
 echo \"  Content Length: \${#BODY} characters\"
-echo \"  Target Platforms: \\\$PLATFORMS\"
-echo \"  Priority Level: \\\$PRIORITY\"
-echo \"  Delivery Tracking: \\\$TRACKING\"
+echo \"  Target Platforms: $PLATFORMS\"
+echo \"  Priority Level: $PRIORITY\"
+echo \"  Delivery Tracking: $TRACKING\"
 
 # Create distribution workspace
 mkdir -p /tmp/content_distribution
@@ -408,17 +402,17 @@ mkdir -p /tmp/content_distribution/delivery
 mkdir -p /tmp/content_distribution/tracking
 
 # Initialize content files
-echo \"\\\$TITLE\" > /tmp/content_distribution/title.txt
-echo \"\\\$BODY\" > /tmp/content_distribution/body.txt
+echo \"$TITLE\" > /tmp/content_distribution/title.txt
+echo \"$BODY\" > /tmp/content_distribution/body.txt
 
 # Parse target platforms
-echo \"\\\$PLATFORMS\" | tr ',' '\\n' > /tmp/content_distribution/target_platforms.txt
+echo \"$PLATFORMS\" | tr ',' '\\n' > /tmp/content_distribution/target_platforms.txt
 
 # Initialize tracking
 echo '{\"distribution_id\":\"'\$(date +%s)'\",\"platforms\":{},\"started\":\"'\$(date -Iseconds)'\"}' > /tmp/content_distribution/tracking/distribution_log.json
 
 # Set priority-based delivery settings
-case \"\\\$PRIORITY\" in
+case \"$PRIORITY\" in
   \"urgent\")
     echo '{\"timeout\":5,\"retry_attempts\":3,\"parallel_delivery\":true}' > /tmp/content_distribution/delivery_config.json
     ;;
@@ -953,20 +947,20 @@ echo \"💾 Saving formatted content for all platforms...\"
 FORMATS_DIR=\"/tmp/content_distribution/formats\"
 
 # Save formatted content for each platform
-echo \"\$(get_var "EMAIL_CONTENT" "save_formatted_content")\" > \"\\\$FORMATS_DIR/email_format.txt\"
-echo \"\$(get_var "TELEGRAM_CONTENT" "save_formatted_content")\" > \"\\\$FORMATS_DIR/telegram_format.txt\"
-echo \"\$(get_var "WEBHOOK_CONTENT" "save_formatted_content")\" > \"\\\$FORMATS_DIR/webhook_format.json\"
+echo \"\${email_content}\" > \"$FORMATS_DIR/email_format.txt\"
+echo \"\${telegram_content}\" > \"$FORMATS_DIR/telegram_format.txt\"
+echo \"\${webhook_content}\" > \"$FORMATS_DIR/webhook_format.json\"
 
 # Validate JSON format for webhook
-if ! jq . \"\\\$FORMATS_DIR/webhook_format.json\" >/dev/null 2>&1; then
+if ! jq . \"$FORMATS_DIR/webhook_format.json\" >/dev/null 2>&1; then
   echo \"❌ Invalid JSON format for webhook\"
-  echo '{\"error\":\"invalid_json_format\",\"title\":\"'\$(get_var "CONTENT_TITLE" "save_formatted_content")'\",\"content\":\"'\$(get_var "CONTENT_BODY" "save_formatted_content")'\"}' > \"\\\$FORMATS_DIR/webhook_format.json\"
+  echo '{\"error\":\"invalid_json_format\",\"title\":\"'\${CONTENT_TITLE}'\",\"content\":\"'\${CONTENT_BODY}'\"}' > \"$FORMATS_DIR/webhook_format.json\"
 fi
 
 echo \"📊 Formatted Content Summary:\"
-echo \"  Email format: \$(wc -l < \"\\\$FORMATS_DIR/email_format.txt\") lines\"
-echo \"  Telegram format: \$(wc -c < \"\\\$FORMATS_DIR/telegram_format.txt\") characters\"
-echo \"  Webhook format: \$(jq -c . \"\\\$FORMATS_DIR/webhook_format.json\" | wc -c) bytes\"
+echo \"  Email format: \$(wc -l < \"$FORMATS_DIR/email_format.txt\") lines\"
+echo \"  Telegram format: \$(wc -c < \"$FORMATS_DIR/telegram_format.txt\") characters\"
+echo \"  Webhook format: \$(jq -c . \"$FORMATS_DIR/webhook_format.json\" | wc -c) bytes\"
 
 echo \"✅ All content formats saved successfully\"
 "
@@ -979,30 +973,30 @@ EMAIL_RECIPIENT=\"\${EMAIL_RECIPIENT:-}\"
 PLATFORMS_FILE=\"/tmp/content_distribution/target_platforms.txt\"
 
 # Check if email is in target platforms
-if ! grep -q \"email\" \"\\\$PLATFORMS_FILE\"; then
+if ! grep -q \"email\" \"$PLATFORMS_FILE\"; then
   echo \"ℹ️ Email not in target platforms - skipping\"
   echo '{\"platform\":\"email\",\"status\":\"skipped\",\"reason\":\"not_in_targets\"}' > /tmp/content_distribution/delivery/email_result.json
   exit 0
 fi
 
-if [ -z \"\\\$EMAIL_RECIPIENT\" ]; then
+if [ -z \"$EMAIL_RECIPIENT\" ]; then
   echo \"⚠️ No email recipient configured\"
   echo '{\"platform\":\"email\",\"status\":\"failed\",\"reason\":\"no_recipient\"}' > /tmp/content_distribution/delivery/email_result.json
   exit 0
 fi
 
 EMAIL_CONTENT=\$(cat /tmp/content_distribution/formats/email_format.txt)
-SUBJECT=\"\$(get_var "CONTENT_TITLE" "deliver_to_email")\"
+SUBJECT=\"\${CONTENT_TITLE}\"
 
-echo \"📤 Sending email to: \\\$EMAIL_RECIPIENT\"
-echo \"📋 Subject: \\\$SUBJECT\"
+echo \"📤 Sending email to: $EMAIL_RECIPIENT\"
+echo \"📋 Subject: $SUBJECT\"
 
 # Simulate email delivery (in production, use actual email service)
 # This would typically use sendmail, mail command, or email service API
 DELIVERY_TIME=\$(date -Iseconds)
 
 # Mock email delivery success/failure
-if [[ \"\\\$EMAIL_RECIPIENT\" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\\$ ]]; then
+if [[ \"$EMAIL_RECIPIENT\" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$ ]]; then
   echo \"✅ Email delivered successfully\"
   EMAIL_STATUS=\"delivered\"
   EMAIL_ERROR=\"\"
@@ -1016,11 +1010,11 @@ fi
 cat > /tmp/content_distribution/delivery/email_result.json <<EOF
 {
   \"platform\": \"email\",
-  \"status\": \"\\\$EMAIL_STATUS\",
-  \"recipient\": \"\\\$EMAIL_RECIPIENT\",
-  \"subject\": \"\\\$SUBJECT\",
-  \"delivery_time\": \"\\\$DELIVERY_TIME\",
-  \"error\": \"\\\$EMAIL_ERROR\",
+  \"status\": \"$EMAIL_STATUS\",
+  \"recipient\": \"$EMAIL_RECIPIENT\",
+  \"subject\": \"$SUBJECT\",
+  \"delivery_time\": \"$DELIVERY_TIME\",
+  \"error\": \"$EMAIL_ERROR\",
   \"content_length\": \${#EMAIL_CONTENT}
 }
 EOF
@@ -1165,10 +1159,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -1194,11 +1188,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")
@@ -1219,7 +1213,7 @@ EOF
 }
 execute_telegram_deliver_to_telegram
 
-# Node: deliver_to_webhook (ERROR)
+# Node: deliver_to_webhook
 echo "Error generating node deliver_to_webhook: Failed to generate code for node 'deliver_to_webhook': headers.trim is not a function"
 
 # Node: collect_delivery_results
@@ -1236,15 +1230,15 @@ FAILED_DELIVERIES=0
 SKIPPED_DELIVERIES=0
 
 # Collect email results
-if [ -f \"\\\$DELIVERY_DIR/email_result.json\" ]; then
-  EMAIL_STATUS=\$(jq -r '.status' \"\\\$DELIVERY_DIR/email_result.json\")
-  case \"\\\$EMAIL_STATUS\" in
+if [ -f \"$DELIVERY_DIR/email_result.json\" ]; then
+  EMAIL_STATUS=\$(jq -r '.status' \"$DELIVERY_DIR/email_result.json\")
+  case \"$EMAIL_STATUS\" in
     \"delivered\") SUCCESSFUL_DELIVERIES=\$((SUCCESSFUL_DELIVERIES + 1)) ;;
     \"failed\") FAILED_DELIVERIES=\$((FAILED_DELIVERIES + 1)) ;;
     \"skipped\") SKIPPED_DELIVERIES=\$((SKIPPED_DELIVERIES + 1)) ;;
   esac
   TOTAL_PLATFORMS=\$((TOTAL_PLATFORMS + 1))
-  echo \"📧 Email: \\\$EMAIL_STATUS\"
+  echo \"📧 Email: $EMAIL_STATUS\"
 fi
 
 # Collect Telegram results
@@ -1260,7 +1254,7 @@ if grep -q \"telegram\" /tmp/content_distribution/target_platforms.txt; then
     SKIPPED_DELIVERIES=\$((SKIPPED_DELIVERIES + 1))
   fi
   TOTAL_PLATFORMS=\$((TOTAL_PLATFORMS + 1))
-  echo \"💬 Telegram: \\\$TELEGRAM_STATUS\"
+  echo \"💬 Telegram: $TELEGRAM_STATUS\"
 fi
 
 # Collect Webhook results
@@ -1276,44 +1270,44 @@ if grep -q \"webhook\" /tmp/content_distribution/target_platforms.txt; then
     SKIPPED_DELIVERIES=\$((SKIPPED_DELIVERIES + 1))
   fi
   TOTAL_PLATFORMS=\$((TOTAL_PLATFORMS + 1))
-  echo \"🔗 Webhook: \\\$WEBHOOK_STATUS\"
+  echo \"🔗 Webhook: $WEBHOOK_STATUS\"
 fi
 
 # Calculate success rate
-if [ \"\\\$TOTAL_PLATFORMS\" -gt 0 ]; then
-  SUCCESS_RATE=\$(echo \"scale=1; \\\$SUCCESSFUL_DELIVERIES * 100 / \\\$TOTAL_PLATFORMS\" | bc -l || echo \"0.0\")
+if [ \"$TOTAL_PLATFORMS\" -gt 0 ]; then
+  SUCCESS_RATE=\$(echo \"scale=1; $SUCCESSFUL_DELIVERIES * 100 / $TOTAL_PLATFORMS\" | bc -l || echo \"0.0\")
 else
   SUCCESS_RATE=\"0.0\"
 fi
 
 echo \"📈 Delivery Summary:\"
-echo \"  Total Platforms: \\\$TOTAL_PLATFORMS\"
-echo \"  Successful: \\\$SUCCESSFUL_DELIVERIES\"
-echo \"  Failed: \\\$FAILED_DELIVERIES\"
-echo \"  Skipped: \\\$SKIPPED_DELIVERIES\"
-echo \"  Success Rate: \$(get_var "SUCCESS_RATE" "collect_delivery_results")%\"
+echo \"  Total Platforms: $TOTAL_PLATFORMS\"
+echo \"  Successful: $SUCCESSFUL_DELIVERIES\"
+echo \"  Failed: $FAILED_DELIVERIES\"
+echo \"  Skipped: $SKIPPED_DELIVERIES\"
+echo \"  Success Rate: \${SUCCESS_RATE}%\"
 
 # Update tracking log
-cat > \"\\\$TRACKING_DIR/final_report.json\" <<EOF
+cat > \"$TRACKING_DIR/final_report.json\" <<EOF
 {
-  \"distribution_id\": \"\$(jq -r '.distribution_id' \"\\\$TRACKING_DIR/distribution_log.json\")\",
-  \"content_title\": \"\$(get_var "CONTENT_TITLE" "collect_delivery_results")\",
-  \"priority\": \"\$(get_var "CONTENT_PRIORITY" "collect_delivery_results")\",
-  \"target_platforms\": \"\$(get_var "TARGET_PLATFORMS" "collect_delivery_results")\",
+  \"distribution_id\": \"\$(jq -r '.distribution_id' \"$TRACKING_DIR/distribution_log.json\")\",
+  \"content_title\": \"\${CONTENT_TITLE}\",
+  \"priority\": \"\${CONTENT_PRIORITY}\",
+  \"target_platforms\": \"\${TARGET_PLATFORMS}\",
   \"delivery_summary\": {
-    \"total_platforms\": \\\$TOTAL_PLATFORMS,
-    \"successful_deliveries\": \\\$SUCCESSFUL_DELIVERIES,
-    \"failed_deliveries\": \\\$FAILED_DELIVERIES,
-    \"skipped_deliveries\": \\\$SKIPPED_DELIVERIES,
-    \"success_rate\": \\\$SUCCESS_RATE
+    \"total_platforms\": $TOTAL_PLATFORMS,
+    \"successful_deliveries\": $SUCCESSFUL_DELIVERIES,
+    \"failed_deliveries\": $FAILED_DELIVERIES,
+    \"skipped_deliveries\": $SKIPPED_DELIVERIES,
+    \"success_rate\": $SUCCESS_RATE
   },
   \"platform_results\": {
-    \"email\": \"\$(jq -r '.status // \"not_attempted\"' \"\\\$DELIVERY_DIR/email_result.json\" 2>/dev/null || echo \"not_attempted\")\",
+    \"email\": \"\$(jq -r '.status // \"not_attempted\"' \"$DELIVERY_DIR/email_result.json\" 2>/dev/null || echo \"not_attempted\")\",
     \"telegram\": \"\${TELEGRAM_STATUS:-not_attempted}\",
     \"webhook\": \"\${WEBHOOK_STATUS:-not_attempted}\"
   },
   \"completed_at\": \"\$(date -Iseconds)\",
-  \"tracking_enabled\": \$(get_var "ENABLE_TRACKING" "collect_delivery_results")
+  \"tracking_enabled\": \${ENABLE_TRACKING}
 }
 EOF
 

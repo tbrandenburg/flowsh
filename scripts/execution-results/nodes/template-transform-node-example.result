@@ -1,4 +1,6 @@
 Starting workflow: template-transform-node-example
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "CURRENT_TIMESTAMP": invalid variable name
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "TEMPLATE_TYPE": invalid variable name
 [0;36m🚀 🔧 Template Transform: Transform Email Template[0m
 [0;32m✅ Template transformed and stored in generated_email[0m
 [0;36m🚀 🔧 Template Transform: Transform Report Template[0m
@@ -10,6 +12,11 @@ Starting workflow: template-transform-node-example
 [0;36m🚀 📊 Variable Aggregation: Aggregate All Template Outputs[0m
 [1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 4 inputs -> all_template_outputs[0m
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "USER_NAME": invalid variable name
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "PROJECT_NAME": invalid variable name
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "TEMPLATE_TYPE": invalid variable name
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "URGENCY_LEVEL": invalid variable name
+scripts/generated-outputs/nodes/template-transform-node-example.sh: line 189: "INCLUDE_DETAILS": invalid variable name
 scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1533: {{#condition}}...{{/condition}}: No such file or directory
 # 📝 Template Transform Node Example Results
 
@@ -19,14 +26,14 @@ scripts/generated-outputs/nodes/template-transform-node-example.sh: line 1533: {
 - **Template Type:** email
 - **Priority Level:** medium
 - **Include Details:** true
-- **Generated:** 2026-01-09 12:45:15
+- **Generated:** 2026-01-10 12:37:57
 
 ## Template Transformation Results
 
 
 
 ## Operations Summary
-Template Transform Summary: 4 templates processed | User: $(get_workflow_var "USER_NAME" "default") | Project: $(get_workflow_var "PROJECT_NAME" "default") | Type: $(get_workflow_var "TEMPLATE_TYPE" "default") | Priority: $(get_workflow_var "URGENCY_LEVEL" "default") | Details: $(get_workflow_var "INCLUDE_DETAILS" "default")
+Template Transform Summary: 4 templates processed | User:  | Project:  | Type:  | Priority:  | Details: 
 
 ## Template Transform Node Features Demonstrated
 

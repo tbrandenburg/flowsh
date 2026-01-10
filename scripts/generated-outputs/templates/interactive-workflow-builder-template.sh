@@ -425,8 +425,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -436,16 +436,16 @@ echo "Analyzing workflow requirements..."
 
 ANALYSIS=$(echo '{{analyze_requirements.content}}' | tr -d '\n')
 
-if echo "\$ANALYSIS" | grep -qi "sentiment\|analysis\|processing"; then
+if echo "$ANALYSIS" | grep -qi "sentiment\|analysis\|processing"; then
   PATTERN="data-processing"
   echo "Selected pattern: Data Processing Pipeline"
-elif echo "\$ANALYSIS" | grep -qi "chat\|conversation\|interactive"; then
+elif echo "$ANALYSIS" | grep -qi "chat\|conversation\|interactive"; then
   PATTERN="interactive-ai"
   echo "Selected pattern: Interactive AI Workflow"
-elif echo "\$ANALYSIS" | grep -qi "monitor\|alert\|notification"; then
+elif echo "$ANALYSIS" | grep -qi "monitor\|alert\|notification"; then
   PATTERN="monitoring-alert"
   echo "Selected pattern: Monitoring & Alerting"
-elif echo "\$ANALYSIS" | grep -qi "content\|generate\|publish"; then
+elif echo "$ANALYSIS" | grep -qi "content\|generate\|publish"; then
   PATTERN="content-automation"
   echo "Selected pattern: Content Automation"
 else
@@ -453,7 +453,7 @@ else
   echo "Selected pattern: General Automation"
 fi
 
-echo "SELECTED_PATTERN=\$PATTERN"
+echo "SELECTED_PATTERN=$PATTERN"
 echo "Pattern selection completed successfully"
 
 
@@ -514,8 +514,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -526,9 +526,9 @@ echo "Validating generated workflow..."
 WORKFLOW_CONTENT='{{generate_workflow.content}}'
 TEMP_FILE="/tmp/generated_workflow_$(date +%s).yaml"
 
-echo "\$WORKFLOW_CONTENT" > "\$TEMP_FILE"
+echo "$WORKFLOW_CONTENT" > "$TEMP_FILE"
 
-if echo "\$WORKFLOW_CONTENT" | grep -q "workflow:\|graph:\|type:"; then
+if echo "$WORKFLOW_CONTENT" | grep -q "workflow:\|graph:\|type:"; then
   echo "✅ Basic YAML structure validation passed"
   VALIDATION_STATUS="BASIC_PASSED"
   VALIDATION_MESSAGE="Basic YAML structure validation passed"
@@ -538,9 +538,9 @@ else
   VALIDATION_MESSAGE="Basic YAML structure validation failed"
 fi
 
-echo "VALIDATION_STATUS=\$VALIDATION_STATUS"
-echo "VALIDATION_MESSAGE=\$VALIDATION_MESSAGE"
-echo "GENERATED_WORKFLOW_FILE=\$TEMP_FILE"
+echo "VALIDATION_STATUS=$VALIDATION_STATUS"
+echo "VALIDATION_MESSAGE=$VALIDATION_MESSAGE"
+echo "GENERATED_WORKFLOW_FILE=$TEMP_FILE"
 
 
 # Node: create_deployment_guide
@@ -858,10 +858,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -887,11 +887,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")

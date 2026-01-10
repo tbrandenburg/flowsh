@@ -1,9 +1,2 @@
 Starting workflow: AI Content to Telegram - Enhanced
-🔍 Validating environment setup...
-⚠️  WARNING: TELEGRAM_BOT_TOKEN format looks incorrect
-   Should be format: 123456789:ABCdef123...
-🧠 OpenAI API: Not configured, will use LLM v7 fallback
-✅ Environment validation passed
-🤖 Bot Token: 8404738211...
-💬 Chat ID: $TELEGRAM_CHAT_ID
-scripts/generated-outputs/templates/ai-to-telegram-template.sh: line 591: unexpected EOF while looking for matching `''
+scripts/generated-outputs/templates/ai-to-telegram-template.sh: line 371: OPENAI_API_KEY: unbound variable

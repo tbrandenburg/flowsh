@@ -1,3 +1,2 @@
 Starting workflow: Multi-Format Content Distribution - Cross-Channel Syndication
-📡 Initializing Multi-Format Content Distribution...
-/bin/bash: line 5: get_var: command not found
+scripts/generated-outputs/templates/multi-format-distribution-template.sh: line 381: PLATFORMS: unbound variable

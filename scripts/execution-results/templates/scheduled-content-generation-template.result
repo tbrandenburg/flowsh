@@ -1,3 +1,2 @@
 Starting workflow: Scheduled Content Generation - Time-Based Automation
-⏰ Initializing Scheduled Content Generation...
-/bin/bash: line 5: get_var: command not found
+scripts/generated-outputs/templates/scheduled-content-generation-template.sh: line 372: TYPE: unbound variable

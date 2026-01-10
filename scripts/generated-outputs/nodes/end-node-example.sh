@@ -386,7 +386,7 @@ set_var "PROCESSING_SUMMARY" "$PROCESSING_SUMMARY" "create_summary"
 
 # Node: prepare_metadata
 # Node: prepare_metadata
-METADATA=$(echo '{"workflow": "end-node-example", "version": "1.0", "status": "completed", "input_length": '"$(get_workflow_var "DATA_LENGTH" "default")"'}')
+METADATA=$(echo "{\"workflow\": \"end-node-example\", \"version\": \"1.0\", \"status\": \"completed\", \"input_length\": '\"$(get_workflow_var \"DATA_LENGTH\" \"default\")\"'}")
 set_var "METADATA" "$METADATA" "prepare_metadata"
 
 # Node: preserve_input

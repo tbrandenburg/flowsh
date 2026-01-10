@@ -1,4 +1,7 @@
 Starting workflow: variable-aggregation-node-example
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_1": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_2": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_3": invalid variable name
 [0;36m🚀 📊 Variable Aggregation: Concatenate with Newlines[0m
 [0;32m✅ Concatenated 3 values into combined_text_newline[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> combined_text_newline[0m
@@ -14,12 +17,18 @@ Starting workflow: variable-aggregation-node-example
 [0;36m🚀 📊 Variable Aggregation: Calculate Average[0m
 [0;32m✅ Calculated average of all values: 78[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> average_value[0m
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_1": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_2": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "DATASET_3": invalid variable name
 [0;36m🚀 📊 Variable Aggregation: Merge JSON Objects[0m
 [0;32m✅ Merged 3 JSON objects into structured format[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> merged_json[0m
 [0;36m🚀 📊 Variable Aggregation: Collect All Datasets[0m
 [0;32m✅ Collected 3 values into JSON array[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> collected_arrays[0m
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "NUMBERS_1": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "NUMBERS_2": invalid variable name
+scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 179: "NUMBERS_3": invalid variable name
 [0;36m🚀 📊 Variable Aggregation: Aggregate Processed Numbers[0m
 [0;32m✅ Concatenated 3 values into all_numbers_space[0m
 [0;32m✅ Variable aggregation completed: 3 inputs -> all_numbers_space[0m
@@ -61,7 +70,7 @@ scripts/generated-outputs/nodes/variable-aggregation-node-example.sh: line 801: 
 
 
 ## Aggregation Metadata
-Processed at: Fri Jan 9 12:45:16 PM CET 2026 | Total variables aggregated: 15 | Methods used: concat, sum, avg, merge, collect
+Processed at: Sat Jan 10 12:37:57 PM CET 2026 | Total variables aggregated: 15 | Methods used: concat, sum, avg, merge, collect
 
 ## Variable Aggregation Features Demonstrated
 

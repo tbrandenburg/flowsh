@@ -392,7 +392,7 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "gpt-3.5-turbo", "messages": [{"role":"system","content":"You are a helpful AI assistant specializing in explaining technical concepts clearly.\n\nResponse Guidelines:\n- Style: $(get_var \"RESPONSE_STYLE\" \"basic_llm_chat\")\n- Length: $(get_var \"MAX_LENGTH\" \"basic_llm_chat\") (brief=1-2 paragraphs, medium=3-4 paragraphs, detailed=5+ paragraphs)\n- Include examples: $(get_var \"INCLUDE_EXAMPLES\" \"basic_llm_chat\")\n- Be accurate and informative\n- Use clear, accessible language\n"},{"role":"user","content":"$(get_var \"USER_QUERY\" \"basic_llm_chat\")"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -410,7 +410,7 @@ if [[ -z "$llm_content" ]]; then
     
     llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
       -H "Content-Type: application/json" \
-      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "default", "messages": [{"role":"system","content":"You are a helpful AI assistant specializing in explaining technical concepts clearly.\n\nResponse Guidelines:\n- Style: $(get_var \"RESPONSE_STYLE\" \"basic_llm_chat\")\n- Length: $(get_var \"MAX_LENGTH\" \"basic_llm_chat\") (brief=1-2 paragraphs, medium=3-4 paragraphs, detailed=5+ paragraphs)\n- Include examples: $(get_var \"INCLUDE_EXAMPLES\" \"basic_llm_chat\")\n- Be accurate and informative\n- Use clear, accessible language\n"},{"role":"user","content":"$(get_var \"USER_QUERY\" \"basic_llm_chat\")"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -422,13 +422,13 @@ fi
 
 # Stage 3: Final fallback to demo response
 if [[ -z "$llm_content" ]]; then
-    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: $(get_var "USER_QUERY" "basic_llm_chat")"
     log_warning "Using mock response as final fallback"
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -455,7 +455,7 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "gpt-4", "messages": [{"role":"user","content":"# Technical Analysis Assistant\n\n## Context\nYou are an expert technical analyst providing detailed, structured responses.\n\n## User Query\n$(get_var \"USER_QUERY\" \"advanced_llm_template\")\n\n## Response Requirements\n- **Style**: $(get_var \"RESPONSE_STYLE\" \"advanced_llm_template\")\n- **Length**: $(get_var \"MAX_LENGTH\" \"advanced_llm_template\")\n- **Include Examples**: $(get_var \"INCLUDE_EXAMPLES\" \"advanced_llm_template\")\n- **Context**: $(get_var \"CONTEXT_INFO\" \"advanced_llm_template\")\n\n## Response Format\nPlease structure your response with:\n1. **Summary** (1-2 sentences)\n2. **Detailed Explanation** \n3. **Key Points** (bullet format)\n4. **Examples** (if requested)\n5. **Additional Resources** (if applicable)\n\n## Guidelines\n- Use clear, professional language\n- Provide actionable insights\n- Include relevant technical details\n- Maintain accuracy and reliability\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -473,7 +473,7 @@ if [[ -z "$llm_content" ]]; then
     
     llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
       -H "Content-Type: application/json" \
-      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "default", "messages": [{"role":"user","content":"# Technical Analysis Assistant\n\n## Context\nYou are an expert technical analyst providing detailed, structured responses.\n\n## User Query\n$(get_var \"USER_QUERY\" \"advanced_llm_template\")\n\n## Response Requirements\n- **Style**: $(get_var \"RESPONSE_STYLE\" \"advanced_llm_template\")\n- **Length**: $(get_var \"MAX_LENGTH\" \"advanced_llm_template\")\n- **Include Examples**: $(get_var \"INCLUDE_EXAMPLES\" \"advanced_llm_template\")\n- **Context**: $(get_var \"CONTEXT_INFO\" \"advanced_llm_template\")\n\n## Response Format\nPlease structure your response with:\n1. **Summary** (1-2 sentences)\n2. **Detailed Explanation** \n3. **Key Points** (bullet format)\n4. **Examples** (if requested)\n5. **Additional Resources** (if applicable)\n\n## Guidelines\n- Use clear, professional language\n- Provide actionable insights\n- Include relevant technical details\n- Maintain accuracy and reliability\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -485,13 +485,40 @@ fi
 
 # Stage 3: Final fallback to demo response
 if [[ -z "$llm_content" ]]; then
-    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: # Technical Analysis Assistant
+
+## Context
+You are an expert technical analyst providing detailed, structured responses.
+
+## User Query
+$(get_var "USER_QUERY" "advanced_llm_template")
+
+## Response Requirements
+- **Style**: $(get_var "RESPONSE_STYLE" "advanced_llm_template")
+- **Length**: $(get_var "MAX_LENGTH" "advanced_llm_template")
+- **Include Examples**: $(get_var "INCLUDE_EXAMPLES" "advanced_llm_template")
+- **Context**: $(get_var "CONTEXT_INFO" "advanced_llm_template")
+
+## Response Format
+Please structure your response with:
+1. **Summary** (1-2 sentences)
+2. **Detailed Explanation** 
+3. **Key Points** (bullet format)
+4. **Examples** (if requested)
+5. **Additional Resources** (if applicable)
+
+## Guidelines
+- Use clear, professional language
+- Provide actionable insights
+- Include relevant technical details
+- Maintain accuracy and reliability
+"
     log_warning "Using mock response as final fallback"
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -518,7 +545,7 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-4-vision-preview", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "gpt-4-vision-preview", "messages": [{"role":"system","content":"You are a visual analysis assistant. When provided with images, analyze them thoroughly.\nSince no images are provided in this example, focus on explaining visual analysis capabilities.\n"},{"role":"user","content":"Based on the query \"$(get_var \"USER_QUERY\" \"llm_with_vision\")\", explain how visual analysis could enhance the response.\nDescribe what types of diagrams, charts, or visual aids would be most helpful for this topic.\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -536,7 +563,7 @@ if [[ -z "$llm_content" ]]; then
     
     llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
       -H "Content-Type: application/json" \
-      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "default", "messages": [{"role":"system","content":"You are a visual analysis assistant. When provided with images, analyze them thoroughly.\nSince no images are provided in this example, focus on explaining visual analysis capabilities.\n"},{"role":"user","content":"Based on the query \"$(get_var \"USER_QUERY\" \"llm_with_vision\")\", explain how visual analysis could enhance the response.\nDescribe what types of diagrams, charts, or visual aids would be most helpful for this topic.\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -548,13 +575,15 @@ fi
 
 # Stage 3: Final fallback to demo response
 if [[ -z "$llm_content" ]]; then
-    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Based on the query "$(get_var "USER_QUERY" "llm_with_vision")", explain how visual analysis could enhance the response.
+Describe what types of diagrams, charts, or visual aids would be most helpful for this topic.
+"
     log_warning "Using mock response as final fallback"
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -581,7 +610,7 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     llm_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"model": "gpt-3.5-turbo-instruct", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "gpt-3.5-turbo-instruct", "messages": [{"role":"user","content":"Complete the following technical explanation:\n\nTopic: $(get_var \"USER_QUERY\" \"completion_mode_llm\")\nStyle: $(get_var \"RESPONSE_STYLE\" \"completion_mode_llm\")\nLength requirement: $(get_var \"MAX_LENGTH\" \"completion_mode_llm\")\n\nTechnical Explanation:\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -599,7 +628,7 @@ if [[ -z "$llm_content" ]]; then
     
     llm_response=$(curl -s -X POST "https://api.llm7.io/v1/chat/completions" \
       -H "Content-Type: application/json" \
-      -d '{"model": "default", "messages": [{"role": "user", "content": "Hello"}]}' \
+      -d '{"model": "default", "messages": [{"role":"user","content":"Complete the following technical explanation:\n\nTopic: $(get_var \"USER_QUERY\" \"completion_mode_llm\")\nStyle: $(get_var \"RESPONSE_STYLE\" \"completion_mode_llm\")\nLength requirement: $(get_var \"MAX_LENGTH\" \"completion_mode_llm\")\n\nTechnical Explanation:\n"}]}' \
       --connect-timeout 30 --max-time 60)
     if extract_llm_content "$llm_response" >/dev/null 2>&1; then
         llm_content=$(extract_llm_content "$llm_response")
@@ -611,13 +640,20 @@ fi
 
 # Stage 3: Final fallback to demo response
 if [[ -z "$llm_content" ]]; then
-    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Hello"
+    llm_content="Mock LLM Response: This is a simulated response because all API calls failed. Original prompt was: Complete the following technical explanation:
+
+Topic: $(get_var "USER_QUERY" "completion_mode_llm")
+Style: $(get_var "RESPONSE_STYLE" "completion_mode_llm")
+Length requirement: $(get_var "MAX_LENGTH" "completion_mode_llm")
+
+Technical Explanation:
+"
     log_warning "Using mock response as final fallback"
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"

@@ -1,43 +1,7 @@
 Starting workflow: Automated Testing & Monitoring - DevOps Automation
 🚀 Initializing Automated Testing & Monitoring System
 ==================================================
-🆔 Monitoring ID: $MONITORING_ID
-⏰ Start Time: $START_TIME
+🆔 Monitoring ID: mon_1768044014
+⏰ Start Time: 2026-01-10T12:20:14+01:00
 🌐 Service URL: 
-🔍 Test Endpoints: 
-⏱️ Frequency: 
-📊 Performance Thresholds: 
-🧪 Test Types: 
-🚨 Alert Channels: 
-❌ Service URL is not accessible
-✅ Monitoring environment initialized successfully
-🏥 Running Health Check Tests
-============================
-⏩ Health check tests skipped (not in test types)
-scripts/generated-outputs/templates/automated-testing-monitoring-template.sh: line 482: [: $TOTAL_TESTS: integer expression expected
-
-📊 Health Check Results:
-   Tests Passed: $HEALTH_PASSED
-   Tests Failed: $HEALTH_FAILED
-   Success Rate: 0%
-HEALTH_CHECK_STATUS=COMPLETED
-HEALTH_SUCCESS_RATE=0%
-⚡ Running Performance Tests
-==========================
-⏩ Performance tests skipped (not in test types)
-
-📊 Performance Test Results:
-   Average Response Time: 0ms
-   Max Response Time: 0ms
-   Threshold: ms
-   Requests Passed: $PERF_PASSED
-   Requests Failed: $PERF_FAILED
-   Performance Success Rate: 100%
-PERFORMANCE_TEST_STATUS=COMPLETED
-PERF_SUCCESS_RATE=100%
-AVG_RESPONSE_TIME=0ms
-[0;36mℹ️  OPENAI_API_KEY not set, using LLMv7...[0m
-[0;36mℹ️  LLMv7 API successful[0m
-Hey there! 👋 How's your day going? What’s on your mind today?
-[0;36m🚀 🔧 Template Transform: Generate Comprehensive Monitoring Report[0m
-[0;31m❌ Failed to resolve template content[0m
+scripts/generated-outputs/templates/automated-testing-monitoring-template.sh: line 391: TEST_ENDPOINTS: unbound variable

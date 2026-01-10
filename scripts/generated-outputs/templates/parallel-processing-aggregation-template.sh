@@ -61,15 +61,6 @@ get_var() {
 }
 
 # Environment Variables
-INPUT_DATA_SOURCES=${INPUT_DATA_SOURCES:-""}
-PROCESSING_OPERATIONS=${PROCESSING_OPERATIONS:-""}
-PARALLEL_WORKERS=${PARALLEL_WORKERS:-""}
-AGGREGATION_METHOD=${AGGREGATION_METHOD:-""}
-OUTPUT_FORMAT=${OUTPUT_FORMAT:-""}
-PERFORMANCE_OPTIMIZATION=${PERFORMANCE_OPTIMIZATION:-""}
-ERROR_HANDLING=${ERROR_HANDLING:-""}
-TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-""}
-WORKER_ID=${WORKER_ID:-""}
 HTTP_STATUS_CODE=${HTTP_STATUS_CODE:-""}
 HTTP_RESPONSE_BODY=${HTTP_RESPONSE_BODY:-""}
 HTTP_RESPONSE_TIME=${HTTP_RESPONSE_TIME:-""}
@@ -78,10 +69,12 @@ HTTP_EFFECTIVE_URL=${HTTP_EFFECTIVE_URL:-""}
 HTTP_REQUEST_METHOD=${HTTP_REQUEST_METHOD:-""}
 HTTP_SUCCESS=${HTTP_SUCCESS:-""}
 HTTP_ERROR=${HTTP_ERROR:-""}
-SUCCESS_RATE=${SUCCESS_RATE:-""}
-AGGREGATED_SIZE=${AGGREGATED_SIZE:-""}
 LLM_CONTENT=${LLM_CONTENT:-""}
 LLM_SUCCESS=${LLM_SUCCESS:-""}
+PARALLEL_WORKERS=${PARALLEL_WORKERS:-""}
+INPUT_DATA_SOURCES=${INPUT_DATA_SOURCES:-""}
+AGGREGATION_METHOD=${AGGREGATION_METHOD:-""}
+PERFORMANCE_OPTIMIZATION=${PERFORMANCE_OPTIMIZATION:-""}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-""}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-""}
 TELEGRAM_SUCCESS=${TELEGRAM_SUCCESS:-""}
@@ -402,52 +395,52 @@ mkdir -p /tmp/parallel_processing/performance
 PROCESSING_ID="par_$(date +%s)"
 START_TIME=$(date -Iseconds)
 
-echo "🆔 Processing ID: \$PROCESSING_ID"
-echo "⏰ Start Time: \$START_TIME"
-echo "📊 Data Sources: $(get_var "INPUT_DATA_SOURCES" "initialize_parallel_system")"
-echo "🔄 Operations: $(get_var "PROCESSING_OPERATIONS" "initialize_parallel_system")"
-echo "👥 Parallel Workers: $(get_var "PARALLEL_WORKERS" "initialize_parallel_system")"
-echo "📋 Aggregation Method: $(get_var "AGGREGATION_METHOD" "initialize_parallel_system")"
-echo "📁 Output Format: $(get_var "OUTPUT_FORMAT" "initialize_parallel_system")"
-echo "⚡ Optimizations: $(get_var "PERFORMANCE_OPTIMIZATION" "initialize_parallel_system")"
-echo "🚨 Error Handling: $(get_var "ERROR_HANDLING" "initialize_parallel_system")"
-echo "⏱️ Timeout: $(get_var "TIMEOUT_SECONDS" "initialize_parallel_system")s"
+echo "🆔 Processing ID: $PROCESSING_ID"
+echo "⏰ Start Time: $START_TIME"
+echo "📊 Data Sources: ${INPUT_DATA_SOURCES}"
+echo "🔄 Operations: ${PROCESSING_OPERATIONS}"
+echo "👥 Parallel Workers: ${PARALLEL_WORKERS}"
+echo "📋 Aggregation Method: ${AGGREGATION_METHOD}"
+echo "📁 Output Format: ${OUTPUT_FORMAT}"
+echo "⚡ Optimizations: ${PERFORMANCE_OPTIMIZATION}"
+echo "🚨 Error Handling: ${ERROR_HANDLING}"
+echo "⏱️ Timeout: ${TIMEOUT_SECONDS}s"
 
 # Parse and prepare data sources
-IFS=',' read -ra SOURCES_ARRAY <<< "$(get_var "INPUT_DATA_SOURCES" "initialize_parallel_system")"
+IFS=',' read -ra SOURCES_ARRAY <<< "${INPUT_DATA_SOURCES}"
 SOURCE_COUNT=${#SOURCES_ARRAY[@]}
 
 echo ""
 echo "📋 Workload Distribution:"
-echo "   Total Data Sources: \$SOURCE_COUNT"
-echo "   Parallel Workers: $(get_var "PARALLEL_WORKERS" "initialize_parallel_system")"
+echo "   Total Data Sources: $SOURCE_COUNT"
+echo "   Parallel Workers: ${PARALLEL_WORKERS}"
 
 # Calculate optimal distribution
-if [ "\$SOURCE_COUNT" -le "$(get_var "PARALLEL_WORKERS" "initialize_parallel_system")" ]; then
-  WORKERS_TO_USE=\$SOURCE_COUNT
+if [ "$SOURCE_COUNT" -le "${PARALLEL_WORKERS}" ]; then
+  WORKERS_TO_USE=$SOURCE_COUNT
   SOURCES_PER_WORKER=1
 else
-  WORKERS_TO_USE=$(get_var "PARALLEL_WORKERS" "initialize_parallel_system")
+  WORKERS_TO_USE=${PARALLEL_WORKERS}
   SOURCES_PER_WORKER=$(( (SOURCE_COUNT + WORKERS_TO_USE - 1) / WORKERS_TO_USE ))
 fi
 
-echo "   Active Workers: \$WORKERS_TO_USE"
-echo "   Sources per Worker: ~\$SOURCES_PER_WORKER"
+echo "   Active Workers: $WORKERS_TO_USE"
+echo "   Sources per Worker: ~$SOURCES_PER_WORKER"
 
 # Save configuration
-echo "\$PROCESSING_ID" > /tmp/parallel_processing/processing_id.txt
-echo "\$START_TIME" > /tmp/parallel_processing/start_time.txt
-echo "\$SOURCE_COUNT" > /tmp/parallel_processing/source_count.txt
-echo "\$WORKERS_TO_USE" > /tmp/parallel_processing/workers_to_use.txt
-echo "$(get_var "INPUT_DATA_SOURCES" "initialize_parallel_system")" > /tmp/parallel_processing/data_sources.txt
+echo "$PROCESSING_ID" > /tmp/parallel_processing/processing_id.txt
+echo "$START_TIME" > /tmp/parallel_processing/start_time.txt
+echo "$SOURCE_COUNT" > /tmp/parallel_processing/source_count.txt
+echo "$WORKERS_TO_USE" > /tmp/parallel_processing/workers_to_use.txt
+echo "${INPUT_DATA_SOURCES}" > /tmp/parallel_processing/data_sources.txt
 
 # Distribute work to workers
 worker_index=0
 source_index=0
 for source in "${SOURCES_ARRAY[@]}"; do
   worker_id=$((worker_index % WORKERS_TO_USE))
-  echo "\$source" >> "/tmp/parallel_processing/workers/worker_$(get_var "WORKER_ID" "initialize_parallel_system")_sources.txt"
-  echo "   Worker \$worker_id: \$source"
+  echo "$source" >> "/tmp/parallel_processing/workers/worker_${worker_id}_sources.txt"
+  echo "   Worker $worker_id: $source"
   source_index=$((source_index + 1))
   worker_index=$((worker_index + 1))
 done
@@ -455,13 +448,13 @@ done
 echo "✅ Parallel processing system initialized successfully"
 
 
-# Node: execute_parallel_worker_1 (ERROR)
+# Node: execute_parallel_worker_1
 echo "Error generating node execute_parallel_worker_1: Failed to generate code for node 'execute_parallel_worker_1': headers.trim is not a function"
 
-# Node: execute_parallel_worker_2 (ERROR)
+# Node: execute_parallel_worker_2
 echo "Error generating node execute_parallel_worker_2: Failed to generate code for node 'execute_parallel_worker_2': headers.trim is not a function"
 
-# Node: execute_parallel_worker_3 (ERROR)
+# Node: execute_parallel_worker_3
 echo "Error generating node execute_parallel_worker_3: Failed to generate code for node 'execute_parallel_worker_3': headers.trim is not a function"
 
 # Node: collect_worker_results
@@ -474,15 +467,15 @@ SUCCESS_COUNT=0
 ERROR_COUNT=0
 TOTAL_WORKERS=3
 
-echo "⏰ Collection Start: \$COLLECTION_START"
-echo "👥 Total Workers: \$TOTAL_WORKERS"
+echo "⏰ Collection Start: $COLLECTION_START"
+echo "👥 Total Workers: $TOTAL_WORKERS"
 
 # Collect Worker 1 Results
 WORKER1_RESPONSE='{{execute_parallel_worker_1.response}}'
-if [ -n "\$WORKER1_RESPONSE" ] && echo "\$WORKER1_RESPONSE" | grep -q "slideshow"; then
+if [ -n "$WORKER1_RESPONSE" ] && echo "$WORKER1_RESPONSE" | grep -q "slideshow"; then
   echo "✅ Worker 1: SUCCESS - Data retrieved and processed"
   SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-  echo "\$WORKER1_RESPONSE" > /tmp/parallel_processing/outputs/worker1_result.json
+  echo "$WORKER1_RESPONSE" > /tmp/parallel_processing/outputs/worker1_result.json
   WORKER1_STATUS="SUCCESS"
 else
   echo "❌ Worker 1: FAILED - No valid data retrieved"
@@ -492,10 +485,10 @@ fi
 
 # Collect Worker 2 Results
 WORKER2_RESPONSE='{{execute_parallel_worker_2.response}}'
-if [ -n "\$WORKER2_RESPONSE" ] && echo "\$WORKER2_RESPONSE" | grep -q "uuid"; then
+if [ -n "$WORKER2_RESPONSE" ] && echo "$WORKER2_RESPONSE" | grep -q "uuid"; then
   echo "✅ Worker 2: SUCCESS - Data retrieved and processed"
   SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-  echo "\$WORKER2_RESPONSE" > /tmp/parallel_processing/outputs/worker2_result.json
+  echo "$WORKER2_RESPONSE" > /tmp/parallel_processing/outputs/worker2_result.json
   WORKER2_STATUS="SUCCESS"
 else
   echo "❌ Worker 2: FAILED - No valid data retrieved"
@@ -505,10 +498,10 @@ fi
 
 # Collect Worker 3 Results
 WORKER3_RESPONSE='{{execute_parallel_worker_3.response}}'
-if [ -n "\$WORKER3_RESPONSE" ] && echo "\$WORKER3_RESPONSE" | grep -q "origin"; then
+if [ -n "$WORKER3_RESPONSE" ] && echo "$WORKER3_RESPONSE" | grep -q "origin"; then
   echo "✅ Worker 3: SUCCESS - Data retrieved and processed"
   SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-  echo "\$WORKER3_RESPONSE" > /tmp/parallel_processing/outputs/worker3_result.json
+  echo "$WORKER3_RESPONSE" > /tmp/parallel_processing/outputs/worker3_result.json
   WORKER3_STATUS="SUCCESS"
 else
   echo "❌ Worker 3: FAILED - No valid data retrieved"
@@ -521,21 +514,21 @@ SUCCESS_RATE=$(( (SUCCESS_COUNT * 100) / TOTAL_WORKERS ))
 
 echo ""
 echo "📊 Collection Summary:"
-echo "   Successful Workers: \$SUCCESS_COUNT/\$TOTAL_WORKERS"
-echo "   Failed Workers: \$ERROR_COUNT/\$TOTAL_WORKERS"
-echo "   Success Rate: $(get_var "SUCCESS_RATE" "collect_worker_results")%"
+echo "   Successful Workers: $SUCCESS_COUNT/$TOTAL_WORKERS"
+echo "   Failed Workers: $ERROR_COUNT/$TOTAL_WORKERS"
+echo "   Success Rate: ${SUCCESS_RATE}%"
 
 # Save collection metadata
-echo "\$SUCCESS_COUNT" > /tmp/parallel_processing/success_count.txt
-echo "\$ERROR_COUNT" > /tmp/parallel_processing/error_count.txt
-echo "\$SUCCESS_RATE" > /tmp/parallel_processing/success_rate.txt
+echo "$SUCCESS_COUNT" > /tmp/parallel_processing/success_count.txt
+echo "$ERROR_COUNT" > /tmp/parallel_processing/error_count.txt
+echo "$SUCCESS_RATE" > /tmp/parallel_processing/success_rate.txt
 
 # Determine processing status based on error handling strategy
-ERROR_HANDLING="$(get_var "ERROR_HANDLING" "collect_worker_results")"
-if [ "\$ERROR_HANDLING" = "fail_fast" ] && [ "\$ERROR_COUNT" -gt 0 ]; then
+ERROR_HANDLING="${ERROR_HANDLING}"
+if [ "$ERROR_HANDLING" = "fail_fast" ] && [ "$ERROR_COUNT" -gt 0 ]; then
   PROCESSING_STATUS="FAILED"
   echo "🚨 Processing FAILED (fail_fast strategy with errors)"
-elif [ "\$SUCCESS_COUNT" -gt 0 ]; then
+elif [ "$SUCCESS_COUNT" -gt 0 ]; then
   PROCESSING_STATUS="SUCCESS"
   echo "✅ Processing SUCCESS (continue strategy)"
 else
@@ -543,33 +536,33 @@ else
   echo "❌ Processing FAILED (no successful workers)"
 fi
 
-echo "\$PROCESSING_STATUS" > /tmp/parallel_processing/processing_status.txt
+echo "$PROCESSING_STATUS" > /tmp/parallel_processing/processing_status.txt
 
 echo "COLLECTION_STATUS=COMPLETED"
-echo "SUCCESS_RATE=$(get_var "SUCCESS_RATE" "collect_worker_results")%"
-echo "PROCESSING_STATUS=\$PROCESSING_STATUS"
+echo "SUCCESS_RATE=${SUCCESS_RATE}%"
+echo "PROCESSING_STATUS=$PROCESSING_STATUS"
 
 
 # Node: aggregate_results
 echo "🔄 Aggregating Parallel Processing Results"
 echo "========================================"
 
-AGGREGATION_METHOD="$(get_var "AGGREGATION_METHOD" "aggregate_results")"
-OUTPUT_FORMAT="$(get_var "OUTPUT_FORMAT" "aggregate_results")"
+AGGREGATION_METHOD="${AGGREGATION_METHOD}"
+OUTPUT_FORMAT="${OUTPUT_FORMAT}"
 PROCESSING_STATUS=$(cat /tmp/parallel_processing/processing_status.txt 2>/dev/null || echo "UNKNOWN")
 
 echo "📊 Aggregation Configuration:"
-echo "   Method: \$AGGREGATION_METHOD"
-echo "   Output Format: \$OUTPUT_FORMAT"
-echo "   Processing Status: \$PROCESSING_STATUS"
+echo "   Method: $AGGREGATION_METHOD"
+echo "   Output Format: $OUTPUT_FORMAT"
+echo "   Processing Status: $PROCESSING_STATUS"
 
 # Initialize aggregation
 AGGREGATION_START=$(date -Iseconds)
 AGGREGATED_SIZE=0
 
-if [ "\$PROCESSING_STATUS" != "FAILED" ]; then
+if [ "$PROCESSING_STATUS" != "FAILED" ]; then
   # Create aggregated results based on method
-  case "\$AGGREGATION_METHOD" in
+  case "$AGGREGATION_METHOD" in
     "merge")
       echo "🔗 Performing MERGE aggregation..."
       {
@@ -630,11 +623,11 @@ if [ "\$PROCESSING_STATUS" != "FAILED" ]; then
         echo '    "method": "summarize",'
         echo '    "processing_id": "'$(cat /tmp/parallel_processing/processing_id.txt)'",'
         echo '    "total_workers": 3,'
-        echo '    "successful_workers": '\$SUCCESS_COUNT','
-        echo '    "success_rate": "'\$SUCCESS_RATE'%",'
+        echo '    "successful_workers": '$SUCCESS_COUNT','
+        echo '    "success_rate": "'$SUCCESS_RATE'%",'
         echo '    "aggregation_timestamp": "'$(date -Iseconds)'",'
-        echo '    "data_sources_processed": "'$(get_var "INPUT_DATA_SOURCES" "aggregate_results")'",'
-        echo '    "operations_applied": "'$(get_var "PROCESSING_OPERATIONS" "aggregate_results")'"'
+        echo '    "data_sources_processed": "'${INPUT_DATA_SOURCES}'",'
+        echo '    "operations_applied": "'${PROCESSING_OPERATIONS}'"'
         echo '  }'
         echo '}'
       } > /tmp/parallel_processing/aggregation/summary_results.json
@@ -649,9 +642,9 @@ if [ "\$PROCESSING_STATUS" != "FAILED" ]; then
   esac
   
   # Calculate aggregated file size
-  if [ -f "\$AGGREGATED_FILE" ]; then
-    AGGREGATED_SIZE=$(wc -c < "\$AGGREGATED_FILE" 2>/dev/null || echo "0")
-    echo "✅ Aggregation completed: \$AGGREGATED_SIZE bytes"
+  if [ -f "$AGGREGATED_FILE" ]; then
+    AGGREGATED_SIZE=$(wc -c < "$AGGREGATED_FILE" 2>/dev/null || echo "0")
+    echo "✅ Aggregation completed: $AGGREGATED_SIZE bytes"
   else
     echo "❌ Aggregation failed: No output file created"
   fi
@@ -662,17 +655,17 @@ fi
 
 echo ""
 echo "📊 Aggregation Results:"
-echo "   Method Used: \$AGGREGATION_METHOD"
-echo "   Output Size: \$AGGREGATED_SIZE bytes"
-echo "   Status: $([ -f "\$AGGREGATED_FILE" ] && echo "SUCCESS" || echo "FAILED")"
+echo "   Method Used: $AGGREGATION_METHOD"
+echo "   Output Size: $AGGREGATED_SIZE bytes"
+echo "   Status: $([ -f "$AGGREGATED_FILE" ] && echo "SUCCESS" || echo "FAILED")"
 
 # Save aggregation metadata
-echo "\$AGGREGATION_METHOD" > /tmp/parallel_processing/aggregation_method.txt
-echo "\$AGGREGATED_SIZE" > /tmp/parallel_processing/aggregation_size.txt
+echo "$AGGREGATION_METHOD" > /tmp/parallel_processing/aggregation_method.txt
+echo "$AGGREGATED_SIZE" > /tmp/parallel_processing/aggregation_size.txt
 
-echo "AGGREGATION_METHOD=\$AGGREGATION_METHOD"
-echo "AGGREGATION_SIZE=$(get_var "AGGREGATED_SIZE" "aggregate_results") bytes"
-echo "AGGREGATION_STATUS=$([ -f "\$AGGREGATED_FILE" ] && echo "SUCCESS" || echo "FAILED")"
+echo "AGGREGATION_METHOD=$AGGREGATION_METHOD"
+echo "AGGREGATION_SIZE=${AGGREGATED_SIZE} bytes"
+echo "AGGREGATION_STATUS=$([ -f "$AGGREGATED_FILE" ] && echo "SUCCESS" || echo "FAILED")"
 
 
 # Node: analyze_performance_metrics
@@ -732,8 +725,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -1062,10 +1055,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -1091,11 +1084,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")

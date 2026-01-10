@@ -373,8 +373,8 @@ execute_fallback_path() {
 
 # Node: prepare_task_array
 # Node: prepare_task_array
-TASKS_ARRAY=$(echo '$(get_workflow_var "TASK_LIST" "default")' | tr ',' '
-')
+TASKS_ARRAY=$(echo "$(get_workflow_var \"TASK_LIST\" \"default\")' | tr ',' '
+")
 set_var "TASKS_ARRAY" "$TASKS_ARRAY" "prepare_task_array"
 
 # Node: setup_performance_monitoring
@@ -418,7 +418,7 @@ sh -c "echo 'Starting \${current_task}...' && sleep \$(( (RANDOM % 3) + 1 )) && 
 
 # Node: generate_task_result
 # Node: generate_task_result
-TASK_RESULT=$(echo 'Task: $(get_workflow_var "CURRENT_TASK" "default") | Status: SUCCESS | Worker: $(get_workflow_var "PARALLEL_WORKER_ID" "default") | Duration: 2s | Output: Task completed successfully')
+TASK_RESULT=$(echo "Task: $(get_workflow_var \"CURRENT_TASK\" \"default\") | Status: SUCCESS | Worker: $(get_workflow_var \"PARALLEL_WORKER_ID\" \"default\") | Duration: 2s | Output: Task completed successfully")
 set_var "TASK_RESULT" "$TASK_RESULT" "generate_task_result"
 
 # Node: task_complexity_check

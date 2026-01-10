@@ -1,4 +1,8 @@
 Starting workflow: fallback-node-example
+scripts/generated-outputs/nodes/fallback-node-example.sh: line 165: "FALLBACK_STRATEGY": invalid variable name
+scripts/generated-outputs/nodes/fallback-node-example.sh: line 165: "MAX_FALLBACK_TIME": invalid variable name
+scripts/generated-outputs/nodes/fallback-node-example.sh: line 165: "CONTINUE_ON_SUCCESS": invalid variable name
+scripts/generated-outputs/nodes/fallback-node-example.sh: line 165: "FAILURE_SIMULATION": invalid variable name
 [0;36m🚀 🛡️ Fallback Handler: Primary Service with Fallbacks[0m
 [0;36mℹ️  Starting fallback handler: strategy=sequential, paths=4[0m
 [0;36mℹ️  Trying fallback path 1/4: primary_service_call[0m
@@ -13,6 +17,7 @@ Attempting cache fallback...
 Cache response: SUCCESS - Cached data from local storage (may be stale)
 Using default response fallback...
 Default response: LIMITED - Basic functionality available with default data
+scripts/generated-outputs/nodes/fallback-node-example.sh: line 165: "FALLBACK_STRATEGY": invalid variable name
 [0;36m🚀 🛡️ Fallback Handler: Database Operation Fallbacks[0m
 [0;36mℹ️  Starting fallback handler: strategy=sequential, paths=3[0m
 [0;36mℹ️  Trying fallback path 1/3: primary_database_call[0m
@@ -31,8 +36,8 @@ Cache result: Cached user data (potentially stale but fast)
 [0;36mℹ️  Mock fallback path execution: medium_service_call[0m
 [0;36mℹ️  Mock fallback path execution: slow_service_call[0m
 [0;36mℹ️  Unknown fallback path succeeded: fast_service_call[0m
-[0;36mℹ️  Unknown fallback path succeeded: medium_service_call[0m
 [0;36mℹ️  Unknown fallback path succeeded: slow_service_call[0m
+[0;36mℹ️  Unknown fallback path succeeded: medium_service_call[0m
 [0;32m✅ Parallel fallback succeeded with path: fast_service_call[0m
 Fast service executing...
 Fast service result: Quick response with basic data
@@ -81,7 +86,7 @@ Slow service result: Comprehensive response with detailed data
 
 
 ## Performance Metrics
-Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default"), Completion=Fri Jan 9 12:44:44 PM CET 2026
+Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default"), Completion=Sat Jan 10 12:36:57 PM CET 2026
 
 ## Fallback Node Features Demonstrated
 

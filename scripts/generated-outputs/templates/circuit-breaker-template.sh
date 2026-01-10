@@ -61,7 +61,6 @@ get_var() {
 }
 
 # Environment Variables
-RECOVERY_TIME=${RECOVERY_TIME:-""}
 CIRCUIT_REPORT=${CIRCUIT_REPORT:-""}
 
 # =============================================================================
@@ -364,21 +363,21 @@ execute_fallback_path() {
 echo \"⚡ Initializing Circuit Breaker...\"
 
 # Validate configuration
-PRIMARY_ENDPOINT=\"${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}\"
-FALLBACK_ENDPOINT=\"${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}\"
-THRESHOLD=\"${FAILURE_THRESHOLD:-3}\"
-RECOVERY_TIME=\"${RECOVERY_TIMEOUT:-30}\"
+PRIMARY_ENDPOINT=\"\${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}\"
+FALLBACK_ENDPOINT=\"\${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}\"
+THRESHOLD=\"\${FAILURE_THRESHOLD:-3}\"
+RECOVERY_TIME=\"\${RECOVERY_TIMEOUT:-30}\"
 
 echo \"🔧 Configuration:\"
-echo \"  Primary: \$PRIMARY_ENDPOINT\"
-echo \"  Fallback: \$FALLBACK_ENDPOINT\"
-echo \"  Failure Threshold: \$THRESHOLD\"
-echo \"  Recovery Timeout: $(get_var "RECOVERY_TIME" "initialize_circuit")s\"
+echo \"  Primary: $PRIMARY_ENDPOINT\"
+echo \"  Fallback: $FALLBACK_ENDPOINT\"
+echo \"  Failure Threshold: $THRESHOLD\"
+echo \"  Recovery Timeout: \${RECOVERY_TIME}s\"
 
 # Initialize circuit state (simulated - in production would use persistent storage)
 echo \"CLOSED\" > /tmp/circuit_state
 echo \"0\" > /tmp/failure_count
-echo \"$(date +%s)\" > /tmp/last_failure_time
+echo \"\$(date +%s)\" > /tmp/last_failure_time
 
 echo \"✅ Circuit breaker initialized - State: CLOSED\"
 "
@@ -387,48 +386,48 @@ echo \"✅ Circuit breaker initialized - State: CLOSED\"
 /bin/bash -c "set -euo pipefail
 echo \"🔍 Checking circuit breaker state...\"
 
-CIRCUIT_STATE=$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
-FAILURE_COUNT=$(cat /tmp/failure_count 2>/dev/null || echo \"0\")
-LAST_FAILURE=$(cat /tmp/last_failure_time 2>/dev/null || echo \"0\")
-CURRENT_TIME=$(date +%s)
-THRESHOLD=\"${FAILURE_THRESHOLD:-3}\"
-RECOVERY_TIME=\"${RECOVERY_TIMEOUT:-30}\"
+CIRCUIT_STATE=\$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
+FAILURE_COUNT=\$(cat /tmp/failure_count 2>/dev/null || echo \"0\")
+LAST_FAILURE=\$(cat /tmp/last_failure_time 2>/dev/null || echo \"0\")
+CURRENT_TIME=\$(date +%s)
+THRESHOLD=\"\${FAILURE_THRESHOLD:-3}\"
+RECOVERY_TIME=\"\${RECOVERY_TIMEOUT:-30}\"
 
 echo \"📊 Current State:\"
-echo \"  Circuit: \$CIRCUIT_STATE\"
-echo \"  Failures: \$FAILURE_COUNT/\$THRESHOLD\"
-echo \"  Last Failure: $((CURRENT_TIME - LAST_FAILURE))s ago\"
+echo \"  Circuit: $CIRCUIT_STATE\"
+echo \"  Failures: $FAILURE_COUNT/$THRESHOLD\"
+echo \"  Last Failure: \$((CURRENT_TIME - LAST_FAILURE))s ago\"
 
 # Check if circuit should transition from OPEN to HALF_OPEN
-if [ \"\$CIRCUIT_STATE\" = \"OPEN\" ] && [ $((CURRENT_TIME - LAST_FAILURE)) -gt \"\$RECOVERY_TIME\" ]; then
+if [ \"$CIRCUIT_STATE\" = \"OPEN\" ] && [ \$((CURRENT_TIME - LAST_FAILURE)) -gt \"$RECOVERY_TIME\" ]; then
   echo \"HALF_OPEN\" > /tmp/circuit_state
   echo \"🔄 Circuit transitioning to HALF_OPEN for recovery test\"
   CIRCUIT_STATE=\"HALF_OPEN\"
 fi
 
-echo \"🎯 Final state: \$CIRCUIT_STATE\"
+echo \"🎯 Final state: $CIRCUIT_STATE\"
 "
 
 # Node: attempt_primary_call
 /bin/bash -c "set -euo pipefail
 
-CIRCUIT_STATE=$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
-PRIMARY_ENDPOINT=\"${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}\"
-THRESHOLD=\"${FAILURE_THRESHOLD:-3}\"
+CIRCUIT_STATE=\$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
+PRIMARY_ENDPOINT=\"\${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}\"
+THRESHOLD=\"\${FAILURE_THRESHOLD:-3}\"
 
 echo \"🌐 Attempting primary API call...\"
-echo \"  Endpoint: \$PRIMARY_ENDPOINT\"
-echo \"  Circuit State: \$CIRCUIT_STATE\"
+echo \"  Endpoint: $PRIMARY_ENDPOINT\"
+echo \"  Circuit State: $CIRCUIT_STATE\"
 
 # If circuit is OPEN, skip primary call
-if [ \"\$CIRCUIT_STATE\" = \"OPEN\" ]; then
+if [ \"$CIRCUIT_STATE\" = \"OPEN\" ]; then
   echo \"⛔ Circuit OPEN - skipping primary API call\"
   echo \"false\" > /tmp/primary_success
   exit 0
 fi
 
 # Attempt the API call
-if curl -s --connect-timeout 10 --max-time 30 \"\$PRIMARY_ENDPOINT\" > /tmp/primary_response 2>/dev/null; then
+if curl -s --connect-timeout 10 --max-time 30 \"$PRIMARY_ENDPOINT\" > /tmp/primary_response 2>/dev/null; then
   echo \"✅ Primary API call successful\"
   echo \"true\" > /tmp/primary_success
   
@@ -436,7 +435,7 @@ if curl -s --connect-timeout 10 --max-time 30 \"\$PRIMARY_ENDPOINT\" > /tmp/prim
   echo \"0\" > /tmp/failure_count
   
   # If recovering from HALF_OPEN, close the circuit
-  if [ \"\$CIRCUIT_STATE\" = \"HALF_OPEN\" ]; then
+  if [ \"$CIRCUIT_STATE\" = \"HALF_OPEN\" ]; then
     echo \"CLOSED\" > /tmp/circuit_state
     echo \"🔒 Circuit successfully closed after recovery\"
   fi
@@ -446,15 +445,15 @@ else
   echo \"false\" > /tmp/primary_success
   
   # Increment failure count
-  FAILURE_COUNT=$(cat /tmp/failure_count 2>/dev/null || echo \"0\")
-  NEW_COUNT=$((FAILURE_COUNT + 1))
-  echo \"\$NEW_COUNT\" > /tmp/failure_count
-  echo \"$(date +%s)\" > /tmp/last_failure_time
+  FAILURE_COUNT=\$(cat /tmp/failure_count 2>/dev/null || echo \"0\")
+  NEW_COUNT=\$((FAILURE_COUNT + 1))
+  echo \"$NEW_COUNT\" > /tmp/failure_count
+  echo \"\$(date +%s)\" > /tmp/last_failure_time
   
-  echo \"📈 Failure count: \$NEW_COUNT/\$THRESHOLD\"
+  echo \"📈 Failure count: $NEW_COUNT/$THRESHOLD\"
   
   # Open circuit if threshold reached
-  if [ \"\$NEW_COUNT\" -ge \"\$THRESHOLD\" ]; then
+  if [ \"$NEW_COUNT\" -ge \"$THRESHOLD\" ]; then
     echo \"OPEN\" > /tmp/circuit_state
     echo \"🚫 Circuit OPENED - failure threshold exceeded\"
   fi
@@ -464,15 +463,15 @@ fi
 # Node: handle_circuit_decision
 /bin/bash -c "set -euo pipefail
 
-PRIMARY_SUCCESS=$(cat /tmp/primary_success 2>/dev/null || echo \"false\")
-CIRCUIT_STATE=$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
-FALLBACK_ENDPOINT=\"${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}\"
+PRIMARY_SUCCESS=\$(cat /tmp/primary_success 2>/dev/null || echo \"false\")
+CIRCUIT_STATE=\$(cat /tmp/circuit_state 2>/dev/null || echo \"CLOSED\")
+FALLBACK_ENDPOINT=\"\${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}\"
 
 echo \"🎯 Processing circuit breaker decision...\"
-echo \"  Primary Success: \$PRIMARY_SUCCESS\"
-echo \"  Circuit State: \$CIRCUIT_STATE\"
+echo \"  Primary Success: $PRIMARY_SUCCESS\"
+echo \"  Circuit State: $CIRCUIT_STATE\"
 
-if [ \"\$PRIMARY_SUCCESS\" = \"true\" ]; then
+if [ \"$PRIMARY_SUCCESS\" = \"true\" ]; then
   echo \"✅ Using primary API response\"
   if [ -f /tmp/primary_response ]; then
     echo \"📊 Primary Response:\" 
@@ -482,7 +481,7 @@ if [ \"\$PRIMARY_SUCCESS\" = \"true\" ]; then
 else
   echo \"🔄 Attempting fallback API call...\"
   
-  if curl -s --connect-timeout 5 --max-time 15 \"\$FALLBACK_ENDPOINT\" > /tmp/fallback_response 2>/dev/null; then
+  if curl -s --connect-timeout 5 --max-time 15 \"$FALLBACK_ENDPOINT\" > /tmp/fallback_response 2>/dev/null; then
     echo \"✅ Fallback API call successful\"
     echo \"📊 Fallback Response:\"
     head -c 200 /tmp/fallback_response || echo \"[Response too large to display]\"

@@ -61,13 +61,9 @@ get_var() {
 }
 
 # Environment Variables
-CONV_ID=${CONV_ID:-""}
 PREPARED_CONTEXT=${PREPARED_CONTEXT:-""}
 LLM_CONTENT=${LLM_CONTENT:-""}
 LLM_SUCCESS=${LLM_SUCCESS:-""}
-USER_INPUT=${USER_INPUT:-""}
-HISTORY_FILE=${HISTORY_FILE:-""}
-CONTEXT_FILE=${CONTEXT_FILE:-""}
 MEMORY_REPORT=${MEMORY_REPORT:-""}
 
 # =============================================================================
@@ -376,8 +372,8 @@ SYSTEM_PROMPT=\"\${CHAT_SYSTEM_PROMPT:-You are a helpful AI assistant. You remem
 USER_MSG=\"\${USER_INPUT:-Hello! How are you today?}\"
 
 echo \"🔧 Memory Configuration:\"
-echo \"  Conversation ID: \\\$CONV_ID\"
-echo \"  Max Memory Turns: \\\$MAX_TURNS\"
+echo \"  Conversation ID: $CONV_ID\"
+echo \"  Max Memory Turns: $MAX_TURNS\"
 echo \"  System Prompt Length: \${#SYSTEM_PROMPT} characters\"
 echo \"  User Input: \${USER_MSG:0:50}\${USER_MSG:50:+...}\"
 
@@ -387,23 +383,23 @@ mkdir -p /tmp/ai_memory/conversations
 mkdir -p /tmp/ai_memory/context
 
 # Initialize conversation history file
-HISTORY_FILE=\"/tmp/ai_memory/conversations/\$(get_var "CONV_ID" "initialize_memory_system").json\"
-CONTEXT_FILE=\"/tmp/ai_memory/context/\$(get_var "CONV_ID" "initialize_memory_system")_context.txt\"
+HISTORY_FILE=\"/tmp/ai_memory/conversations/\${CONV_ID}.json\"
+CONTEXT_FILE=\"/tmp/ai_memory/context/\${CONV_ID}_context.txt\"
 
 # Create history file if it doesn't exist
-if [ ! -f \"\\\$HISTORY_FILE\" ]; then
-  echo '{\"conversation_id\":\"'\\\$CONV_ID'\",\"created_at\":\"'\$(date -Iseconds)'\",\"turns\":[]}' > \"\\\$HISTORY_FILE\"
+if [ ! -f \"$HISTORY_FILE\" ]; then
+  echo '{\"conversation_id\":\"'$CONV_ID'\",\"created_at\":\"'\$(date -Iseconds)'\",\"turns\":[]}' > \"$HISTORY_FILE\"
   echo \"📝 Created new conversation history\"
 else
   echo \"📖 Loading existing conversation history\"
 fi
 
 # Initialize context awareness
-echo \"Conversation Context for: \\\$CONV_ID\" > \"\\\$CONTEXT_FILE\"
-echo \"System Prompt: \\\$SYSTEM_PROMPT\" >> \"\\\$CONTEXT_FILE\"
-echo \"Created: \$(date)\" >> \"\\\$CONTEXT_FILE\"
-echo \"Max Turns: \\\$MAX_TURNS\" >> \"\\\$CONTEXT_FILE\"
-echo \"---\" >> \"\\\$CONTEXT_FILE\"
+echo \"Conversation Context for: $CONV_ID\" > \"$CONTEXT_FILE\"
+echo \"System Prompt: $SYSTEM_PROMPT\" >> \"$CONTEXT_FILE\"
+echo \"Created: \$(date)\" >> \"$CONTEXT_FILE\"
+echo \"Max Turns: $MAX_TURNS\" >> \"$CONTEXT_FILE\"
+echo \"---\" >> \"$CONTEXT_FILE\"
 
 echo \"✅ Memory system initialized successfully\"
 "
@@ -414,24 +410,24 @@ echo \"📚 Loading conversation history...\"
 
 CONV_ID=\"\${CONVERSATION_ID:-default_chat}\"
 MAX_TURNS=\"\${MAX_MEMORY_TURNS:-10}\"
-HISTORY_FILE=\"/tmp/ai_memory/conversations/\$(get_var "CONV_ID" "load_conversation_history").json\"
+HISTORY_FILE=\"/tmp/ai_memory/conversations/\${CONV_ID}.json\"
 
-echo \"📁 History file: \\\$HISTORY_FILE\"
+echo \"📁 History file: $HISTORY_FILE\"
 
 # Extract conversation turns (last N turns)
-if [ -f \"\\\$HISTORY_FILE\" ]; then
+if [ -f \"$HISTORY_FILE\" ]; then
   # Count total turns
-  TOTAL_TURNS=\$(jq '.turns | length' \"\\\$HISTORY_FILE\" 2>/dev/null || echo \"0\")
-  echo \"📊 Total conversation turns: \\\$TOTAL_TURNS\"
+  TOTAL_TURNS=\$(jq '.turns | length' \"$HISTORY_FILE\" 2>/dev/null || echo \"0\")
+  echo \"📊 Total conversation turns: $TOTAL_TURNS\"
   
-  if [ \"\\\$TOTAL_TURNS\" -gt 0 ]; then
+  if [ \"$TOTAL_TURNS\" -gt 0 ]; then
     # Get last MAX_TURNS turns
     START_INDEX=\$((TOTAL_TURNS > MAX_TURNS ? TOTAL_TURNS - MAX_TURNS : 0))
     
-    echo \"🔍 Loading last \\\$MAX_TURNS turns (starting from index \\\$START_INDEX)\"
+    echo \"🔍 Loading last $MAX_TURNS turns (starting from index $START_INDEX)\"
     
     # Extract recent history for context
-    jq -r --argjson start \"\\\$START_INDEX\" '.turns[\\\$start:] | .[] | \"Turn \" + (.turn_number|@sh) + \" (\" + .timestamp + \"):\\\\nUser: \" + .user_message + \"\\\\nAI: \" + .ai_response + \"\\\\n\"' \"\\\$HISTORY_FILE\" > /tmp/recent_history.txt 2>/dev/null || echo \"\" > /tmp/recent_history.txt
+    jq -r --argjson start \"$START_INDEX\" '.turns[\$start:] | .[] | \"Turn \" + (.turn_number|@sh) + \" (\" + .timestamp + \"):\\\\nUser: \" + .user_message + \"\\\\nAI: \" + .ai_response + \"\\\\n\"' \"$HISTORY_FILE\" > /tmp/recent_history.txt 2>/dev/null || echo \"\" > /tmp/recent_history.txt
     
     # Create formatted context for LLM
     echo \"Previous Conversation Context:\" > /tmp/formatted_context.txt
@@ -681,8 +677,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -692,38 +688,38 @@ echo "$llm_content"
 echo \"💾 Saving conversation turn...\"
 
 CONV_ID=\"\${CONVERSATION_ID:-default_chat}\"
-USER_MSG=\"\$(get_var "USER_INPUT" "save_conversation_turn")\"
-AI_RESPONSE=\"\$(get_var "LLM_CONTENT" "save_conversation_turn")\"
-HISTORY_FILE=\"/tmp/ai_memory/conversations/\$(get_var "CONV_ID" "save_conversation_turn").json\"
+USER_MSG=\"\${USER_INPUT}\"
+AI_RESPONSE=\"\${llm_content}\"
+HISTORY_FILE=\"/tmp/ai_memory/conversations/\${CONV_ID}.json\"
 TIMESTAMP=\$(date -Iseconds)
 
 echo \"📝 Turn details:\"
 echo \"  User: \${USER_MSG:0:100}\${USER_MSG:100:+...}\"
 echo \"  AI: \${AI_RESPONSE:0:100}\${AI_RESPONSE:100:+...}\"
-echo \"  Timestamp: \\\$TIMESTAMP\"
+echo \"  Timestamp: $TIMESTAMP\"
 
 # Get current turn number
-CURRENT_TURNS=\$(jq '.turns | length' \"\\\$HISTORY_FILE\" 2>/dev/null || echo \"0\")
+CURRENT_TURNS=\$(jq '.turns | length' \"$HISTORY_FILE\" 2>/dev/null || echo \"0\")
 TURN_NUMBER=\$((CURRENT_TURNS + 1))
 
 # Create new turn object
 NEW_TURN=\$(jq -n \\
-  --arg turn \"\\\$TURN_NUMBER\" \\
-  --arg timestamp \"\\\$TIMESTAMP\" \\
-  --arg user \"\\\$USER_MSG\" \\
-  --arg ai \"\\\$AI_RESPONSE\" \\
+  --arg turn \"$TURN_NUMBER\" \\
+  --arg timestamp \"$TIMESTAMP\" \\
+  --arg user \"$USER_MSG\" \\
+  --arg ai \"$AI_RESPONSE\" \\
   '{
-    turn_number: (\\\$turn | tonumber),
-    timestamp: \\\$timestamp,
-    user_message: \\\$user,
-    ai_response: \\\$ai
+    turn_number: (\$turn | tonumber),
+    timestamp: \$timestamp,
+    user_message: \$user,
+    ai_response: \$ai
   }')
 
 # Add turn to history file
-jq --argjson new_turn \"\\\$NEW_TURN\" '.turns += [\\\$new_turn]' \"\\\$HISTORY_FILE\" > \"\$(get_var "HISTORY_FILE" "save_conversation_turn").tmp\"
-mv \"\$(get_var "HISTORY_FILE" "save_conversation_turn").tmp\" \"\\\$HISTORY_FILE\"
+jq --argjson new_turn \"$NEW_TURN\" '.turns += [\$new_turn]' \"$HISTORY_FILE\" > \"\${HISTORY_FILE}.tmp\"
+mv \"\${HISTORY_FILE}.tmp\" \"$HISTORY_FILE\"
 
-echo \"✅ Turn \\\$TURN_NUMBER saved successfully\"
+echo \"✅ Turn $TURN_NUMBER saved successfully\"
 "
 
 # Node: update_context_summary
@@ -731,27 +727,27 @@ echo \"✅ Turn \\\$TURN_NUMBER saved successfully\"
 echo \"🔄 Updating conversation context summary...\"
 
 CONV_ID=\"\${CONVERSATION_ID:-default_chat}\"
-CONTEXT_FILE=\"/tmp/ai_memory/context/\$(get_var "CONV_ID" "update_context_summary")_context.txt\"
-USER_MSG=\"\$(get_var "USER_INPUT" "update_context_summary")\"
-AI_RESPONSE=\"\$(get_var "LLM_CONTENT" "update_context_summary")\"
+CONTEXT_FILE=\"/tmp/ai_memory/context/\${CONV_ID}_context.txt\"
+USER_MSG=\"\${USER_INPUT}\"
+AI_RESPONSE=\"\${llm_content}\"
 
-echo \"📋 Context file: \\\$CONTEXT_FILE\"
+echo \"📋 Context file: $CONTEXT_FILE\"
 
 # Add current exchange to context summary
-echo \"\" >> \"\\\$CONTEXT_FILE\"
-echo \"Turn \$(date '+%Y-%m-%d %H:%M'):\" >> \"\\\$CONTEXT_FILE\"
-echo \"User: \${USER_MSG:0:200}\${USER_MSG:200:+...}\" >> \"\\\$CONTEXT_FILE\"
-echo \"AI: \${AI_RESPONSE:0:200}\${AI_RESPONSE:200:+...}\" >> \"\\\$CONTEXT_FILE\"
+echo \"\" >> \"$CONTEXT_FILE\"
+echo \"Turn \$(date '+%Y-%m-%d %H:%M'):\" >> \"$CONTEXT_FILE\"
+echo \"User: \${USER_MSG:0:200}\${USER_MSG:200:+...}\" >> \"$CONTEXT_FILE\"
+echo \"AI: \${AI_RESPONSE:0:200}\${AI_RESPONSE:200:+...}\" >> \"$CONTEXT_FILE\"
 
 # Keep context file manageable (last 50 lines)
-tail -n 50 \"\\\$CONTEXT_FILE\" > \"\$(get_var "CONTEXT_FILE" "update_context_summary").tmp\"
-mv \"\$(get_var "CONTEXT_FILE" "update_context_summary").tmp\" \"\\\$CONTEXT_FILE\"
+tail -n 50 \"$CONTEXT_FILE\" > \"\${CONTEXT_FILE}.tmp\"
+mv \"\${CONTEXT_FILE}.tmp\" \"$CONTEXT_FILE\"
 
 echo \"📊 Context summary updated\"
 
 # Display recent context
 echo \"🔍 Recent conversation context:\"
-tail -n 10 \"\\\$CONTEXT_FILE\"
+tail -n 10 \"$CONTEXT_FILE\"
 
 echo \"✅ Context update complete\"
 "

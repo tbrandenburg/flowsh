@@ -1,4 +1,13 @@
 Starting workflow: variable-assignment-node-example
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "USER_NAME": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "WELCOME_MESSAGE": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "CURRENT_TIMESTAMP": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "CALCULATED_RESULT": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "BASE_VALUE": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "USER_NAME": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "NUMBER_INPUT": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "CURRENT_TIMESTAMP": invalid variable name
+scripts/generated-outputs/nodes/variable-assignment-node-example.sh: line 173: "STATUS_MESSAGE": invalid variable name
 # 📝 Variable Assignment Node Example Results
 
 ## Original Inputs
@@ -16,19 +25,19 @@ Starting workflow: variable-assignment-node-example
 - **Calculation Base**: 
 
 ## Expression Results
-- **Personalized Greeting**: Hello $(get_workflow_var "USER_NAME" "default")! $(get_workflow_var "WELCOME_MESSAGE" "default")
+- **Personalized Greeting**: Hello ! 
 - **Mathematical Result**: 94
-- **Current Timestamp**: 2026-01-09 12:45:17
+- **Current Timestamp**: 2026-01-10 12:37:57
 - **System Information**: System: Linux, User: tom, Directory: /home/tom/workspace/ai/made/workspace/flowsh
 - **Status Message**: Low value
 
 ## Advanced Operations
-- **Processed Text**: $(GET_WORKFLOW_VAR "BASE_VALUE" "DEFAULT")
-- **JSON Data**: {"user": "$(get_workflow_var "USER_NAME" "default")", "value": $(get_workflow_var "NUMBER_INPUT" "default"), "timestamp": "$(get_workflow_var "CURRENT_TIMESTAMP" "default")", "status": "$(get_workflow_var "STATUS_MESSAGE" "default")"}
+- **Processed Text**: ' | tr '[:lower:]' '[:upper:]' | sed 's/WORLD/UNIVERSE/g
+- **JSON Data**: {"user": "", "value": , "timestamp": "", "status": ""}
 - **Environment Summary**: Environment Summary: OS=GNU/Linux, Hostname=tom-nuc7, Shell=/bin/bash, Path=/home/tom/workspace/ai/made/workspace/flowsh
 
 ## Write Mode Operations
-- **Activity Log**:  | Entry 3: Calculation result - $(get_workflow_var "CALCULATED_RESULT" "default")
+- **Activity Log**:  | Entry 3: Calculation result - 
 - **Temp Data (after clear)**:  (should be empty)
 
 ## Variable Assignment Features Demonstrated

@@ -387,14 +387,14 @@ if [ -z \"\${TELEGRAM_CHAT_ID:-}\" ]; then
 fi
 
 # Validate token format (number:alphanumeric)
-if [[ ! \"\\\$TELEGRAM_BOT_TOKEN\" =~ ^[0-9]+:[a-zA-Z0-9_-]+\\\$ ]]; then
+if [[ ! \"$TELEGRAM_BOT_TOKEN\" =~ ^[0-9]+:[a-zA-Z0-9_-]+\$ ]]; then
   echo \"⚠️  WARNING: TELEGRAM_BOT_TOKEN format looks incorrect\"
   echo \"   Should be format: 123456789:ABCdef123...\"
 fi
 
 # Check OpenAI key if provided
 if [ -n \"\${OPENAI_API_KEY:-}\" ]; then
-  if [[ ! \"\\\$OPENAI_API_KEY\" =~ ^sk- ]]; then
+  if [[ ! \"$OPENAI_API_KEY\" =~ ^sk- ]]; then
     echo \"⚠️  WARNING: OPENAI_API_KEY should start with 'sk-'\"
   fi
   echo \"🧠 OpenAI API: Configured (\${OPENAI_API_KEY:0:7}...)\"
@@ -404,7 +404,7 @@ fi
 
 echo \"✅ Environment validation passed\"
 echo \"🤖 Bot Token: \${TELEGRAM_BOT_TOKEN:0:10}...\"
-echo \"💬 Chat ID: \\\$TELEGRAM_CHAT_ID\"
+echo \"💬 Chat ID: $TELEGRAM_CHAT_ID\"
 "
 
 # Node: generate_content
@@ -494,8 +494,8 @@ Format it clearly with proper structure and make it enjoyable to read.
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"
@@ -680,10 +680,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP $http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "$http_code"
-            set_workflow_var "telegram_response" "$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: $response_body"
             return 0
@@ -709,11 +709,11 @@ EOF
                 log_error "Telegram message failed after $max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "${http_code:-0}"
-                set_workflow_var "telegram_response" "$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "$error_handling" in
                     "ignore")
@@ -742,10 +742,10 @@ echo \"🔍 Checking delivery status...\"
 # Check if telegram_success variable exists and is true
 if [ \"\${telegram_success:-false}\" = \"true\" ]; then
   echo \"✅ SUCCESS: Message delivered to Telegram!\"
-  echo \"📱 Chat ID: \\\$TELEGRAM_CHAT_ID\"
-  echo \"📊 Content Type: \$(get_var "CONTENT_TYPE" "verify_delivery")\"
-  echo \"🎯 Topic: \$(get_var "CONTENT_TOPIC" "verify_delivery")\"
-  echo \"📝 Message Length: \$(echo \$(get_var "TELEGRAM_MESSAGE" "verify_delivery") | wc -c) characters\"
+  echo \"📱 Chat ID: $TELEGRAM_CHAT_ID\"
+  echo \"📊 Content Type: \${content_type}\"
+  echo \"🎯 Topic: \${content_topic}\"
+  echo \"📝 Message Length: \$(echo \${telegram_message} | wc -c) characters\"
 else
   echo \"❌ DELIVERY FAILED\"
   echo \"\"
@@ -758,7 +758,7 @@ else
   echo \"\"
   echo \"Current configuration:\"
   echo \"  Bot Token: \${TELEGRAM_BOT_TOKEN:0:10}...\"
-  echo \"  Chat ID: \\\$TELEGRAM_CHAT_ID\"
+  echo \"  Chat ID: $TELEGRAM_CHAT_ID\"
   exit 1
 fi
 "

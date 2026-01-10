@@ -389,13 +389,13 @@ fi
 echo \"🚀 Pipeline ready to start\"
 "
 
-# Node: fetch_weather (ERROR)
+# Node: fetch_weather
 echo "Error generating node fetch_weather: Failed to generate code for node 'fetch_weather': headers.trim is not a function"
 
-# Node: fetch_quotes (ERROR)
+# Node: fetch_quotes
 echo "Error generating node fetch_quotes: Failed to generate code for node 'fetch_quotes': headers.trim is not a function"
 
-# Node: fetch_facts (ERROR)
+# Node: fetch_facts
 echo "Error generating node fetch_facts: Failed to generate code for node 'fetch_facts': headers.trim is not a function"
 
 # Node: aggregate_responses

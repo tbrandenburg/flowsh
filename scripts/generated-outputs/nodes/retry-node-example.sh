@@ -616,12 +616,12 @@ sh -c "echo 'Complex operation attempt...' && case '\${failure_simulation}' in '
 
 # Node: record_complex_success
 # Node: record_complex_success
-COMPLEX_OPERATION_RESULT=$(echo 'Complex operation succeeded with $(get_workflow_var "FAILURE_SIMULATION" "default") simulation mode after retry logic')
+COMPLEX_OPERATION_RESULT=$(echo "Complex operation succeeded with $(get_workflow_var \"FAILURE_SIMULATION\" \"default\") simulation mode after retry logic")
 set_var "COMPLEX_OPERATION_RESULT" "$COMPLEX_OPERATION_RESULT" "record_complex_success"
 
 # Node: calculate_retry_statistics
 # Node: calculate_retry_statistics
-RETRY_STATISTICS=$(echo 'Retry Statistics: Max attempts=$(get_workflow_var "MAX_RETRY_ATTEMPTS" "default"), Base delay=$(get_workflow_var "BASE_DELAY" "default")s, Backoff=$(get_workflow_var "BACKOFF_MULTIPLIER" "default")x, Timeout=$(get_workflow_var "OPERATION_TIMEOUT" "default")s, Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default")')
+RETRY_STATISTICS=$(echo "Retry Statistics: Max attempts=$(get_workflow_var \"MAX_RETRY_ATTEMPTS\" \"default\"), Base delay=$(get_workflow_var \"BASE_DELAY\" \"default\")s, Backoff=$(get_workflow_var \"BACKOFF_MULTIPLIER\" \"default\")x, Timeout=$(get_workflow_var \"OPERATION_TIMEOUT\" \"default\")s, Simulation=$(get_workflow_var \"FAILURE_SIMULATION\" \"default\")")
 set_var "RETRY_STATISTICS" "$RETRY_STATISTICS" "calculate_retry_statistics"
 
 # Node: aggregate_all_results
