@@ -45,7 +45,6 @@ Starting workflow: code-node-example
 ./examples/api-data-aggregation.yaml
 ./examples/flowsh-workflow-example.yaml
 ./test-essay-template-with-containers.yaml
-./test-llm-telegram.yaml
 ./templates/advanced/devops-automation/automated-testing-monitoring-template.yaml
 ./templates/advanced/ai-workflows/multi-stage-ai-workflows-template.yaml
 ./templates/advanced/ai-workflows/ai-chat-memory-template.yaml
@@ -65,12 +64,12 @@ Starting workflow: code-node-example
 ./docs/dify/dify-workflow-example.yaml
 ./docs/dify/dify-workflow-schema.yaml
 ./docs/dify/dify-workflow-pseudo-schema.yaml
-22095
-892K
+22010
+888K
 File Analysis Summary
 Pattern: *.yaml
 Directory: .
-Generated: Sat Jan 10 12:36:47 PM CET 2026
+Generated: Sat Jan 10 01:12:26 PM CET 2026
 scripts/generated-outputs/nodes/code-node-example.sh: line 431: /tmp/flowsh-code-example: No such file or directory
 scripts/generated-outputs/nodes/code-node-example.sh: line 431: test-essay-template-with-containers.yaml: command not found
 scripts/generated-outputs/nodes/code-node-example.sh: line 431: .: filename argument required

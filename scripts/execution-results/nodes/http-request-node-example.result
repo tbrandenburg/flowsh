@@ -1,25 +1,25 @@
 Starting workflow: http-request-node-example
 [0;36m🚀 🌐 HTTP Request: Simple GET Request[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.153558s, size: 255 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.837757s, size: 255 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: GET Request with Custom Headers[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.395210s, size: 264 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.483373s, size: 264 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with JSON Body[0m
 scripts/generated-outputs/nodes/http-request-node-example.sh: line 52: "TEST_DATA": invalid variable name
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 1.002605s, size: 367 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 1.149612s, size: 367 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with Form Data[0m
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.605571s, size: 453 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.616667s, size: 453 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with Bearer Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.679281s, size: 76 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.761129s, size: 76 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with Basic Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.591231s, size: 51 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.000204s, size: 51 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: Request with API Key Authentication[0m
-[0;32m✅ HTTP GET completed successfully (status: 200, time: 1.038254s, size: 308 bytes)[0m
+[0;32m✅ HTTP GET completed successfully (status: 200, time: 0.797433s, size: 308 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: PUT Request for Data Update[0m
-[0;32m✅ HTTP PUT completed successfully (status: 200, time: 0.583987s, size: 629 bytes)[0m
+[0;32m✅ HTTP PUT completed successfully (status: 200, time: 0.675238s, size: 629 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: DELETE Request[0m
-[0;32m✅ HTTP DELETE completed successfully (status: 200, time: 0.668605s, size: 370 bytes)[0m
+[0;32m✅ HTTP DELETE completed successfully (status: 200, time: 1.421250s, size: 370 bytes)[0m
 [0;36m🚀 🌐 HTTP Request: POST Request with XML Body[0m
-[0;32m✅ HTTP POST completed successfully (status: 200, time: 0.658114s, size: 637 bytes)[0m
+[0;32m✅ HTTP POST completed successfully (status: 200, time: 1.032724s, size: 637 bytes)[0m
 [0;36m🚀 📊 Variable Aggregation: Aggregate All HTTP Responses[0m
 [1;33m⚠️  No non-empty values to concatenate[0m
 [0;32m✅ Variable aggregation completed: 10 inputs -> all_http_responses[0m

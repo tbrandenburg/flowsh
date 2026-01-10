@@ -31,11 +31,20 @@ set_var "${variable.toUpperCase()}" "\$${variable.toUpperCase()}" "${node.id}"`;
         return `set_var "${variable.toUpperCase()}" "" "${node.id}"`;
       }
     } else {
-      // Handle constant value assignment (original logic)
+      // Handle constant value assignment with template variable support
       const rawValue = this.getNodeData(node, 'value', '');
-      const value = this.escapeShellValue(String(rawValue));
+      const rawValueStr = String(rawValue);
 
-      return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
+      // Check if the constant value contains template variables
+      if (rawValueStr.includes('${')) {
+        // Process template variables in the constant value
+        const processedValue = this.processConfigValue(rawValue, '');
+        return `set_var "${variable.toUpperCase()}" "${processedValue}" "${node.id}"`;
+      } else {
+        // Regular constant value without template variables
+        const value = this.escapeShellValue(rawValueStr);
+        return `set_var "${variable.toUpperCase()}" "${value}" "${node.id}"`;
+      }
     }
   }
 

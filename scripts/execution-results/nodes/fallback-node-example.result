@@ -86,7 +86,7 @@ Slow service result: Comprehensive response with detailed data
 
 
 ## Performance Metrics
-Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default"), Completion=Sat Jan 10 12:36:57 PM CET 2026
+Fallback Statistics: Strategy=$(get_workflow_var "FALLBACK_STRATEGY" "default"), Max time=$(get_workflow_var "MAX_FALLBACK_TIME" "default")s, Continue=$(get_workflow_var "CONTINUE_ON_SUCCESS" "default"), Simulation=$(get_workflow_var "FAILURE_SIMULATION" "default"), Completion=Sat Jan 10 01:12:36 PM CET 2026
 
 ## Fallback Node Features Demonstrated
 

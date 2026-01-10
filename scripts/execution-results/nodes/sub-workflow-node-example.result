@@ -2,17 +2,17 @@ Starting workflow: sub-workflow-node-example
 [0;36m🚀 🏗️ Sub-Workflow: Validate First Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_validate_dataset_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'dataset_1_result' not found[0m
@@ -22,17 +22,17 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Transform Second Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_transform_dataset_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'dataset_2_result' not found[0m
@@ -42,17 +42,17 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Analyze Third Dataset[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_analyze_dataset_3/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'dataset_3_result' not found[0m
@@ -63,17 +63,17 @@ Condition passed
 [0;36m🚀 🏗️ Sub-Workflow: High Priority Processing[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_high_priority_processing/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'priority_result' not found[0m
@@ -83,17 +83,17 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Parallel Processing - Chunk 1[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_1/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'parallel_result_1' not found[0m
@@ -102,17 +102,17 @@ Workflow completed successfully
 [0;36m🚀 🏗️ Sub-Workflow: Parallel Processing - Chunk 2[0m
 [0;36mℹ️  Starting sub-workflow execution with 2 input variables[0m
 Starting workflow: data-processing-subworkflow
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 367: [: default: integer expression expected
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 367: [: default: integer expression expected
 Condition passed
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
 Condition passed
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
-/tmp/flowsh_subworkflow_1818168_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "_INPUT_DATA": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "PROCESSING_MODE": invalid variable name
+/tmp/flowsh_subworkflow_1844819_parallel_processing_2/workflow.sh: line 160: "VALIDATION_RESULT": invalid variable name
 Workflow completed successfully
 [0;32m✅ Sub-workflow executed successfully[0m
 [1;33m⚠️  Sub-workflow output 'parallel_result_2' not found[0m
@@ -144,7 +144,7 @@ scripts/generated-outputs/nodes/sub-workflow-node-example.sh: line 172: "PRIORIT
 
 
 ### Execution Summary
-Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: $(get_workflow_var "PROCESSING_PRIORITY" "default") | Completion: Sat Jan 10 12:37:53 PM CET 2026
+Sub-workflow Execution Summary: 5+ sub-workflows executed | Priority: $(get_workflow_var "PROCESSING_PRIORITY" "default") | Completion: Sat Jan 10 01:13:08 PM CET 2026
 
 ## Sub-workflow Node Features Demonstrated
 
