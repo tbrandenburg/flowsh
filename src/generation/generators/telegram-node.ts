@@ -132,10 +132,10 @@ EOF
             log_success "Telegram message sent successfully (HTTP \$http_code)"
             
             # Set success variables
-            set_workflow_var "telegram_success" "true"
-            set_workflow_var "telegram_http_code" "\$http_code"
-            set_workflow_var "telegram_response" "\$response_body"
-            set_workflow_var "telegram_message_sent" "true"
+            set_workflow_var "TELEGRAM_SUCCESS" "true"
+            set_workflow_var "TELEGRAM_HTTP_CODE" "\$http_code"
+            set_workflow_var "TELEGRAM_RESPONSE" "\$response_body"
+            set_workflow_var "TELEGRAM_MESSAGE_SENT" "true"
             
             log_debug "Telegram API response: \$response_body"
             return 0
@@ -161,11 +161,11 @@ EOF
                 log_error "Telegram message failed after \$max_retries attempts"
                 
                 # Set failure variables
-                set_workflow_var "telegram_success" "false"
-                set_workflow_var "telegram_http_code" "\${http_code:-0}"
-                set_workflow_var "telegram_response" "\$response_body"
-                set_workflow_var "telegram_message_sent" "false"
-                set_workflow_var "telegram_error" "MAX_RETRIES_EXCEEDED"
+                set_workflow_var "TELEGRAM_SUCCESS" "false"
+                set_workflow_var "TELEGRAM_HTTP_CODE" "\${http_code:-0}"
+                set_workflow_var "TELEGRAM_RESPONSE" "\$response_body"
+                set_workflow_var "TELEGRAM_MESSAGE_SENT" "false"
+                set_workflow_var "TELEGRAM_ERROR" "MAX_RETRIES_EXCEEDED"
                 
                 case "\$error_handling" in
                     "ignore")

@@ -163,15 +163,15 @@ export class AgentNodeGenerator extends BaseNodeGenerator {
 
     // Store results in workflow variables
     parts.push('    # Store agent execution results');
-    parts.push(`    set_workflow_var "agent_${node.id}_output" "\$agent_output"`);
-    parts.push(`    set_workflow_var "agent_${node.id}_exit_code" "\$exit_code"`);
-    parts.push(`    set_workflow_var "agent_${node.id}_success" "false"`);
+    parts.push(`    set_workflow_var "AGENT_${node.id.toUpperCase()}_OUTPUT" "\$agent_output"`);
+    parts.push(`    set_workflow_var "AGENT_${node.id.toUpperCase()}_EXIT_CODE" "\$exit_code"`);
+    parts.push(`    set_workflow_var "AGENT_${node.id.toUpperCase()}_SUCCESS" "false"`);
     parts.push('');
 
     // Handle success/failure
     parts.push('    # Handle execution result');
     parts.push('    if [[ $exit_code -eq 0 ]]; then');
-    parts.push(`        set_workflow_var "agent_${node.id}_success" "true"`);
+    parts.push(`        set_workflow_var "AGENT_${node.id.toUpperCase()}_SUCCESS" "true"`);
     parts.push(`        log_success "Agent execution completed successfully"`);
     parts.push('        echo "$agent_output"');
     parts.push('    else');

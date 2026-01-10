@@ -45,8 +45,8 @@ describe('AgentNodeGenerator', () => {
       expect(result).toContain('execute_agent_simple_agent()');
       expect(result).toContain('log_step "🤖 Executing agent: Simple Agent"');
       expect(result).toContain('echo hello world');
-      expect(result).toContain('set_workflow_var "agent_simple_agent_output"');
-      expect(result).toContain('set_workflow_var "agent_simple_agent_success"');
+      expect(result).toContain('set_workflow_var "AGENT_SIMPLE_AGENT_OUTPUT"');
+      expect(result).toContain('set_workflow_var "AGENT_SIMPLE_AGENT_SUCCESS"');
     });
 
     it('should generate agent with working directory', () => {

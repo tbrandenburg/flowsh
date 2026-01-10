@@ -53,8 +53,8 @@ describe('LLMNodeGenerator', () => {
       expect(result).toContain('Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo');
       expect(result).toContain('"model": "gpt-3.5-turbo"');
       expect(result).toContain('"content": "Hello, how are you?"');
-      expect(result).toContain('set_workflow_var "llm_content"');
-      expect(result).toContain('set_workflow_var "llm_success"');
+      expect(result).toContain('set_workflow_var "LLM_CONTENT"');
+      expect(result).toContain('set_workflow_var "LLM_SUCCESS"');
     });
 
     it('should generate LLM call with object model config', () => {

@@ -185,12 +185,12 @@ describe('TelegramNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('set_workflow_var "telegram_success" "true"');
-      expect(result).toContain('set_workflow_var "telegram_success" "false"');
-      expect(result).toContain('set_workflow_var "telegram_http_code"');
-      expect(result).toContain('set_workflow_var "telegram_response"');
-      expect(result).toContain('set_workflow_var "telegram_message_sent"');
-      expect(result).toContain('set_workflow_var "telegram_error"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_SUCCESS" "true"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_SUCCESS" "false"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_HTTP_CODE"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_RESPONSE"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_MESSAGE_SENT"');
+      expect(result).toContain('set_workflow_var "TELEGRAM_ERROR"');
     });
 
     it('should handle missing title with node id fallback', () => {

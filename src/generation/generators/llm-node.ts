@@ -113,8 +113,8 @@ if [[ -z "$llm_content" ]]; then
 fi
 
 # Store the content in workflow variable for other nodes to reference
-set_workflow_var "llm_content" "$llm_content"
-set_workflow_var "llm_success" "true"
+set_workflow_var "LLM_CONTENT" "$llm_content"
+set_workflow_var "LLM_SUCCESS" "true"
 
 # Output the final content
 echo "$llm_content"`;
