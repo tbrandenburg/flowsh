@@ -19,6 +19,8 @@ import {
 import { ProgressTracker, type ProgressCallback } from './performance/progress-tracker.js';
 import { FlowshWorkflow, WorkflowNode, WorkflowEdge } from '../dsl/types.js';
 import { ShellScriptingUtils } from './shell-scripting/index.js';
+import { VariableResolver } from '../variables/resolver.js';
+import { VariableInitGenerator } from './shell-scripting/variable-init.js';
 
 // Re-export types but extend with backwards compatibility
 export interface GenerationOptions extends RegistryGenerationOptions {
@@ -224,7 +226,7 @@ export function generateShellScript(
     }
 
     // Variable setup
-    scriptParts.push(generateVariableSetup(allVariables));
+    scriptParts.push(generateVariableSetup(workflow, allVariables));
     if (monitor) {
       monitor.updateProgress(1);
     }
@@ -388,7 +390,30 @@ ${generateVariableFunctions()}`;
 /**
  * Generate variable setup section
  */
-function generateVariableSetup(variables: Map<string, string>): string {
+function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, string>): string {
+  // Get conversation_variables from either top level or spec
+  const conversationVars =
+    workflow.conversation_variables || workflow.spec?.conversation_variables || [];
+
+  // Check if workflow has conversation_variables (modern approach)
+  if (conversationVars && conversationVars.length > 0) {
+    // Use modern variable resolution system
+    const resolutionResult = VariableResolver.resolve(conversationVars, {
+      use_defaults: true,
+      fail_on_missing_required: false, // Don't fail during compilation
+      variable_sources: [{ type: 'environment' }, { type: 'defaults' }],
+    });
+
+    if (resolutionResult.isOk()) {
+      const setupResult = VariableInitGenerator.generateCompleteSetup(resolutionResult.value, {
+        includeValidation: false, // Skip validation in generated scripts for flexibility
+        includeExports: false, // Keep scripts simple
+      });
+      return `# Variable setup using modern resolution (${conversationVars.length} vars, resolved: ${resolutionResult.value.length})\n${setupResult || '# No setup result'}`;
+    }
+  }
+
+  // Legacy approach for backward compatibility
   if (variables.size === 0) {
     return '';
   }

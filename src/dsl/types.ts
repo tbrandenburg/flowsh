@@ -232,6 +232,10 @@ export interface VariableAssignmentNodeData extends BaseNodeData {
   source_variable?: string;
   expression?: string;
   write_mode?: 'over-write' | 'append' | 'clear';
+  // NEW: Enhanced variable handling options
+  on_empty?: 'use_default' | 'warn' | 'fail';
+  default_value?: string | number | boolean;
+  fail_on_empty?: boolean;
 }
 
 export interface CodeNodeData extends BaseNodeData {
@@ -432,6 +436,14 @@ export interface WorkflowConversationVariable {
   name: string;
   type: VariableType;
   description?: string;
+  required?: boolean;
+  default?: string | number | boolean;
+  options?: Array<{ value: string; label: string }>;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+  };
 }
 
 export interface WorkflowSpec {

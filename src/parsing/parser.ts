@@ -888,6 +888,19 @@ function transformConversationVariable(variable: unknown): any {
     result.description = String(conv['description']);
   }
 
+  // Preserve fields needed by variable resolution system
+  if (conv['default'] !== undefined) {
+    result.default = conv['default']; // Keep original type (string, number, etc.)
+  }
+
+  if (conv['required'] !== undefined) {
+    result.required = Boolean(conv['required']);
+  }
+
+  if (conv['options'] && Array.isArray(conv['options'])) {
+    result.options = conv['options'];
+  }
+
   return result;
 }
 

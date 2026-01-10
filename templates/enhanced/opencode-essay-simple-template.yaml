@@ -8,6 +8,7 @@ conversation_variables:
     type: text-input
     description: What should the essay be about?
     required: true
+    default: 'AI in Software Development'
   - variable: max_parts
     name: Content Sections
     type: select

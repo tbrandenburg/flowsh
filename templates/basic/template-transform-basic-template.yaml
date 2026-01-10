@@ -2,6 +2,67 @@ workflow:
   name: 'Template Transform Node Example'
   description: 'Shows how to use template transform nodes for dynamic content generation with structured templates'
 
+conversation_variables:
+  - variable: user_name
+    name: User Name
+    type: text-input
+    description: Name of the user/author
+    required: true
+    default: 'John Doe'
+  - variable: project_name
+    name: Project Name
+    type: text-input
+    description: Name of the project
+    required: true
+    default: 'Example Project'
+  - variable: project_status
+    name: Project Status
+    type: select
+    description: Current status of the project
+    options:
+      - value: 'planning'
+        label: 'Planning'
+      - value: 'in-progress'
+        label: 'In Progress'
+      - value: 'completed'
+        label: 'Completed'
+      - value: 'on-hold'
+        label: 'On Hold'
+    default: 'in-progress'
+  - variable: urgency_level
+    name: Urgency Level
+    type: select
+    description: Priority level of the project
+    options:
+      - value: 'low'
+        label: 'Low Priority'
+      - value: 'medium'
+        label: 'Medium Priority'
+      - value: 'high'
+        label: 'High Priority'
+      - value: 'critical'
+        label: 'Critical'
+    default: 'medium'
+  - variable: template_type
+    name: Template Type
+    type: select
+    description: Type of template to generate
+    options:
+      - value: 'email'
+        label: 'Email Template'
+      - value: 'report'
+        label: 'Report Template'
+      - value: 'config'
+        label: 'Configuration Template'
+      - value: 'documentation'
+        label: 'Documentation Template'
+    default: 'report'
+  - variable: include_details
+    name: Include Details
+    type: boolean
+    description: Whether to include detailed sections
+    default: true
+
 graph:
   nodes:
     - id: 'start'

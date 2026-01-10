@@ -2,6 +2,20 @@ workflow:
   name: 'Code Node Example'
   description: 'Shows how to use code nodes for shell command execution with proper error handling'
 
+conversation_variables:
+  - variable: target_directory
+    name: Target Directory
+    type: text-input
+    description: Directory to search for files
+    required: false
+    default: '/tmp'
+  - variable: file_pattern
+    name: File Pattern
+    type: text-input
+    description: File pattern to search for
+    required: false
+    default: '*.txt'
+
 graph:
   nodes:
     - id: 'start'
