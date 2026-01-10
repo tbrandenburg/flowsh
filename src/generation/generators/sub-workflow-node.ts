@@ -91,7 +91,14 @@ ${inputMappingCode}
             parent_var=\$(echo "\$parent_var" | xargs)
             
             if [[ -n "\$sub_var" && -n "\$parent_var" ]]; then
-                local parent_value="\$(get_workflow_var "\$parent_var" "" 2>/dev/null || echo "")"
+                # Check if parent_var is a shell expression (starts with $)
+                if [[ "\$parent_var" =~ ^\\\$ ]]; then
+                    # Evaluate the shell expression directly
+                    local parent_value="\$(eval echo "\$parent_var" 2>/dev/null || echo "")"
+                else
+                    # Treat as a literal variable name
+                    local parent_value="\$(get_workflow_var "\$parent_var" "" 2>/dev/null || echo "")"
+                fi
                 subworkflow_vars["\$sub_var"]="\$parent_value"
                 log_debug "Mapped input: \$parent_var -> \$sub_var (value: \$parent_value)"
             fi
@@ -116,7 +123,22 @@ EOF
             
             # Execute the sub-workflow
             if flowsh compile "\$(basename "\$subworkflow_file")" > "\$subworkflow_script" 2>&1; then
-                if bash "\$subworkflow_script" 2>&1; then
+                # Prepend variable declarations to the sub-workflow script
+                local temp_script="\$subworkflow_temp_dir/workflow_with_vars.sh"
+                {
+                    echo "#!/bin/bash"
+                    echo "set -euo pipefail"
+                    echo ""
+                    echo "# Pre-injected variables from parent workflow"
+                    for var_name in "\${!subworkflow_vars[@]}"; do
+                        echo "declare \$var_name='\${subworkflow_vars[\$var_name]}'"
+                    done
+                    echo ""
+                    tail -n +2 "\$subworkflow_script"  # Skip shebang from original script
+                } > "\$temp_script"
+                chmod +x "\$temp_script"
+                
+                if bash "\$temp_script" 2>&1; then
                     log_success "Sub-workflow executed successfully"
                     
                     # Set mock success outputs (in a full implementation, 
@@ -199,7 +221,7 @@ ${outputMappingCode}
     }
 
     return `    # Prepare input variable mappings
-    local input_mapping_content='${this.escapeShellValue(inputMappings)}'
+    local input_mapping_content='${this.escapeShellValue(this.processTemplateVariables(inputMappings, 'sub_workflow'))}'
     log_debug "Processing input mappings"`;
   }
 
@@ -217,7 +239,7 @@ ${outputMappingCode}
     }
 
     return `        # Map specific sub-workflow outputs to parent variables
-        local output_mapping_content='${this.escapeShellValue(outputMappings)}'
+        local output_mapping_content='${this.escapeShellValue(this.processTemplateVariables(outputMappings, 'sub_workflow'))}'
         
         while IFS='=' read -r sub_output parent_var || [[ -n "\$sub_output" ]]; do
             # Skip empty lines and comments
