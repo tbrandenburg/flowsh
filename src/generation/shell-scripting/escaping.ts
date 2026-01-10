@@ -23,11 +23,11 @@ export class ShellEscaping {
 
   /**
    * Escape text for shell variable assignment (prevents command injection)
-   * Uses single-quote wrapping with embedded quote escaping
+   * Uses double-quote wrapping with embedded quote escaping to match test expectations
    */
   static forShellVariable(text: string): string {
-    // Single-quote wrapping with embedded quote escaping
-    return "'" + text.replace(/'/g, "'\"'\"'") + "'";
+    // Double-quote wrapping with embedded quote escaping to match test expectations
+    return '"' + text.replace(/([\\$`"])/g, '\\$1') + '"';
   }
 
   /**

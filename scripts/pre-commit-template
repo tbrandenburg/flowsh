@@ -1,7 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "🔍 Pre-commit validation: Checking templates..."
+echo "🔍 Pre-commit validation: Running tests and checking templates..."
+
+# Run tests to ensure no regressions
+echo "🧪 Running test suite..."
+if ! npm test; then
+    echo "❌ Tests failed! Fix issues before committing."
+    exit 1
+fi
+echo "✅ All tests passed"
 
 # Build if needed
 if [ ! -d "dist" ] || [ "src" -nt "dist" ]; then

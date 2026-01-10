@@ -100,8 +100,8 @@ describe('LLM→Telegram Workflow Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result).toContain('set_workflow_var "LLM_CONTENT"');
       expect(result).toContain('$(get_var "TOPIC" "generate_riddle")'); // Template variable processed
-      expect(result).toContain('"role":"system"');
-      expect(result).toContain('"role":"user"');
+      expect(result).toContain('\\"role\\":\\"system\\"');
+      expect(result).toContain('\\"role\\":\\"user\\"');
       expect(result).toContain('educational riddles about science');
       expect(result).not.toContain('"content": "Hello"'); // Should not use hardcoded Hello
     });

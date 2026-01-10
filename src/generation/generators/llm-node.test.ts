@@ -52,7 +52,7 @@ describe('LLMNodeGenerator', () => {
 
       expect(result).toContain('extract_llm_content()');
       expect(result).toContain('Three-stage LLM fallback: OpenAI -> LLMv7 -> Demo');
-      expect(result).toContain('\\"model\\": \\"gpt-3.5-turbo\\"');
+      expect(result).toContain('\\"model\\":\\"gpt-3.5-turbo\\"');
       expect(result).toContain('\\"content\\":\\"Hello, how are you?\\"'); // Escaped for shell script
       expect(result).toContain('set_workflow_var "LLM_CONTENT"');
       expect(result).toContain('set_workflow_var "LLM_SUCCESS"');
@@ -71,7 +71,7 @@ describe('LLMNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('\\"model\\": \\"gpt-4\\"');
+      expect(result).toContain('\\"model\\":\\"gpt-4\\"');
       expect(result).toContain('\\"content\\":\\"Analyze this data\\"'); // Escaped for shell script
     });
 
@@ -104,7 +104,7 @@ describe('LLMNodeGenerator', () => {
 
       const result = generator.generate(node, mockContext);
 
-      expect(result).toContain('\\"model\\": \\"gpt-4\\"');
+      expect(result).toContain('\\"model\\":\\"gpt-4\\"');
       expect(result).toContain('\\"content\\":\\"What is AI?\\"'); // Escaped for shell script
     });
 
@@ -141,7 +141,7 @@ describe('LLMNodeGenerator', () => {
 
       expect(result).toContain('trying LLMv7...');
       expect(result).toContain('https://api.llm7.io/v1/chat/completions');
-      expect(result).toContain('"model": "default"');
+      expect(result).toContain('\\"model\\":\\"default\\"');
     });
 
     it('should include mock response as final fallback', () => {

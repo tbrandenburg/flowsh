@@ -151,9 +151,10 @@ describe('TelegramNodeGenerator', () => {
       expect(result).not.toContain('${text//&/&amp;}');
       expect(result).not.toContain('${text//</&lt;}');
 
-      // Check some markdown escaping patterns still exist
-      expect(result).toContain('${text//_/\\_}'); // Markdown escaping
-      expect(result).toContain('${text//*/\\*}'); // Markdown escaping
+      // Check some markdown escaping patterns exist in the escape_markdown function
+      expect(result).toContain('escape_markdown()'); // New function-based escaping
+      expect(result).toContain('input="${input//_/\\\\_}"'); // Markdown underscore escaping within function
+      expect(result).toContain('input="${input//\\*/\\\\*}"'); // Markdown asterisk escaping within function
     });
 
     it('should include retry logic with exponential backoff', () => {
