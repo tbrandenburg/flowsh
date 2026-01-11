@@ -91,7 +91,7 @@ Provide summary:
 ### Ready for Commit
 - Confirm all changes are complete
 - Confirm all validations pass
-- Ready for `/commit` command
+- Ready for `/commit` (commit.md) command
 
 ## Notes
 
