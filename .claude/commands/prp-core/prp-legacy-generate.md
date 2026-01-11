@@ -17,6 +17,8 @@ The AI agent only gets the context you are appending to the PRP and training dat
 
 ## Research Process
 
+**Use context7 MCP, firecrawl MCP or specialized subagents when beneficial for external research:**
+
 1. **Codebase Analysis**
    - Search for similar features/patterns in the codebase
    - Identify files to reference in PRP
