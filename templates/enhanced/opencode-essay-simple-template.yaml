@@ -189,7 +189,7 @@ graph:
       type: code
       data:
         title: 'Prepare Essay for Telegram'
-        description: 'Read essay content and prepare for Telegram delivery with size handling'
+        description: 'Read essay content and prepare for Telegram delivery'
         command: '/bin/bash'
         args:
           - '-c'
@@ -197,49 +197,19 @@ graph:
             set -euo pipefail
             echo "📱 Preparing essay content for Telegram delivery..."
 
-            # Check if essay file exists
-            ESSAY_FILE="/tmp/flowsh_essay_work/Final_Essay.md"
-            if [ ! -f "$ESSAY_FILE" ]; then
-              echo "⚠️ Essay file not found at $ESSAY_FILE"
-              ESSAY_CONTENT="❌ Essay file not found. Generation may have failed.
-
-            **Workflow Status**: Template executed but final essay file was not created.
-            **Expected Location**: /tmp/flowsh_essay_work/Final_Essay.md
-            **Troubleshooting**: Check agent execution logs above for errors."
+            ESSAY_PATH="/tmp/flowsh_essay_work/Final_Essay.md"
+            if [ -f "/tmp/flowsh_essay_work/Final_Essay.md" ]; then
+              echo "✅ Reading essay content from /tmp/flowsh_essay_work/Final_Essay.md"
+              cat "/tmp/flowsh_essay_work/Final_Essay.md" > /tmp/flowsh_essay_work/telegram_message_content.txt
+              echo "" >> /tmp/flowsh_essay_work/telegram_message_content.txt
+              echo "📊 **Essay Stats**: $(cat "/tmp/flowsh_essay_work/Final_Essay.md" | wc -w) words, $(cat "/tmp/flowsh_essay_work/Final_Essay.md" | wc -c) characters" >> /tmp/flowsh_essay_work/telegram_message_content.txt
             else
-              echo "✅ Reading essay content from $ESSAY_FILE"
-              RAW_ESSAY=$(cat "$ESSAY_FILE")
-              CHAR_COUNT=$(echo "$RAW_ESSAY" | wc -c)
-              WORD_COUNT=$(echo "$RAW_ESSAY" | wc -w)
-              
-              echo "📊 Essay stats: $CHAR_COUNT characters, $WORD_COUNT words"
-              
-              # Handle Telegram 4096 character limit with smart truncation
-              if [ $CHAR_COUNT -gt 3800 ]; then
-                echo "⚠️ Essay exceeds Telegram limit, truncating intelligently..."
-                # Try to truncate at paragraph boundary
-                ESSAY_CONTENT=$(echo "$RAW_ESSAY" | head -c 3500)
-                # Find last complete paragraph
-                LAST_NEWLINE=$(echo "$ESSAY_CONTENT" | grep -n "^$" | tail -1 | cut -d: -f1)
-                if [ ! -z "$LAST_NEWLINE" ] && [ "$LAST_NEWLINE" -gt 10 ]; then
-                  ESSAY_CONTENT=$(echo "$ESSAY_CONTENT" | head -n "$LAST_NEWLINE")
-                fi
-                ESSAY_CONTENT="$ESSAY_CONTENT
-
-            📄 **[Content Truncated]**
-            Full essay ($WORD_COUNT words) saved to: $ESSAY_FILE
-
-            🔗 **This is a preview** - check the file for complete content."
-              else
-                ESSAY_CONTENT="$RAW_ESSAY
-
-            📊 **Essay Stats**: $WORD_COUNT words, $CHAR_COUNT characters"
-              fi
+              echo "⚠️ Essay file not found, creating fallback message"
+              echo "❌ Essay file not found. Generation may have failed." > /tmp/flowsh_essay_work/telegram_message_content.txt
+              echo "" >> /tmp/flowsh_essay_work/telegram_message_content.txt  
+              echo "**Expected Location**: /tmp/flowsh_essay_work/Final_Essay.md" >> /tmp/flowsh_essay_work/telegram_message_content.txt
             fi
-
-            # Save content to a file that Telegram node can read
-            echo "$ESSAY_CONTENT" > "/tmp/flowsh_essay_work/telegram_message_content.txt"
-            echo "✅ Telegram content prepared and saved"
+            echo "✅ Telegram content prepared"
 
     - id: telegram_delivery
       type: telegram
