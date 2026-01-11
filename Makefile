@@ -88,7 +88,7 @@ format:
 	npm run format
 
 # Full quality check pipeline
-check: lint format test build
+check: lint format build test
 	@echo "✅ All quality checks passed!"
 
 # =============================================================================
