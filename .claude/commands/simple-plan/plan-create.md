@@ -1,5 +1,5 @@
 ---
-description: "Create comprehensive feature plan with deep codebase analysis and research"
+description: Create comprehensive feature plan with deep codebase analysis and research
 argument-hint: [feature/product idea/file]
 ---
 
@@ -65,7 +65,7 @@ So that <benefit/value>
 
 - Catalog external libraries relevant to feature
 - Understand how libraries are integrated (check imports, configs)
-- Find relevant documentation in docs/, ai_docs/, .agents/reference or ai-wiki if available
+- Find relevant documentation in docs/, ai_docs/ or ai-wiki if available
 - Note library versions and compatibility requirements
 
 **4. Testing Patterns**
@@ -91,7 +91,7 @@ So that <benefit/value>
 
 ### Phase 3: External Research & Documentation
 
-**Use specialized subagents when beneficial for external research:**
+**Use context7 MCP, firecrawl MCP or specialized subagents when beneficial for external research:**
 
 **Documentation Gathering:**
 
@@ -377,12 +377,12 @@ Execute every command to ensure zero regressions and 100% feature correctness.
 
 ## Output Format
 
-**Filename**: `.agents/plans/{kebab-case-descriptive-name}.md`
+**Filename**: `PRPs/{kebab-case-descriptive-name}.md`
 
 - Replace `{kebab-case-descriptive-name}` with short, descriptive feature name
 - Examples: `add-user-authentication.md`, `implement-search-api.md`, `refactor-database-layer.md`
 
-**Directory**: Create `.agents/plans/` if it doesn't exist
+**Directory**: Create `PRPs/` if it doesn't exist
 
 ## Quality Criteria
 
