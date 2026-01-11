@@ -72,11 +72,10 @@ ${escapingCode}
     local escaped_message
     case "$parse_mode" in
         "HTML")
-            # For HTML mode, convert newlines to <br> tags, then escape for JSON
+            # For HTML mode, convert literal \\n to actual newlines (Telegram HTML doesn't support <br> tags)
             local html_formatted
-            html_formatted="\${message//\$'\\\\n'/<br>}"  # Convert literal \\n to <br>
-            html_formatted="\${html_formatted//\$'\\n'/<br>}"    # Convert actual newlines to <br>
-            escaped_message=$(escape_json "$html_formatted")
+            html_formatted="\${message//\$'\\\\n'/\$'\\n'}"  # Convert literal \\n to actual newlines
+            escaped_message=\$(escape_json "\$html_formatted")
             ;;
         "Markdown"|"MarkdownV2")
             # For Markdown modes, escape markdown then JSON
