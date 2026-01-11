@@ -8,7 +8,7 @@ conversation_variables:
     type: text-input
     description: Directory to search for files
     required: false
-    default: '/tmp'
+    default: '.'
   - variable: file_pattern
     name: File Pattern
     type: text-input
