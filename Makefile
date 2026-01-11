@@ -184,6 +184,13 @@ templates-all: build
 			result_file="dev/execution-results/templates/$$basename.result"; \
 			if node dist/cli/index.js compile "$$template" > "$$script_file" 2>/dev/null; then \
 				echo "  ✅ Generated: $$script_file"; \
+				if bash -n "$$script_file" 2>/dev/null; then \
+					echo "  ✅ Shell syntax valid"; \
+				else \
+					echo "  ❌ Invalid shell syntax in $$script_file"; \
+					bash -n "$$script_file" 2>&1 | head -3 | sed 's/^/    /'; \
+					continue; \
+				fi; \
 				chmod +x "$$script_file"; \
 				echo "  🚀 Executing: $$basename (production template - may require env vars)"; \
 				# Note: Templates may require API keys and environment variables for execution \
