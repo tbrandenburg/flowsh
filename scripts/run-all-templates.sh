@@ -31,7 +31,7 @@ for template in templates/basic/*-template.yaml templates/enhanced/*-simple.yaml
             echo "  🚀 Executing: $basename (production template - may require env vars)"
             
             # Note: Templates may require API keys and environment variables for execution
-            if timeout 120 "$script_file" > "$result_file" 2>&1; then
+            if timeout 120 bash "$script_file" > "$result_file" 2>&1; then
                 echo "  ✅ Executed successfully"
                 success=$((success + 1))
             else
