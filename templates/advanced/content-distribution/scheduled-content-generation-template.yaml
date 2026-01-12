@@ -57,6 +57,12 @@ environment_variables:
     description: 'Internal processing variable for content type assignment'
     required: false
     default: ''
+  - variable: 'AUDIENCE'
+    name: 'Processing Audience Variable'
+    type: 'text'
+    description: 'Internal processing variable for audience assignment'
+    required: false
+    default: ''
 
 graph:
   nodes:

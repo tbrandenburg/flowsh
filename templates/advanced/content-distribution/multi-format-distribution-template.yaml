@@ -75,6 +75,12 @@ environment_variables:
     description: 'Internal processing variable for platforms assignment'
     required: false
     default: ''
+  - variable: 'PRIORITY'
+    name: 'Priority Variable'
+    type: 'text'
+    description: 'Internal processing variable for priority assignment'
+    required: false
+    default: ''
 
 graph:
   nodes:
