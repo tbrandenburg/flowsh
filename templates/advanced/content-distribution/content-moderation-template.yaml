@@ -117,6 +117,12 @@ environment_variables:
     description: 'Internal processing variable for phone count'
     required: false
     default: ''
+  - variable: 'FLAGS'
+    name: 'Flags Variable'
+    type: 'text'
+    description: 'Internal processing variable for content analysis flags'
+    required: false
+    default: ''
 
 graph:
   nodes:

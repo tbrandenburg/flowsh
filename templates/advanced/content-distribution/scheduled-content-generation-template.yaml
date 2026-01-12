@@ -75,6 +75,12 @@ environment_variables:
     description: 'Internal processing variable for content generation ID assignment'
     required: false
     default: ''
+  - variable: 'CURRENT_TIME'
+    name: 'Current Time Variable'
+    type: 'text'
+    description: 'Internal processing variable for current timestamp'
+    required: false
+    default: ''
 
 graph:
   nodes:

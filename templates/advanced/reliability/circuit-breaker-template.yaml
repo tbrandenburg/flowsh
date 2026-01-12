@@ -51,6 +51,12 @@ environment_variables:
     description: 'Internal processing variable for current timestamp'
     required: false
     default: ''
+  - variable: 'NEW_COUNT'
+    name: 'New Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for new failure count calculation'
+    required: false
+    default: ''
 
 graph:
   nodes:
