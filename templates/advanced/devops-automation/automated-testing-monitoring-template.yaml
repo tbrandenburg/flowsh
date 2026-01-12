@@ -207,9 +207,12 @@ graph:
           echo "⚡ Running Performance Tests"
           echo "=========================="
 
-          SERVICE_URL="${SERVICE_URL}"
+          # Set safe defaults for CI testing
+          SERVICE_URL="${SERVICE_URL:-https://httpbin.org}"
+          PERFORMANCE_THRESHOLDS="${PERFORMANCE_THRESHOLDS:-{\"response_time\":2000,\"success_rate\":95}}"
+          TEST_TYPES="${TEST_TYPES:-functional,performance}"
+
           THRESHOLDS="${PERFORMANCE_THRESHOLDS}"
-          TEST_TYPES="${TEST_TYPES}"
 
           # Initialize performance tracking
           PERF_PASSED=0

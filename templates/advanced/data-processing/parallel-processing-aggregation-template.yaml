@@ -94,6 +94,16 @@ graph:
           echo "⚡ Initializing Parallel Processing & Aggregation System"
           echo "====================================================="
 
+          # Set safe defaults for CI testing
+          INPUT_DATA_SOURCES="${INPUT_DATA_SOURCES:-data_source_1,data_source_2,data_source_3}"
+          PROCESSING_OPERATIONS="${PROCESSING_OPERATIONS:-validate,transform,clean}"
+          PARALLEL_WORKERS="${PARALLEL_WORKERS:-3}"
+          AGGREGATION_METHOD="${AGGREGATION_METHOD:-merge}"
+          OUTPUT_FORMAT="${OUTPUT_FORMAT:-json}"
+          PERFORMANCE_OPTIMIZATION="${PERFORMANCE_OPTIMIZATION:-balanced}"
+          ERROR_HANDLING="${ERROR_HANDLING:-continue}"
+          TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
+
           # Create parallel processing workspace
           mkdir -p /tmp/parallel_processing
           mkdir -p /tmp/parallel_processing/workers

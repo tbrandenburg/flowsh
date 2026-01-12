@@ -69,7 +69,7 @@ graph:
         args:
           [
             '-c',
-            "find {{target_directory}} -name '{{file_pattern}}' -type f -exec wc -l {} + | tail -1 | awk '{print $1}' || echo '0'",
+            "find {{target_directory}} -name '{{file_pattern}}' -type f -exec wc -l {} + | tail -1 | awk '{print $$1}' || echo '0'",
           ]
         working_directory: '.'
         timeout: 30

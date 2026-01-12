@@ -74,7 +74,8 @@ graph:
             set -euo pipefail
             echo "⏰ Initializing Scheduled Content Generation..."
 
-            # Configuration validation
+            # Configuration validation with safe defaults for CI testing
+            CONTENT_TOPIC="${CONTENT_TOPIC:-AI-Powered Automation Technologies}"
             TOPIC="${CONTENT_TOPIC}"
             TYPE="${CONTENT_TYPE:-newsletter}"
             AUDIENCE="${TARGET_AUDIENCE:-technical professionals}"

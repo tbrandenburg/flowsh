@@ -36,10 +36,14 @@ graph:
             fi
 
             echo "✅ Network connectivity verified"
-            if [ -n "${API_KEY:-}" ]; then
-              echo "🔑 API Key: ${API_KEY:0:7}..."
+
+            # Use safe default for CI testing
+            API_KEY="${API_KEY:-demo_api_key_replace_with_real}"
+
+            if [[ "$API_KEY" == "demo_api_key_replace_with_real" ]]; then
+              echo '🚨 DEMO MODE: Using placeholder API key - configure API_KEY for production'
             else
-              echo '🔑 API Key: Not provided (using public endpoints)'
+              echo "🔑 API Key: [CONFIGURED]"
             fi
 
             echo "🚀 Pipeline ready to start"

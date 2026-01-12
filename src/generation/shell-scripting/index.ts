@@ -27,6 +27,11 @@ ${description ? `# Description: ${description}` : ''}
 # Version: ${workflowVersion}
 # Generated: ${new Date().toISOString()}
 
+# Ensure we're running with bash (handle CI environments that might default to sh)
+if [ -z "$BASH_VERSION" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 # =============================================================================

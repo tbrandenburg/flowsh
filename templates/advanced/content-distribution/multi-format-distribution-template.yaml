@@ -86,7 +86,9 @@ graph:
             set -euo pipefail
             echo "📡 Initializing Multi-Format Content Distribution..."
 
-            # Configuration validation
+            # Configuration validation with safe defaults for CI testing
+            CONTENT_TITLE="${CONTENT_TITLE:-Demo Content Distribution Test}"
+            CONTENT_BODY="${CONTENT_BODY:-This is sample content body for testing the multi-format content distribution system. This demo content is safe for automated CI testing.}"
             TITLE="${CONTENT_TITLE}"
             BODY="${CONTENT_BODY}"
             PLATFORMS="${TARGET_PLATFORMS:-email,telegram,webhook}"

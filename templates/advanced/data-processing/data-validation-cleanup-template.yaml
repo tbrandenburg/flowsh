@@ -89,6 +89,14 @@ graph:
           mkdir -p /tmp/data_validation/reports
           mkdir -p /tmp/data_validation/backups
 
+          # Set safe defaults for CI testing
+          INPUT_DATA_SOURCE="${INPUT_DATA_SOURCE:-demo_data_source.csv}"
+          DATA_CONTENT="${DATA_CONTENT:-name,age,email\nJohn Doe,25,john@example.com\nJane Smith,30,jane@example.com\nBob Wilson,invalid_age,bob@invalid\nAlice Brown,28,alice@example.com}"
+          VALIDATION_RULES="${VALIDATION_RULES:-required_fields,email_format,age_numeric}"
+          CLEANUP_ACTIONS="${CLEANUP_ACTIONS:-remove_invalid,normalize_emails,standardize_names}"
+          OUTPUT_FORMAT="${OUTPUT_FORMAT:-json}"
+          ERROR_THRESHOLD="${ERROR_THRESHOLD:-20}"
+
           # Initialize validation metadata
           VALIDATION_ID="val_$(date +%s)"
           CURRENT_TIME=$(date -Iseconds)

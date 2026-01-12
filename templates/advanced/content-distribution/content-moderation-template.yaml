@@ -68,7 +68,8 @@ graph:
             set -euo pipefail
             echo "🛡️ Initializing Content Moderation Pipeline..."
 
-            # Configuration validation
+            # Configuration validation with safe defaults for CI testing
+            CONTENT_INPUT="${CONTENT_INPUT:-This is sample content for moderation testing. This demo content contains no inappropriate material and is safe for automated CI testing.}"
             CONTENT="${CONTENT_INPUT}"
             STRICTNESS="${MODERATION_STRICTNESS:-moderate}"
             PROFANITY_CHECK="${ENABLE_PROFANITY_CHECK:-true}"

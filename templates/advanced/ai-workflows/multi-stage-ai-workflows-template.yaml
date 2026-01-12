@@ -90,6 +90,14 @@ graph:
           mkdir -p /tmp/ai_pipeline/validation
           mkdir -p /tmp/ai_pipeline/reports
 
+          # Set safe defaults for CI testing
+          INPUT_CONTENT="${INPUT_CONTENT:-Sample content for AI processing pipeline testing. This is demo content suitable for automated testing.}"
+          PROCESSING_STAGES="${PROCESSING_STAGES:-analysis,generation,validation}"
+          AI_MODELS="${AI_MODELS:-{\"analysis\":\"gpt-4\",\"generation\":\"gpt-3.5-turbo\"}}"
+          OUTPUT_FORMAT="${OUTPUT_FORMAT:-json}"
+          QUALITY_THRESHOLD="${QUALITY_THRESHOLD:-7}"
+          PARALLEL_PROCESSING="${PARALLEL_PROCESSING:-false}"
+
           # Initialize pipeline metadata
           PIPELINE_ID="ai_$(date +%s)"
           START_TIME=$(date -Iseconds)
