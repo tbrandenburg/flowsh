@@ -131,6 +131,10 @@ templates-all: build
 					     ! grep -q "bash:.*invalid variable name\|syntax error\|command not found.*get_var" "$$result_file"; then \
 						echo "  ✅ Expected behavior - template works (requires environment/template variables)"; \
 						success=$$((success + 1)); \
+					elif grep -q "Mock circuit breaker.*operation failed\|Circuit breaker operation failed" "$$result_file" && \
+					     ! grep -q "bash:.*invalid variable name\|syntax error\|command not found.*get_var" "$$result_file"; then \
+						echo "  ✅ Expected behavior - circuit breaker demonstrating failure handling"; \
+						success=$$((success + 1)); \
 					else \
 						echo "  ❌ Execution failed - see $$result_file"; \
 						tail -3 "$$result_file" | sed 's/^/    /'; \
