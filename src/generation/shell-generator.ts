@@ -226,7 +226,8 @@ export function generateShellScript(
     }
 
     // Variable setup
-    scriptParts.push(generateVariableSetup(workflow, allVariables));
+    const variableSetup = generateVariableSetup(workflow, allVariables);
+    scriptParts.push(variableSetup);
     if (monitor) {
       monitor.updateProgress(1);
     }
@@ -252,6 +253,13 @@ export function generateShellScript(
     }
     if (progressTracker) {
       progressTracker.complete();
+    }
+
+    const provisionalScript = scriptParts.filter(part => part.trim() !== '').join('\n\n');
+    const internalVariableExports = collectInternalVariableExports(provisionalScript);
+    if (internalVariableExports) {
+      const insertIndex = variableSetup.trim() ? 2 : 1;
+      scriptParts.splice(insertIndex, 0, internalVariableExports);
     }
 
     const script = scriptParts.filter(part => part.trim() !== '').join('\n\n');
@@ -464,6 +472,42 @@ function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, 
   }
 
   return '';
+}
+
+/**
+ * Collect internal variable assignments and export them for subshell usage.
+ */
+function collectInternalVariableExports(shellScript: string): string {
+  const exportPattern = /^\s*export\s+([A-Z_][A-Z0-9_]*)/gm;
+  const assignmentPattern = /^(?!\s*(?:local|declare|typeset)\b)\s*([A-Z_][A-Z0-9_]*)=/;
+
+  const exportedVars = new Set<string>();
+  for (const match of shellScript.matchAll(exportPattern)) {
+    if (match[1]) {
+      exportedVars.add(match[1]);
+    }
+  }
+
+  const foundVars: string[] = [];
+  const seenVars = new Set<string>();
+  for (const line of shellScript.split('\n')) {
+    const match = line.match(assignmentPattern);
+    if (!match || !match[1]) {
+      continue;
+    }
+    const varName = match[1];
+    if (!exportedVars.has(varName) && !seenVars.has(varName)) {
+      seenVars.add(varName);
+      foundVars.push(varName);
+    }
+  }
+
+  if (foundVars.length === 0) {
+    return '';
+  }
+
+  const exportLines = foundVars.map(varName => `export ${varName}`);
+  return `# Internal Variable Exports\n${exportLines.join('\n')}`;
 }
 
 /**
