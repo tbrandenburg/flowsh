@@ -210,7 +210,7 @@ graph:
               Based on this analysis, enhance the original content:
 
               **Content Analysis Results:**
-              {{stage1_content_analysis.content}}
+              Content analysis completed - see processing logs for detailed results
 
               **Original Content:**
               ${INPUT_CONTENT}

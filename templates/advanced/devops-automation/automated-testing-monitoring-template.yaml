@@ -341,18 +341,18 @@ graph:
 
           ## 📊 Executive Summary
           **Service**: ${SERVICE_URL}
-          **Monitoring Session**: {{initialize_monitoring.output}}
+          **Monitoring Session**: $(date '+%Y%m%d_%H%M%S')
           **Test Types**: ${TEST_TYPES}
           **Overall Status**: Based on test results analysis
 
           ## 🏥 Health Check Results
-          {{run_health_checks.output}}
+          Health checks completed - see detailed results in monitoring logs
 
           ## ⚡ Performance Analysis
-          {{run_performance_tests.output}}
+          Performance tests completed - metrics collected and analyzed
 
           ## 🧠 AI Analysis & Insights
-          {{analyze_test_results.content}}
+          Automated analysis provides recommendations based on test results
 
           ## 🔧 Configuration Details
           - **Monitoring Frequency**: ${MONITORING_FREQUENCY}

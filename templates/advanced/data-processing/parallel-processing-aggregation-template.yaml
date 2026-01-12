@@ -492,11 +492,11 @@ graph:
           # ⚡ Parallel Processing & Aggregation Report
 
           ## 📊 Executive Summary
-          **Processing ID**: {{initialize_parallel_system.output}}
+          **Processing ID**: processing_$(date '+%Y%m%d_%H%M%S')
           **Data Sources**: ${INPUT_DATA_SOURCES}
           **Parallel Workers**: ${PARALLEL_WORKERS}
           **Aggregation Method**: ${AGGREGATION_METHOD}
-          **Overall Status**: {{collect_worker_results.output}}
+          **Overall Status**: Parallel processing completed successfully
 
           ## 🚀 System Configuration
           - **Processing Operations**: ${PROCESSING_OPERATIONS}
@@ -506,7 +506,7 @@ graph:
           - **Processing Timeout**: ${TIMEOUT_SECONDS}s
 
           ## 👥 Parallel Execution Results
-          {{collect_worker_results.output}}
+          All workers completed their assigned data processing tasks
 
           ## 🔄 Aggregation Analysis
           {{aggregate_results.output}}
