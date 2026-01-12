@@ -302,7 +302,7 @@ graph:
           # Validate email formats if rule is active
           if echo "$VALIDATION_RULES" | grep -q "email_format"; then
             echo "✉️ Validating email formats..."
-            INVALID_EMAILS=$(echo "$RAW_DATA" | grep -o '[^,;]*@[^,;]*' | grep -v '@.*\.' | wc -l)
+            INVALID_EMAILS=$(echo "$RAW_DATA" | grep -o '[^,;]*@[^,;]*' | grep -v '@.*\.' | wc -l || echo "0")
             ERROR_COUNT=$((ERROR_COUNT + INVALID_EMAILS))
             echo "   Found $INVALID_EMAILS invalid email formats"
           fi
@@ -310,8 +310,8 @@ graph:
           # Check for required fields if rule is active
           if echo "$VALIDATION_RULES" | grep -q "required_fields"; then
             echo "📋 Checking required fields..."
-            EMPTY_FIELDS=$(echo "$RAW_DATA" | grep -o ',,' | wc -l)
-            MISSING_EMAILS=$(echo "$RAW_DATA" | grep -o ',[[:space:]]*,' | wc -l)
+            EMPTY_FIELDS=$(echo "$RAW_DATA" | grep -o ',,' | wc -l || echo "0")
+            MISSING_EMAILS=$(echo "$RAW_DATA" | grep -o ',[[:space:]]*,' | wc -l || echo "0")
             MISSING_COUNT=$((EMPTY_FIELDS + MISSING_EMAILS))
             ERROR_COUNT=$((ERROR_COUNT + MISSING_COUNT))
             echo "   Found $MISSING_COUNT missing required fields"
@@ -408,8 +408,8 @@ graph:
           echo "$CLEANED_DATA" > /tmp/data_validation/output/cleaned_data.txt
 
           # Calculate improvement metrics
-          ORIGINAL_ISSUES=$(echo "$RAW_DATA" | grep -o 'INVALID\|,,' | wc -l)
-          REMAINING_ISSUES=$(echo "$CLEANED_DATA" | grep -o 'INVALID\|,,' | wc -l)
+            ORIGINAL_ISSUES=$(echo "$RAW_DATA" | grep -o 'INVALID\|,,' | wc -l || echo "0")
+            REMAINING_ISSUES=$(echo "$CLEANED_DATA" | grep -o 'INVALID\|,,' | wc -l || echo "0")
           IMPROVEMENT=$((ORIGINAL_ISSUES - REMAINING_ISSUES))
 
           echo ""
