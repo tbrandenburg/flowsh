@@ -16,6 +16,9 @@ jobs:
   template-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - name: Checkout Code
@@ -26,6 +29,9 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+
+      - name: Install OpenCode
+        run: curl -fsSL https://opencode.ai/install | bash
 
       - name: Install Dependencies
         run: npm ci
@@ -41,7 +47,7 @@ jobs:
 
       - name: Execute Template Integration Tests
         run: make templates-all
-        timeout-minutes: 10
+        timeout-minutes: 15
 
       - name: Archive Generated Scripts
         if: failure()
