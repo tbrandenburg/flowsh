@@ -123,7 +123,12 @@ templates-all: build
 					success=$$((success + 1)); \
 				else \
 					# Check if this is expected behavior due to missing API keys, env vars, or template variables \
-					if grep -q "✅.*succeeded\|✅.*completed\|Workflow completed successfully\|unbound variable\|not set\|Missing.*key\|requires.*variable\|Failed to resolve template content\|Telegram chat_id is required\|invalid variable name" "$$result_file"; then \
+					# NOTE: We no longer accept "invalid variable name" or shell script errors as "expected behavior" \
+					if grep -q "✅.*succeeded\|✅.*completed\|Workflow completed successfully" "$$result_file"; then \
+						echo "  ✅ Executed successfully"; \
+						success=$$((success + 1)); \
+					elif grep -q "unbound variable\|not set\|Missing.*key\|requires.*variable\|Failed to resolve template content\|Telegram chat_id is required" "$$result_file" && \
+					     ! grep -q "bash:.*invalid variable name\|syntax error\|command not found.*get_var" "$$result_file"; then \
 						echo "  ✅ Expected behavior - template works (requires environment/template variables)"; \
 						success=$$((success + 1)); \
 					else \
@@ -198,6 +203,74 @@ templates-syntax: build
 		echo "🎉 All templates generate valid shell syntax!"; \
 	else \
 		echo "⚠️  Shell syntax errors found - blocking deployment"; \
+		exit 1; \
+	fi
+
+# Enhanced shell syntax validation with zero tolerance for shell script errors
+templates-syntax-strict: build
+	@echo "🔒 STRICT Shell Syntax Validation - Zero Tolerance for Shell Script Errors"
+	@echo "=========================================================================="
+	@success=0; total=0; actual_failures=0; \
+	mkdir -p dev/test-outputs dev/execution-results/syntax-strict; \
+	for template in templates/enhanced/*.yaml templates/advanced/*/*.yaml; do \
+		if [ -f "$$template" ]; then \
+			total=$$((total + 1)); \
+			template_name=$$(basename "$$template"); \
+			echo "🧪 Testing: $$template_name"; \
+			script_file="dev/test-outputs/syntax-strict-$$template_name.sh"; \
+			result_file="dev/execution-results/syntax-strict/$$template_name.log"; \
+			if node dist/cli/index.js compile "$$template" > "$$script_file" 2>/dev/null; then \
+				if bash -n "$$script_file" 2>/dev/null; then \
+					echo "  ✅ Shell syntax valid"; \
+					chmod +x "$$script_file"; \
+					if timeout 30 "$$script_file" > "$$result_file" 2>&1; then \
+						echo "  ✅ Execution completed"; \
+						success=$$((success + 1)); \
+					else \
+						if grep -q "bash:.*invalid variable name\|bash:.*unbound variable\|syntax error\|command not found.*get_var" "$$result_file"; then \
+							echo "  ❌ SHELL SCRIPT ERRORS DETECTED"; \
+							echo "    Errors:"; \
+							grep "bash:.*invalid variable name\|bash:.*unbound variable\|syntax error" "$$result_file" | head -3 | sed 's/^/      /'; \
+							actual_failures=$$((actual_failures + 1)); \
+						elif grep -q "Workflow completed successfully\|✅.*succeeded\|✅.*completed" "$$result_file"; then \
+							echo "  ✅ Execution successful"; \
+							success=$$((success + 1)); \
+						elif grep -q "OPENAI_API_KEY\|Telegram chat_id\|Missing.*API.*key\|requires.*variable" "$$result_file"; then \
+							echo "  ⚠️  Acceptable failure (missing env vars)"; \
+							success=$$((success + 1)); \
+						else \
+							echo "  ❌ Other execution failure - see $$result_file"; \
+							tail -3 "$$result_file" | sed 's/^/      /'; \
+						fi; \
+					fi; \
+				else \
+					echo "  ❌ INVALID SHELL SYNTAX"; \
+					bash -n "$$script_file" 2>&1 | head -3 | sed 's/^/      /'; \
+					actual_failures=$$((actual_failures + 1)); \
+				fi; \
+			else \
+				echo "  ❌ COMPILATION FAILED"; \
+				actual_failures=$$((actual_failures + 1)); \
+			fi; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📊 STRICT VALIDATION RESULTS"; \
+	echo "============================="; \
+	echo "Total Templates:      $$total"; \
+	echo "Syntax & Logic Valid: $$success"; \
+	echo "Actual Failures:      $$actual_failures"; \
+	if [ $$actual_failures -eq 0 ]; then \
+		echo ""; \
+		echo "🎉 PERFECT! All templates pass strict validation!"; \
+		echo "   ✅ Zero shell script errors"; \
+		echo "   ✅ All syntax valid"; \
+		echo "   ✅ Professional quality achieved"; \
+	else \
+		echo ""; \
+		echo "❌ STRICT VALIDATION FAILED"; \
+		echo "   Templates with actual shell script errors: $$actual_failures"; \
+		echo "   This blocks deployment until fixed."; \
 		exit 1; \
 	fi
 

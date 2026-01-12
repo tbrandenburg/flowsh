@@ -216,9 +216,9 @@ async function validateCommand(workflowFile: string): Promise<void> {
 
     // Show warnings if any
     if (parseResult.warnings && parseResult.warnings.length > 0) {
-      console.log('\n⚠️  Warnings:');
+      console.error('\n⚠️  Warnings:');
       parseResult.warnings.forEach(warning => {
-        console.log(`   → ${warning.message}`);
+        console.error(`   → ${warning.message}`);
       });
     }
   } catch (error) {

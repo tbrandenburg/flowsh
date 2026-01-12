@@ -19,15 +19,41 @@ export class AnswerNodeGenerator extends BaseNodeGenerator {
     if (processedAnswer.includes('\n')) {
       const lines = processedAnswer.split('\n');
       const echoCommands = lines.map(line => {
-        const escapedLine = line.replace(/"/g, '\\"').replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+        // Use smart escaping that preserves get_var calls and shell variable references
+        const escapedLine = this.escapeForEcho(line);
         return `echo "${escapedLine}"`;
       });
       return echoCommands.join('\n');
     }
 
     // For single-line content, use echo with proper escaping
-    const escapedAnswer = processedAnswer.replace(/"/g, '\\"').replace(/`/g, '\\`');
+    const escapedAnswer = this.escapeForEcho(processedAnswer);
     return `echo "${escapedAnswer}"`;
+  }
+
+  /**
+   * Smart escaping for echo statements that preserves flowsh template variables
+   * Avoids double-escaping get_var calls while still protecting against shell injection
+   */
+  private escapeForEcho(text: string): string {
+    // Split the text around get_var calls and shell variable references
+    const parts = text.split(/(get_var "[^"]*" "[^"]*"|\$\([^)]*\)|\$\{[^}]*\})/);
+
+    return parts
+      .map((part, index) => {
+        // Even indices are regular text, odd indices are special patterns
+        if (index % 2 === 0) {
+          // Regular text - escape quotes, backticks, and backslashes but preserve newlines
+          return part
+            .replace(/\\/g, '\\\\') // Escape backslashes first
+            .replace(/"/g, '\\"') // Escape double quotes
+            .replace(/`/g, '\\`'); // Escape backticks
+        } else {
+          // get_var calls or shell expansions - don't escape the internal structure
+          return part;
+        }
+      })
+      .join('');
   }
 
   getVariables(node: WorkflowNode): string[] {
