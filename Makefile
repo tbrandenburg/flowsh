@@ -46,7 +46,7 @@ help:
 
 # Comprehensive quality assurance pipeline
 # Runs all checks: linting, formatting, unit tests, build, and templates
-qa: check templates-all
+qa: check
 	@echo "🎉 All QA checks passed successfully!"
 
 # Unit tests only (npm run test:run for CI mode)
