@@ -72,10 +72,22 @@ export class CodeNodeGenerator extends BaseNodeGenerator {
     let fullCommand = this.processTemplateVariablesForSubshell(String(command), node.id);
 
     if (Array.isArray(args) && args.length > 0) {
+      // Special handling for shell interpreters with script arguments
+      const isShellCommand = String(command).includes('bash') || String(command).includes('sh');
+      const stringArgs = args.map(arg => String(arg));
+      const hasCFlag = stringArgs.includes('-c');
+
       // Process each argument for subshell context
-      const processedArgs = args.map(arg => {
+      const processedArgs = args.map((arg, index) => {
         const argStr = String(arg);
         const processed = this.processTemplateVariablesForSubshell(argStr, node.id);
+
+        // Don't escape shell script content for bash -c commands
+        if (isShellCommand && hasCFlag && index > 0 && stringArgs[index - 1] === '-c') {
+          // This is a shell script - preserve shell syntax by not escaping
+          return `"${processed}"`;
+        }
+
         // Quote arguments that might contain spaces or special chars
         if (this.needsQuoting(processed)) {
           const escaped = this.escapeShellValueSmart(processed);

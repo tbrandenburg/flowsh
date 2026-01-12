@@ -325,12 +325,13 @@ set_var() {
     local value="$2" 
     local node_id="\${3:-root}"
     
-    # Set the variable globally
+    # Set the variable globally and export it for subshells
     declare -g "$var_name"="$value"
+    export "$var_name"
     
     # Debug logging when FLOWSH_DEBUG=true
     if [[ "\${FLOWSH_DEBUG:-false}" == "true" ]]; then
-        echo "[DEBUG] $node_id: SET $var_name = '$value'" >&2
+        echo "[DEBUG] $node_id: SET $var_name = '$value' (exported)" >&2
     fi
 }
 
