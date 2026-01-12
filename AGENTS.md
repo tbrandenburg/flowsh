@@ -243,6 +243,12 @@ When running shell or bash commands, agents must:
 - Use `set -euo pipefail` in generated shell scripts for safety
 - Validate all template substitutions to prevent command injection
 
+**Critical Timeout Requirements:**
+
+- `make qa` and `make templates-all` **must run with minimum 900-second (15-minute) timeout**
+- These commands test all 40+ production templates and require extended execution time
+- Template compilation and execution testing is comprehensive and time-intensive
+
 **If a command may hang or wait for input, do not run it.**
 
 **Safe command patterns**:
