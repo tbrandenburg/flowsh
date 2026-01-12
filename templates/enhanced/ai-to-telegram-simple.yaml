@@ -2,6 +2,24 @@ workflow:
   name: 'AI Content to Telegram - Production Ready'
   description: 'Enhanced template for AI content generation and Telegram delivery'
 
+# Environment Variables Required
+environment_variables:
+  - variable: 'OPENAI_API_KEY'
+    name: 'OpenAI API Key'
+    type: 'text'
+    description: 'Optional - fallback to LLMv7 if not provided'
+    required: false
+  - variable: 'TELEGRAM_BOT_TOKEN'
+    name: 'Telegram Bot Token'
+    type: 'text'
+    description: 'Required - get from @BotFather on Telegram'
+    required: true
+  - variable: 'TELEGRAM_CHAT_ID'
+    name: 'Telegram Chat ID'
+    type: 'text'
+    description: 'Required - your chat ID (use @userinfobot to find)'
+    required: true
+
 graph:
   nodes:
     - id: 'start'

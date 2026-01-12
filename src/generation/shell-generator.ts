@@ -397,9 +397,26 @@ ${generateVariableFunctions()}`;
  * Generate variable setup section
  */
 function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, string>): string {
+  // Get environment_variables from either top level or spec
+  const envVars = workflow.environment_variables || workflow.spec?.environment_variables || [];
+
   // Get conversation_variables from either top level or spec
   const conversationVars =
     workflow.conversation_variables || workflow.spec?.conversation_variables || [];
+
+  // Collect all variables that need initialization
+  const allVarLines: string[] = [];
+
+  // First, add environment variables from templates (the main fix!)
+  if (envVars && envVars.length > 0) {
+    for (const envVar of envVars) {
+      const varName = envVar.variable;
+      if (varName) {
+        // Add environment variable with empty default to prevent unbound variable errors
+        allVarLines.push(`${varName}=\${${varName}:-""}`);
+      }
+    }
+  }
 
   // Check if workflow has conversation_variables (modern approach)
   if (conversationVars && conversationVars.length > 0) {
@@ -415,25 +432,31 @@ function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, 
         includeValidation: false, // Skip validation in generated scripts for flexibility
         includeExports: false, // Keep scripts simple
       });
-      return `# Variable setup using modern resolution (${conversationVars.length} vars, resolved: ${resolutionResult.value.length})\n${setupResult || '# No setup result'}`;
+
+      // If we have modern resolution, combine it with environment variables
+      if (setupResult && setupResult.trim()) {
+        const envSection =
+          allVarLines.length > 0 ? `# Environment Variables\n${allVarLines.join('\n')}\n\n` : '';
+        return `${envSection}# Variable setup using modern resolution (${conversationVars.length} vars, resolved: ${resolutionResult.value.length})\n${setupResult}`;
+      }
     }
   }
 
-  // Legacy approach for backward compatibility
-  if (variables.size === 0) {
-    return '';
-  }
-
-  const varLines: string[] = [];
+  // Legacy approach for backward compatibility - add workflow variables
   for (const [varName, defaultValue] of variables) {
     if (defaultValue && defaultValue !== '') {
-      varLines.push(`${varName}=\${${varName}:-"${defaultValue.replace(/"/g, '\\"')}"}`);
+      allVarLines.push(`${varName}=\${${varName}:-"${defaultValue.replace(/"/g, '\\"')}"}`);
     } else {
-      varLines.push(`${varName}=\${${varName}:-""}`);
+      allVarLines.push(`${varName}=\${${varName}:-""}`);
     }
   }
 
-  return `# Environment Variables\n${varLines.join('\n')}`;
+  // Return all variables if we have any
+  if (allVarLines.length > 0) {
+    return `# Environment Variables\n${allVarLines.join('\n')}`;
+  }
+
+  return '';
 }
 
 /**
