@@ -65,15 +65,17 @@ describe('CLI Output Option', () => {
   });
 
   it('should handle file write errors gracefully', () => {
-    const protectedFile = '/root/protected.sh';
-    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${protectedFile}`;
+    const outputDir = path.join(tempDir, 'output-dir');
+    fs.mkdirSync(outputDir, { recursive: true });
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${outputDir}`;
 
     try {
       execSync(command, { encoding: 'utf8' });
       // Should not reach here
       expect(false).toBe(true);
     } catch (error: any) {
-      expect(error.stderr || error.stdout).toContain('Permission denied writing to:');
+      const errorOutput = error.stderr?.toString() ?? error.stdout?.toString() ?? error.message;
+      expect(errorOutput).toContain('Failed to write file:');
     }
   });
 
