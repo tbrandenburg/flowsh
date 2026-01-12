@@ -38,7 +38,7 @@ graph:
               echo "WARNING: Token format looks incorrect"
             fi
 
-            echo "Environment validation passed (demo mode safe for CI)"
+            echo "Environment validation passed - demo mode safe for CI"
             echo "Bot: [CONFIGURED]"
             echo "Chat: $TELEGRAM_CHAT_ID"
 
