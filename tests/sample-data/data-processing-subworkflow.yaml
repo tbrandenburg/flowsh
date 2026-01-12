@@ -1,0 +1,96 @@
+workflow:
+  name: 'Data Processing Sub-workflow'
+  description: 'Simple sub-workflow for data processing operations'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Sub-workflow Input'
+        description: 'Accept input data and processing mode from parent workflow'
+        variables:
+          - variable: 'input_data'
+            type: 'text'
+            label: 'Input Data'
+            description: 'Data to be processed'
+            required: true
+            default: 'sample data'
+          - variable: 'processing_mode'
+            type: 'select'
+            label: 'Processing Mode'
+            description: 'Type of processing to perform'
+            options: ['validate', 'transform', 'analyze']
+            default: 'validate'
+            required: true
+
+    - id: 'process_data'
+      type: 'code'
+      data:
+        title: 'Process Data Based on Mode'
+        description: 'Execute processing logic based on the specified mode'
+        command: |
+          processing_mode=${processing_mode:-validate}
+          case "${processing_mode}" in
+            "validate")
+              echo "Validated: ${input_data}"
+              echo "Status: Valid data format"
+              ;;
+            "transform")
+              echo "Transformed: $(echo "${input_data}" | tr '[:lower:]' '[:upper:]')"
+              echo "Status: Transformation complete"
+              ;;
+            "analyze")
+              word_count=$(echo "${input_data}" | wc -w)
+              char_count=$(echo "${input_data}" | wc -c)
+              echo "Analyzed: ${input_data}"
+              echo "Words: ${word_count}, Characters: ${char_count}"
+              echo "Status: Analysis complete"
+              ;;
+            *)
+              echo "Error: Unknown processing mode: ${processing_mode}"
+              exit 1
+              ;;
+          esac
+        output_variable: 'processing_output'
+
+    - id: 'generate_metadata'
+      type: 'variable-assignment'
+      data:
+        title: 'Generate Processing Metadata'
+        description: 'Create metadata about the processing operation'
+        variable: 'processing_metadata'
+        assignment_type: 'expression'
+        expression: "echo 'Sub-workflow: data-processing | Mode: ${processing_mode} | Timestamp: '$(date '+%Y-%m-%d %H:%M:%S')"
+
+    - id: 'set_validation_result'
+      type: 'variable-assignment'
+      data:
+        title: 'Set Validation Result'
+        description: 'Set the validation status for parent workflow'
+        variable: 'validation_result'
+        assignment_type: 'literal'
+        value: 'success'
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'Sub-workflow Output'
+        description: 'Return processed results to parent workflow'
+        output_variables:
+          - variable: 'processed_output'
+            source: 'processing_output'
+          - variable: 'processing_metadata'
+            source: 'processing_metadata'
+          - variable: 'validation_result'
+            source: 'validation_result'
+
+  edges:
+    - source: 'start'
+      target: 'process_data'
+    - source: 'process_data'
+      target: 'generate_metadata'
+    - source: 'generate_metadata'
+      target: 'set_validation_result'
+    - source: 'set_validation_result'
+      target: 'end'
