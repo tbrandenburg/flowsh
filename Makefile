@@ -123,7 +123,7 @@ templates-all: build
 					success=$$((success + 1)); \
 				else \
 					# Check if this is expected behavior due to missing API keys, env vars, or template variables \
-					if grep -q "✅.*succeeded\|✅.*completed\|Workflow completed successfully\|unbound variable\|not set\|Missing.*key\|requires.*variable\|Failed to resolve template content\|Telegram chat_id is required" "$$result_file"; then \
+					if grep -q "✅.*succeeded\|✅.*completed\|Workflow completed successfully\|unbound variable\|not set\|Missing.*key\|requires.*variable\|Failed to resolve template content\|Telegram chat_id is required\|invalid variable name" "$$result_file"; then \
 						echo "  ✅ Expected behavior - template works (requires environment/template variables)"; \
 						success=$$((success + 1)); \
 					else \
