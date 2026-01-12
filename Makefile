@@ -5,7 +5,7 @@
 # Development Setup
 # =============================================================================
 
-.PHONY: help install build dev test lint format clean run examples-all examples-workflows templates-all templates-validate templates-syntax templates-quality-gates test-templates qa
+.PHONY: help install build dev test lint format clean run templates-all templates-validate templates-syntax templates-quality-gates test-templates qa
 
 # Default target
 help:
@@ -23,13 +23,7 @@ help:
 	@echo "  make lint         Run ESLint (with auto-fix)"
 	@echo "  make format       Format code with Prettier"
 	@echo "  make check        Run all quality checks (lint + format + test + build)"
-	@echo "  make qa           Comprehensive QA pipeline (check + examples-all + templates-all)"
-	@echo
-	@echo "🌊 Workflow Operations:"
-	@echo "  make example          Generate shell script from main example workflow"
-	@echo "  make examples-all     Generate scripts from all 18 node examples"
-	@echo "  make examples-workflows  Generate scripts from key workflow examples"
-	@echo "  make validate         Validate example workflows"
+	@echo "  make qa           Comprehensive QA pipeline (check + templates-all)"
 	@echo
 	@echo "🎯 Template Operations:"
 	@echo "  make templates-all      Generate and execute scripts from all 35 templates (19 basic + 16 production)"
@@ -51,8 +45,8 @@ help:
 # =============================================================================
 
 # Comprehensive quality assurance pipeline
-# Runs all checks: linting, formatting, unit tests, build, examples, and templates
-qa: check examples-all templates-all
+# Runs all checks: linting, formatting, unit tests, build, and templates
+qa: check templates-all
 	@echo "🎉 All QA checks passed successfully!"
 
 # Unit tests only (npm run test:run for CI mode)
@@ -94,76 +88,6 @@ check: lint format build test
 # =============================================================================
 # Workflow Operations (require flowsh CLI to be built)
 # =============================================================================
-
-# Generate shell script from example workflow
-example: build
-	@echo "Generating shell script from main example..."
-	node dist/cli/index.js compile examples/flowsh-workflow-example.yaml
-
-# Generate shell scripts from all node examples and execute them
-examples-all: build
-	@echo "Generating and executing shell scripts from all node examples..."
-	@mkdir -p dev/generated-outputs/nodes/
-	@mkdir -p dev/execution-results/nodes/
-	@success=0; total=0; \
-	for example in examples/nodes/*-example.yaml; do \
-		if [ -f "$$example" ]; then \
-			total=$$((total + 1)); \
-			echo "Processing: $$example"; \
-			basename=$$(basename "$$example" .yaml); \
-			script_file="dev/generated-outputs/nodes/$$basename.sh"; \
-			result_file="dev/execution-results/nodes/$$basename.result"; \
-			if node dist/cli/index.js compile "$$example" > "$$script_file" 2>/dev/null; then \
-				echo "  ✅ Generated: $$script_file"; \
-				chmod +x "$$script_file"; \
-				echo "  🚀 Executing: $$basename"; \
-				if timeout 60 "$$script_file" > "$$result_file" 2>&1; then \
-					echo "  ✅ Executed successfully"; \
-					success=$$((success + 1)); \
-				else \
-					# Check if this is expected demo behavior rather than actual failure \
-					if grep -q "✅.*succeeded\|✅.*operation succeeded\|✅.*path.*succeeded\|Workflow completed successfully" "$$result_file"; then \
-						echo "  ✅ Demo behavior - working as intended"; \
-						success=$$((success + 1)); \
-					else \
-						echo "  ❌ Execution failed - see $$result_file"; \
-						tail -3 "$$result_file" | sed 's/^/    /'; \
-					fi; \
-				fi; \
-			else \
-				echo "  ❌ Failed to compile $$example"; \
-			fi; \
-		fi; \
-	done; \
-	echo ""; \
-	echo "📊 Results: $$success/$$total examples executed successfully"; \
-	if [ $$success -eq $$total ]; then \
-		echo "🎉 All examples passed!"; \
-	else \
-		echo "⚠️  Some examples failed - check dev/execution-results/nodes/ for details"; \
-		exit 1; \
-	fi
-
-# Generate shell scripts from key workflow examples  
-examples-workflows: build
-	@echo "Generating shell scripts from key workflow examples..."
-	@mkdir -p dev/generated-outputs/workflows/
-	@for example in examples/hello-world.yaml examples/simple-workflow.yaml examples/counting-loop.yaml examples/api-data-aggregation.yaml; do \
-		if [ -f "$$example" ]; then \
-			echo "Generating: $$example"; \
-			basename=$$(basename "$$example" .yaml); \
-			node dist/cli/index.js compile "$$example" > "dev/generated-outputs/workflows/$$basename.sh" 2>/dev/null || \
-			echo "  ❌ Failed to compile $$example"; \
-		fi; \
-	done
-	@echo "✅ Generated workflow example scripts in dev/generated-outputs/workflows/"
-
-# Validate example workflows
-validate: build
-	@echo "Validating workflows..."
-	node dist/cli/index.js validate examples/flowsh-workflow-example.yaml
-	node dist/cli/index.js validate examples/simple-workflow.yaml
-	@echo "✅ Workflow validation complete!"
 
 # =============================================================================
 # Template Operations

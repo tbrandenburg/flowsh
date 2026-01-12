@@ -25,7 +25,7 @@ AI agents must NEVER create temporary files, generated scripts, test files, or a
 - Core configuration files: `package.json`, `package-lock.json`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.cjs`, `.prettierrc`
 - Documentation: `README.md`, `AGENTS.md`, `LICENSE`
 - Build/development tools: `Makefile`, `.gitignore`
-- Standard directories: `src/`, `templates/`, `examples/`, `docs/`, `dev/`
+- Standard directories: `src/`, `templates/`, `docs/`, `dev/`
 
 **The entire `dev/` folder is gitignored - use it freely for all temporary work.**
 
@@ -114,9 +114,6 @@ flowsh/
 ├── templates/              # 14 production-ready workflow templates
 │   ├── enhanced/           # Simple, ready-to-use templates (4)
 │   └── advanced/          # Complex workflows by category (10)
-├── examples/               # Example workflows and node demonstrations
-│   ├── nodes/              # Individual node type examples (19+ types)
-│   └── *.yaml              # Complete workflow examples
 ├── dev/                    # ALL temporary/generated files (gitignored)
 │   ├── generated-scripts/  # Temporary shell scripts and generated files
 │   ├── test-workflows/     # Test YAML files and temporary workflow data
@@ -152,9 +149,6 @@ npm test                    # Run Vitest test suite
 
 # Makefile workflows (preferred for comprehensive operations)
 make check                  # Run all quality checks (lint + format + test + build)
-make example                # Generate shell script from main example
-make examples-all           # Generate scripts from all 19+ node examples
-make validate               # Validate example workflows
 make clean                  # Remove build artifacts
 
 # flowsh CLI usage
@@ -179,7 +173,7 @@ Agents must run relevant tests and add tests for new functionality when reasonab
 
 **Validation Requirements**:
 
-- All workflow examples must compile successfully
+- All workflow templates must compile successfully
 - Generated shell scripts must be executable and safe
 - Security validation must pass for all inputs
 - No infinite loop conditions in generated scripts
@@ -232,10 +226,9 @@ Agents must run relevant tests and add tests for new functionality when reasonab
 Typical workflow:
 
 1. Run `make check` before commits
-2. Ensure all examples compile and validate
+2. Ensure all templates compile and validate
 3. Add tests for new node types or functionality
 4. Update documentation if adding features
-5. Generated shell scripts in examples/ should be committed for validation
 
 ---
 
@@ -258,7 +251,7 @@ When running shell or bash commands, agents must:
 # Good - non-interactive
 npm ci --silent
 flowsh validate --verbose
-make examples-all
+make templates-all
 
 # Bad - may require interaction
 npm install

@@ -44,7 +44,7 @@ flowsh now supports **enhanced control flow** with loops and iterations, making 
 - **Rich Utility Framework** - Enhanced logging, debugging, and error handling
 - **Variable Context** - Loop and iteration variables (`loop_index`, `iteration_item`, etc.)
 
-See `examples/counting-loop.yaml` and `examples/file-processing-iteration.yaml` for working examples.
+See `templates/enhanced/counting-loop-template.yaml` and `templates/enhanced/file-processing-template.yaml` for production-ready examples.
 
 ## Example
 
@@ -273,11 +273,11 @@ flowsh compile my-bot.yaml > my-bot.sh
 bash my-bot.sh
 ```
 
-See the `examples/` directory for sample workflows and the `templates/` directory for all 14 production-ready templates:
+See the `templates/` directory system with complete workflow templates covering all use cases:
 
-- `hello-world.yaml` - Basic greeting workflow
-- `simple-workflow.yaml` - Agent orchestration example
-- **Templates** - 14 ready-to-use workflows covering AI, data processing, DevOps, and more
+- `templates/enhanced/hello-world-template.yaml` - Basic greeting workflow template
+- `templates/enhanced/api-aggregation-template.yaml` - Multi-API data collection template
+- **Complete Template System** - 14+ production-ready workflows covering AI, data processing, DevOps, and more
 
 ## Contributing
 

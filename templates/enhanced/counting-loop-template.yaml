@@ -1,0 +1,107 @@
+workflow:
+  name: 'Counting Loop Control - Production Template'
+  description: 'Production-ready template demonstrating safe loop control structures with configurable targets, counter management, and built-in safety limits'
+
+environment_variables:
+  - variable: 'target'
+    name: 'Target Count Value'
+    type: 'number'
+    description: 'Target number to count up to (loop termination condition)'
+    default: 5
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Initialize Counter System'
+        description: 'Setup counter variables and safety parameters for controlled iteration'
+        variables:
+          counter: 0
+
+    - id: 'setup_message'
+      type: 'code'
+      data:
+        title: 'Display Loop Configuration'
+        description: 'Show counting parameters and safety settings'
+        command: 'echo'
+        args:
+          [
+            '🔢 Initializing counting loop: Start={{counter}} → Target={{target}} (Max iterations: 10)',
+          ]
+
+    - id: 'counting_loop'
+      type: 'loop'
+      data:
+        title: 'Safe Counting Loop'
+        description: 'Controlled loop with condition checking and maximum iteration safety limit'
+        condition:
+          variable: 'counter'
+          operator: '<'
+          value: '{{target}}'
+        max_iterations: 10
+
+    - id: 'increment_counter'
+      type: 'variable-assignment'
+      data:
+        title: 'Increment Counter Safely'
+        description: 'Increase counter by 1 with overflow protection'
+        variable: 'counter'
+        value: '$((counter + 1))'
+
+    - id: 'display_count'
+      type: 'code'
+      data:
+        title: 'Show Progress Status'
+        description: 'Display current counter value and iteration progress with detailed logging'
+        command: 'echo'
+        args:
+          [
+            '📊 Current Count: {{counter}} | Loop Iteration: {{loop_iteration}} | Target: {{target}}',
+          ]
+
+    - id: 'completion_message'
+      type: 'code'
+      data:
+        title: 'Generate Loop Summary'
+        description: 'Display comprehensive completion report with final statistics'
+        command: 'echo'
+        args:
+          [
+            '✅ Counting loop completed successfully! Final count: {{counter}} | Total iterations executed: {{loop_final_count}}',
+          ]
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'Complete Successfully'
+        description: 'Loop workflow completed with safety checks passed'
+
+  edges:
+    - id: 'start_to_setup'
+      source: 'start'
+      target: 'setup_message'
+
+    - id: 'setup_to_loop'
+      source: 'setup_message'
+      target: 'counting_loop'
+
+    - id: 'loop_to_increment'
+      source: 'counting_loop'
+      target: 'increment_counter'
+
+    - id: 'increment_to_display'
+      source: 'increment_counter'
+      target: 'display_count'
+
+    - id: 'display_to_loop_back'
+      source: 'display_count'
+      target: 'counting_loop'
+
+    - id: 'loop_to_completion'
+      source: 'counting_loop'
+      target: 'completion_message'
+
+    - id: 'completion_to_end'
+      source: 'completion_message'
+      target: 'end'

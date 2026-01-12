@@ -1,7 +1,0 @@
-Example: sub-workflow-node-example
-Validation: false
-Compilation: false
-Script Generation: false
-Syntax Check: false
-Overall: FAILED
-Timestamp: Sat Jan  3 03:28:17 PM CET 2026

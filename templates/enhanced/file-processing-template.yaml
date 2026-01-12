@@ -1,0 +1,101 @@
+workflow:
+  name: 'File Processing Iteration - Production Template'
+  description: 'Production-ready template for iterating through file collections with robust processing, counting, and progress tracking'
+
+environment_variables:
+  - variable: 'files'
+    name: 'File List Array'
+    type: 'text'
+    description: 'JSON array of files to process iteratively'
+    default: '["file1.txt", "file2.txt", "file3.txt", "data.csv", "report.pdf"]'
+
+graph:
+  nodes:
+    - id: 'start'
+      type: 'start'
+      data:
+        title: 'Initialize File Processing'
+        description: 'Start batch file processing workflow with counter initialization'
+        variables:
+          processed_count: 0
+
+    - id: 'setup_message'
+      type: 'code'
+      data:
+        title: 'Display Processing Status'
+        description: 'Show initialization message and file count'
+        command: 'echo'
+        args: ['🔄 Starting file processing iteration workflow']
+
+    - id: 'file_iteration'
+      type: 'iteration'
+      data:
+        title: 'File Collection Iterator'
+        description: 'Iterate through each file in the collection with progress tracking'
+        input_variable: 'files'
+        output_variable: 'processed_files'
+
+    - id: 'process_file'
+      type: 'code'
+      data:
+        title: 'Process Individual File'
+        description: 'Handle current file with detailed logging and error tracking'
+        command: 'echo'
+        args:
+          [
+            '📄 Processing: {{iteration_item}} | Index: {{iteration_index}} | Progress: {{iteration_index}}/{{iteration_total}}',
+          ]
+
+    - id: 'increment_count'
+      type: 'variable-assignment'
+      data:
+        title: 'Update Processing Counter'
+        description: 'Increment processed file count for final reporting'
+        variable: 'processed_count'
+        value: '$((processed_count + 1))'
+
+    - id: 'completion_message'
+      type: 'code'
+      data:
+        title: 'Generate Processing Report'
+        description: 'Display comprehensive processing results and statistics'
+        command: 'echo'
+        args:
+          [
+            '✅ File processing complete! Successfully processed {{processed_count}} files from collection',
+          ]
+
+    - id: 'end'
+      type: 'end'
+      data:
+        title: 'Complete Successfully'
+        description: 'Workflow completed - all files processed with full reporting'
+
+  edges:
+    - id: 'start_to_setup'
+      source: 'start'
+      target: 'setup_message'
+
+    - id: 'setup_to_iteration'
+      source: 'setup_message'
+      target: 'file_iteration'
+
+    - id: 'iteration_to_process'
+      source: 'file_iteration'
+      target: 'process_file'
+
+    - id: 'process_to_increment'
+      source: 'process_file'
+      target: 'increment_count'
+
+    - id: 'increment_to_iteration_back'
+      source: 'increment_count'
+      target: 'file_iteration'
+
+    - id: 'iteration_to_completion'
+      source: 'file_iteration'
+      target: 'completion_message'
+
+    - id: 'completion_to_end'
+      source: 'completion_message'
+      target: 'end'
