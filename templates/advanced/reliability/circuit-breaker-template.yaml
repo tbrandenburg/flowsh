@@ -21,6 +21,12 @@ environment_variables:
     description: 'Internal processing variable for failure threshold'
     required: false
     default: ''
+  - variable: 'RECOVERY_TIME'
+    name: 'Recovery Time Variable'
+    type: 'text'
+    description: 'Internal processing variable for recovery time'
+    required: false
+    default: ''
 
 graph:
   nodes:
