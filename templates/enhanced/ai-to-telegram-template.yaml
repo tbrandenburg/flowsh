@@ -67,16 +67,13 @@ graph:
             # Use safe defaults for CI testing - replace with real values for production
             TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-123456789:ABC-DEMO-TOKEN-REPLACE-WITH-REAL-BOT-TOKEN}"
             TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:--1234567890}"
-            TELEGRAM_DEMO_MODE="false"
 
             if [[ "$TELEGRAM_BOT_TOKEN" == "123456789:ABC-DEMO-TOKEN-REPLACE-WITH-REAL-BOT-TOKEN" ]]; then
               echo "🚨 DEMO MODE: Using placeholder bot token - configure TELEGRAM_BOT_TOKEN for production"
-              TELEGRAM_DEMO_MODE="true"
             fi
 
             if [[ "$TELEGRAM_CHAT_ID" == "-1234567890" ]]; then
               echo "🚨 DEMO MODE: Using placeholder chat ID - configure TELEGRAM_CHAT_ID for production"
-              TELEGRAM_DEMO_MODE="true"
             fi
 
             # Validate token format (number:alphanumeric)
@@ -98,7 +95,6 @@ graph:
             echo "✅ Environment validation passed"
             echo "🤖 Bot Token: Configured"
             echo "💬 Chat ID: $TELEGRAM_CHAT_ID"
-            set_workflow_var "TELEGRAM_DEMO_MODE" "$TELEGRAM_DEMO_MODE"
 
     - id: 'generate_content'
       type: 'llm'
@@ -169,7 +165,15 @@ graph:
             echo "🔍 Checking delivery status..."
 
             telegram_success="$(get_workflow_var "TELEGRAM_SUCCESS" "false")"
-            telegram_demo_mode="$(get_workflow_var "TELEGRAM_DEMO_MODE" "false")"
+            telegram_demo_mode="false"
+
+            if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+              telegram_demo_mode="true"
+            fi
+            if [ "${TELEGRAM_BOT_TOKEN:-}" = "123456789:ABC-DEMO-TOKEN-REPLACE-WITH-REAL-BOT-TOKEN" ] \
+              || [ "${TELEGRAM_CHAT_ID:-}" = "-1234567890" ]; then
+              telegram_demo_mode="true"
+            fi
 
             # Check if TELEGRAM_SUCCESS variable exists and is true
             if [ "$telegram_success" = "true" ]; then
@@ -183,8 +187,7 @@ graph:
             fi
 
             if [ "$telegram_demo_mode" = "true" ]; then
-              echo "⚠️  DEMO MODE: Telegram delivery skipped with placeholder credentials"
-              set_workflow_var "TELEGRAM_SUCCESS" "demo"
+              echo "⚠️  DEMO MODE: Telegram delivery skipped with missing or placeholder credentials"
               echo "Workflow completed successfully"
               exit 0
             else
