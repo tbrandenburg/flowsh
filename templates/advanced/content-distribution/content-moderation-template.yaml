@@ -450,9 +450,9 @@ graph:
             fi
 
             echo "📊 Sentiment Analysis Results:"
-            echo "  Positive indicators: $POSITIVE_COUNT ($POSITIVE_RATIO)"
-            echo "  Negative indicators: $NEGATIVE_COUNT ($NEGATIVE_RATIO)" 
-            echo "  Neutral indicators: $NEUTRAL_COUNT ($NEUTRAL_RATIO)"
+            echo "  Positive indicators: $POSITIVE_COUNT ratio $POSITIVE_RATIO"
+            echo "  Negative indicators: $NEGATIVE_COUNT ratio $NEGATIVE_RATIO" 
+            echo "  Neutral indicators: $NEUTRAL_COUNT ratio $NEUTRAL_RATIO"
             echo "  Overall sentiment: $OVERALL_SENTIMENT"
             echo "  Sentiment score: $SENTIMENT_SCORE"
 
@@ -612,10 +612,10 @@ graph:
             RESPONSE_BODY=$(echo "$WEBHOOK_RESPONSE" | sed 's/HTTP_CODE:[0-9]*$//')
 
             if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-              echo "✅ Webhook notification sent successfully (HTTP $HTTP_CODE)"
+              echo "✅ Webhook notification sent successfully HTTP $HTTP_CODE"
               WEBHOOK_SUCCESS=true
             else
-              echo "❌ Webhook notification failed (HTTP $HTTP_CODE)"
+              echo "❌ Webhook notification failed HTTP $HTTP_CODE"
               echo "Response: $RESPONSE_BODY"
               WEBHOOK_SUCCESS=false
             fi
