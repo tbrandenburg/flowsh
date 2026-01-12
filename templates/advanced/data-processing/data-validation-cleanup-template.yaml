@@ -56,6 +56,126 @@ environment_variables:
     description: 'Chat ID for sending validation reports'
     required: false
     default: ''
+  - variable: 'CLEANED_COUNT'
+    name: 'Cleaned Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for count of cleaned records'
+    required: false
+    default: ''
+  - variable: 'CLEANED_DATA'
+    name: 'Cleaned Data Variable'
+    type: 'text'
+    description: 'Internal processing variable for cleaned data content'
+    required: false
+    default: ''
+  - variable: 'CURRENT_TIME'
+    name: 'Current Time Variable'
+    type: 'text'
+    description: 'Internal processing variable for current timestamp'
+    required: false
+    default: ''
+  - variable: 'EMPTY_FIELDS'
+    name: 'Empty Fields Variable'
+    type: 'text'
+    description: 'Internal processing variable for empty field count'
+    required: false
+    default: ''
+  - variable: 'ERROR_COUNT'
+    name: 'Error Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for validation error count'
+    required: false
+    default: ''
+  - variable: 'ERROR_PERCENTAGE'
+    name: 'Error Percentage Variable'
+    type: 'text'
+    description: 'Internal processing variable for error percentage calculation'
+    required: false
+    default: ''
+  - variable: 'IMPROVEMENT'
+    name: 'Improvement Variable'
+    type: 'text'
+    description: 'Internal processing variable for data quality improvement metric'
+    required: false
+    default: ''
+  - variable: 'INCOMPLETE_RECORDS'
+    name: 'Incomplete Records Variable'
+    type: 'text'
+    description: 'Internal processing variable for incomplete record count'
+    required: false
+    default: ''
+  - variable: 'INVALID_EMAILS'
+    name: 'Invalid Emails Variable'
+    type: 'text'
+    description: 'Internal processing variable for invalid email count'
+    required: false
+    default: ''
+  - variable: 'MISSING_COUNT'
+    name: 'Missing Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for missing data count'
+    required: false
+    default: ''
+  - variable: 'MISSING_EMAILS'
+    name: 'Missing Emails Variable'
+    type: 'text'
+    description: 'Internal processing variable for missing email count'
+    required: false
+    default: ''
+  - variable: 'ORIGINAL_COUNT'
+    name: 'Original Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for original record count'
+    required: false
+    default: ''
+  - variable: 'ORIGINAL_ISSUES'
+    name: 'Original Issues Variable'
+    type: 'text'
+    description: 'Internal processing variable for original issue count'
+    required: false
+    default: ''
+  - variable: 'RAW_DATA'
+    name: 'Raw Data Variable'
+    type: 'text'
+    description: 'Internal processing variable for raw input data'
+    required: false
+    default: ''
+  - variable: 'REMAINING_ISSUES'
+    name: 'Remaining Issues Variable'
+    type: 'text'
+    description: 'Internal processing variable for remaining issues count'
+    required: false
+    default: ''
+  - variable: 'REMOVED_DUPLICATES'
+    name: 'Removed Duplicates Variable'
+    type: 'text'
+    description: 'Internal processing variable for removed duplicate count'
+    required: false
+    default: ''
+  - variable: 'TOTAL_RECORDS'
+    name: 'Total Records Variable'
+    type: 'text'
+    description: 'Internal processing variable for total record count'
+    required: false
+    default: ''
+  - variable: 'VALIDATION_ID'
+    name: 'Validation ID Variable'
+    type: 'text'
+    description: 'Internal processing variable for unique validation session ID'
+    required: false
+    default: ''
+  - variable: 'VALID_RECORDS'
+    name: 'Valid Records Variable'
+    type: 'text'
+    description: 'Internal processing variable for valid record count'
+    required: false
+    default: ''
+  - variable: 'WARNINGS_COUNT'
+    name: 'Warnings Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for validation warning count'
+    required: false
+    default: ''
 
 graph:
   nodes:

@@ -74,6 +74,90 @@ environment_variables:
     description: 'Internal processing variable for aggregated file path'
     required: false
     default: ''
+  - variable: 'AGGREGATED_SIZE'
+    name: 'Aggregated Size Variable'
+    type: 'text'
+    description: 'Internal processing variable for aggregated data size'
+    required: false
+    default: ''
+  - variable: 'AGGREGATION_START'
+    name: 'Aggregation Start Variable'
+    type: 'text'
+    description: 'Internal processing variable for aggregation start time'
+    required: false
+    default: ''
+  - variable: 'COLLECTION_START'
+    name: 'Collection Start Variable'
+    type: 'text'
+    description: 'Internal processing variable for collection start time'
+    required: false
+    default: ''
+  - variable: 'ERROR_COUNT'
+    name: 'Error Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for error count during processing'
+    required: false
+    default: ''
+  - variable: 'IFS'
+    name: 'IFS Variable'
+    type: 'text'
+    description: 'Internal processing variable for input field separator'
+    required: false
+    default: ''
+  - variable: 'PROCESSING_ID'
+    name: 'Processing ID Variable'
+    type: 'text'
+    description: 'Internal processing variable for unique processing session ID'
+    required: false
+    default: ''
+  - variable: 'PROCESSING_STATUS'
+    name: 'Processing Status Variable'
+    type: 'text'
+    description: 'Internal processing variable for processing status'
+    required: false
+    default: ''
+  - variable: 'SOURCE_COUNT'
+    name: 'Source Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for source data count'
+    required: false
+    default: ''
+  - variable: 'SOURCES_PER_WORKER'
+    name: 'Sources Per Worker Variable'
+    type: 'text'
+    description: 'Internal processing variable for sources allocated per worker'
+    required: false
+    default: ''
+  - variable: 'START_TIME'
+    name: 'Start Time Variable'
+    type: 'text'
+    description: 'Internal processing variable for processing start timestamp'
+    required: false
+    default: ''
+  - variable: 'SUCCESS_COUNT'
+    name: 'Success Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for successful processing count'
+    required: false
+    default: ''
+  - variable: 'SUCCESS_RATE'
+    name: 'Success Rate Variable'
+    type: 'text'
+    description: 'Internal processing variable for processing success rate'
+    required: false
+    default: ''
+  - variable: 'TOTAL_WORKERS'
+    name: 'Total Workers Variable'
+    type: 'text'
+    description: 'Internal processing variable for total worker count'
+    required: false
+    default: ''
+  - variable: 'WORKERS_TO_USE'
+    name: 'Workers To Use Variable'
+    type: 'text'
+    description: 'Internal processing variable for active worker count'
+    required: false
+    default: ''
 
 graph:
   nodes:
