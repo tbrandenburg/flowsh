@@ -9,6 +9,12 @@ environment_variables:
     description: 'The text content to analyze for safety and compliance'
     required: true
     default: 'This is sample content that needs moderation review.'
+  - variable: 'CONTENT'
+    name: 'Content Processing Variable'
+    type: 'text'
+    description: 'Internal variable for content processing (derived from CONTENT_INPUT)'
+    required: false
+    default: ''
   - variable: 'OPENAI_API_KEY'
     name: 'OpenAI API Key'
     type: 'text'

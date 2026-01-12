@@ -15,6 +15,18 @@ environment_variables:
     description: 'The main content to distribute'
     required: true
     default: 'We are excited to announce the release of our new feature that will enhance your experience.'
+  - variable: 'TITLE'
+    name: 'Title Processing Variable'
+    type: 'text'
+    description: 'Internal variable for title processing (derived from CONTENT_TITLE)'
+    required: false
+    default: ''
+  - variable: 'BODY'
+    name: 'Body Processing Variable'
+    type: 'text'
+    description: 'Internal variable for body processing (derived from CONTENT_BODY)'
+    required: false
+    default: ''
   - variable: 'TARGET_PLATFORMS'
     name: 'Target Platforms'
     type: 'text'

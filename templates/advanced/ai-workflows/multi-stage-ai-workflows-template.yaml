@@ -374,7 +374,7 @@ graph:
       data:
         title: 'Generate Final Structured Output'
         description: 'Create final output in requested format with all processing results'
-        template: |
+        template_content: |
           # 🤖 Multi-Stage AI Processing Results
 
           ## 📊 Processing Summary

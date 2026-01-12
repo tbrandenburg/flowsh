@@ -336,7 +336,7 @@ graph:
       data:
         title: 'Generate Comprehensive Monitoring Report'
         description: 'Create detailed monitoring and testing report'
-        template: |
+        template_content: |
           # 🚀 Automated Testing & Monitoring Report
 
           ## 📊 Executive Summary

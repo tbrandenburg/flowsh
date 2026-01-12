@@ -68,6 +68,12 @@ environment_variables:
     description: 'Chat ID for parallel processing status updates'
     required: false
     default: ''
+  - variable: 'AGGREGATED_FILE'
+    name: 'Aggregated File Path'
+    type: 'text'
+    description: 'Internal processing variable for aggregated file path'
+    required: false
+    default: ''
 
 graph:
   nodes:

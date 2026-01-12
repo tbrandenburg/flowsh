@@ -45,6 +45,12 @@ environment_variables:
     description: 'Telegram chat ID for content delivery'
     required: false
     default: ''
+  - variable: 'TOPIC'
+    name: 'Processing Topic Variable'
+    type: 'text'
+    description: 'Internal processing variable for topic assignment'
+    required: false
+    default: ''
 
 graph:
   nodes:

@@ -14,6 +14,16 @@ environment_variables:
     type: 'text'
     description: 'Theme or topic for the poem (e.g., "nature", "technology", "friendship")'
     default: 'nature and technology harmony'
+  - variable: 'TELEGRAM_BOT_TOKEN'
+    name: 'Telegram Bot Token'
+    type: 'text'
+    description: 'Required - get from @BotFather on Telegram'
+    required: true
+  - variable: 'TELEGRAM_CHAT_ID'
+    name: 'Telegram Chat ID'
+    type: 'text'
+    description: 'Required - your chat ID (use @userinfobot to find)'
+    required: true
 
 graph:
   nodes:

@@ -24,6 +24,18 @@ environment_variables:
     type: 'text'
     description: 'Required - your chat ID (use @userinfobot to find)'
     required: true
+  - variable: 'content_type'
+    name: 'Content Type'
+    type: 'text'
+    description: 'Type of content to generate'
+    required: false
+    default: 'riddle'
+  - variable: 'content_topic'
+    name: 'Content Topic'
+    type: 'text'
+    description: 'Topic for content generation'
+    required: false
+    default: 'space exploration'
 
 graph:
   nodes:

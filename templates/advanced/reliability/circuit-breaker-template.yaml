@@ -2,6 +2,14 @@ workflow:
   name: 'Circuit Breaker API Protection - Production Ready'
   description: 'Protect external API calls with circuit breaker pattern and failure recovery'
 
+environment_variables:
+  - variable: 'PRIMARY_ENDPOINT'
+    name: 'Primary Endpoint Variable'
+    type: 'text'
+    description: 'Internal processing variable for primary endpoint'
+    required: false
+    default: ''
+
 graph:
   nodes:
     - id: 'start'
