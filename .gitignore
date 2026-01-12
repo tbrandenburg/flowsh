@@ -151,6 +151,12 @@ dev/
 !tests/**/*.sh
 !examples/**/*.sh
 
+# Allow test workflow files in tests directory (needed for CI/CD)
+!tests/**/*-test.yaml
+!tests/**/*-test.yml
+!tests/**/test-*.yaml
+!tests/**/test-*.yml
+
 # Legacy protection: Test and temporary files in root (should be in dev/)
 *-test.yaml
 *-test.yml

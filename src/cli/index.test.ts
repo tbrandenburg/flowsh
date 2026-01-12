@@ -25,7 +25,7 @@ describe('CLI Output Option', () => {
   });
 
   it('should write to file when -o option is provided', () => {
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml -o ${testOutputFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${testOutputFile}`;
     const output = execSync(command, { encoding: 'utf8' });
 
     expect(output).toContain('Generated script saved to:');
@@ -37,7 +37,7 @@ describe('CLI Output Option', () => {
   });
 
   it('should write to file when --output option is provided', () => {
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml --output ${testOutputFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml --output ${testOutputFile}`;
     const output = execSync(command, { encoding: 'utf8' });
 
     expect(output).toContain('Generated script saved to:');
@@ -46,7 +46,7 @@ describe('CLI Output Option', () => {
 
   it('should create directories when they do not exist', () => {
     const nestedOutputFile = path.join(tempDir, 'nested', 'deep', 'output.sh');
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml -o ${nestedOutputFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${nestedOutputFile}`;
 
     const output = execSync(command, { encoding: 'utf8' });
 
@@ -56,7 +56,7 @@ describe('CLI Output Option', () => {
   });
 
   it('should still output to stdout when no output option is provided', () => {
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml`;
     const output = execSync(command, { encoding: 'utf8' });
 
     expect(output).toContain('#!/bin/bash');
@@ -66,7 +66,7 @@ describe('CLI Output Option', () => {
 
   it('should handle file write errors gracefully', () => {
     const protectedFile = '/root/protected.sh';
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml -o ${protectedFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${protectedFile}`;
 
     try {
       execSync(command, { encoding: 'utf8' });
@@ -83,7 +83,7 @@ describe('CLI Output Option', () => {
     expect(fs.readFileSync(testOutputFile, 'utf8')).toBe('original content');
 
     // Overwrite with flowsh output
-    const command = `node dist/cli/index.js compile dev/test-workflows/hello-world-test.yaml -o ${testOutputFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/hello-world-test.yaml -o ${testOutputFile}`;
     const output = execSync(command, { encoding: 'utf8' });
 
     expect(output).toContain('Generated script saved to:');
@@ -93,7 +93,7 @@ describe('CLI Output Option', () => {
   });
 
   it('should work with different workflow files', () => {
-    const command = `node dist/cli/index.js compile dev/test-workflows/counting-loop-test.yaml -o ${testOutputFile}`;
+    const command = `node dist/cli/index.js compile tests/workflows/counting-loop-test.yaml -o ${testOutputFile}`;
     const output = execSync(command, { encoding: 'utf8' });
 
     expect(output).toContain('Generated script saved to:');
