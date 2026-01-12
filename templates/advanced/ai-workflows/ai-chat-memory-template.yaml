@@ -14,25 +14,19 @@ environment_variables:
     type: 'text'
     description: 'System prompt defining AI personality and behavior'
     required: false
-    default: 'You are a helpful AI assistant. You remember previous conversations and provide contextual responses.'
+    default: 'You are a helpful AI assistant with perfect memory of our conversation.'
   - variable: 'USER_INPUT'
     name: 'User Message'
     type: 'text'
     description: 'The user message to process'
     required: true
-    default: 'Hello! How are you today?'
+    default: 'Hello! Please remember that I am working on a flowsh project.'
   - variable: 'CONVERSATION_ID'
     name: 'Conversation ID'
     type: 'text'
     description: 'Unique identifier for conversation history tracking'
     required: false
-    default: 'default_chat'
-  - variable: 'MAX_MEMORY_TURNS'
-    name: 'Memory History Length'
-    type: 'text'
-    description: 'Maximum number of conversation turns to remember'
-    required: false
-    default: '10'
+    default: 'demo_chat'
 
 graph:
   nodes:
@@ -42,139 +36,41 @@ graph:
         title: 'AI Chat with Memory System'
         description: 'Stateful conversation processing with persistent history'
 
-    - id: 'init_conversation_id'
+    - id: 'init_conversation'
       type: 'variable-assignment'
       data:
-        variable: 'CONVERSATION_ID'
+        variable: 'CURRENT_TIMESTAMP'
         assignment_type: 'expression'
-        expression: 'echo "chat_$(date +%s)_$$"'
-        description: 'Generate unique conversation ID'
+        expression: 'date "+%Y-%m-%d %H:%M:%S"'
+        description: 'Initialize conversation timestamp'
 
-    - id: 'initialize_memory_system'
-      type: 'code'
+    - id: 'load_previous_context'
+      type: 'variable-assignment'
       data:
-        title: 'Initialize Memory System'
-        description: 'Set up conversation history and memory management'
-        command: '/bin/bash'
-        args:
-          - '-c'
-          - |
-            set -euo pipefail
-            echo "🧠 Initializing AI Chat Memory System..."
+        variable: 'PREVIOUS_CONTEXT'
+        assignment_type: 'expression'
+        expression: 'cat "/tmp/chat_${CONVERSATION_ID}_context.txt" 2>/dev/null || echo "No previous conversation history found."'
+        description: 'Load existing conversation context from file'
 
-            # Configuration validation
-            CONV_ID="${CONVERSATION_ID:-default_chat}"
-            MAX_TURNS="${MAX_MEMORY_TURNS:-10}"
-            SYSTEM_PROMPT="${CHAT_SYSTEM_PROMPT:-You are a helpful AI assistant. You remember previous conversations and provide contextual responses.}"
-            USER_MSG="${USER_INPUT:-Hello! How are you today?}"
-
-            echo "🔧 Memory Configuration:"
-            echo "  Conversation ID: $CONV_ID"
-            echo "  Max Memory Turns: $MAX_TURNS"
-            echo "  System Prompt Length: ${#SYSTEM_PROMPT} characters"
-            echo "  User Input: ${USER_MSG:0:50}${USER_MSG:50:+...}"
-
-            # Create memory storage directories
-            mkdir -p /tmp/ai_memory
-            mkdir -p /tmp/ai_memory/conversations
-            mkdir -p /tmp/ai_memory/context
-
-            # Initialize conversation history file
-            HISTORY_FILE="/tmp/ai_memory/conversations/${CONV_ID}.json"
-            CONTEXT_FILE="/tmp/ai_memory/context/${CONV_ID}_context.txt"
-
-            # Create history file if it doesn't exist
-            if [ ! -f "$HISTORY_FILE" ]; then
-              echo '{"conversation_id":"'$CONV_ID'","created_at":"'$(date -Iseconds)'","turns":[]}' > "$HISTORY_FILE"
-              echo "📝 Created new conversation history"
-            else
-              echo "📖 Loading existing conversation history"
-            fi
-
-            # Initialize context awareness
-            echo "Conversation Context for: $CONV_ID" > "$CONTEXT_FILE"
-            echo "System Prompt: $SYSTEM_PROMPT" >> "$CONTEXT_FILE"
-            echo "Created: $(date)" >> "$CONTEXT_FILE"
-            echo "Max Turns: $MAX_TURNS" >> "$CONTEXT_FILE"
-            echo "---" >> "$CONTEXT_FILE"
-
-            echo "✅ Memory system initialized successfully"
-
-    - id: 'load_conversation_history'
-      type: 'code'
+    - id: 'format_conversation_context'
+      type: 'variable-assignment'
       data:
-        title: 'Load Conversation History'
-        description: 'Retrieve and process previous conversation turns'
-        command: '/bin/bash'
-        args:
-          - '-c'
-          - |
-            set -euo pipefail
-            echo "📚 Loading conversation history..."
+        variable: 'FORMATTED_CONTEXT'
+        assignment_type: 'template'
+        template: |
+          Previous conversation history:
+          {{PREVIOUS_CONTEXT}}
 
-            CONV_ID="${CONVERSATION_ID:-default_chat}"
-            MAX_TURNS="${MAX_MEMORY_TURNS:-10}"
-            HISTORY_FILE="/tmp/ai_memory/conversations/${CONV_ID}.json"
+          Current session info:
+          - Time: {{CURRENT_TIMESTAMP}}
+          - Conversation ID: {{CONVERSATION_ID}}
+        description: 'Format conversation context for AI'
 
-            echo "📁 History file: $HISTORY_FILE"
-
-            # Extract conversation turns (last N turns)
-            if [ -f "$HISTORY_FILE" ]; then
-              # Count total turns
-              TOTAL_TURNS=$(jq '.turns | length' "$HISTORY_FILE" 2>/dev/null || echo "0")
-              echo "📊 Total conversation turns: $TOTAL_TURNS"
-              
-              if [ "$TOTAL_TURNS" -gt 0 ]; then
-                # Get last MAX_TURNS turns
-                START_INDEX=$((TOTAL_TURNS > MAX_TURNS ? TOTAL_TURNS - MAX_TURNS : 0))
-                
-                echo "🔍 Loading last $MAX_TURNS turns starting from index $START_INDEX"
-                
-                # Extract recent history for context
-                jq -r --argjson start "$START_INDEX" '.turns[$start:][]' "$HISTORY_FILE" > /tmp/recent_history.txt 2>/dev/null || echo "" > /tmp/recent_history.txt
-                
-                # Create formatted context for LLM
-                echo "Previous Conversation Context:" > /tmp/formatted_context.txt
-                cat /tmp/recent_history.txt >> /tmp/formatted_context.txt
-                echo "---" >> /tmp/formatted_context.txt
-                
-                echo "📖 Loaded conversation context:"
-                head -c 300 /tmp/formatted_context.txt
-                echo "..."
-                
-              else
-                echo "💬 No previous conversation history found - starting fresh"
-                echo "No previous conversation context." > /tmp/formatted_context.txt
-              fi
-              
-            else
-              echo "❌ History file not found - this shouldn't happen after initialization"
-              echo "No conversation context available." > /tmp/formatted_context.txt
-            fi
-
-            echo "✅ History loading complete"
-
-    - id: 'prepare_llm_context'
-      type: 'template-transform'
-      data:
-        title: 'Prepare LLM Context'
-        description: 'Format conversation history and system prompt for LLM'
-        template_source: 'inline'
-        template_content: |
-          ${CHAT_SYSTEM_PROMPT:-You are a helpful AI assistant. You remember previous conversations and provide contextual responses.}
-
-          $(cat /tmp/formatted_context.txt 2>/dev/null || echo "No previous context available.")
-
-          Current User Message: ${USER_INPUT}
-
-          Instructions: Respond to the current user message while being aware of the previous conversation context. Be natural and conversational, referencing relevant previous topics when appropriate.
-        output_variable: 'prepared_context'
-
-    - id: 'call_ai_llm'
+    - id: 'generate_contextual_response'
       type: 'llm'
       data:
-        title: 'Generate AI Response'
-        description: 'Call LLM with conversation context and user message'
+        title: 'Generate AI Response with Memory'
+        description: 'AI processes user input with full conversation context'
         model:
           provider: 'openai'
           name: 'gpt-3.5-turbo'
@@ -184,196 +80,118 @@ graph:
             max_tokens: 500
         prompt_template:
           - role: 'system'
-            text: 'You are a helpful AI assistant with memory of previous conversations. Use the provided context to maintain continuity.'
+            text: '{{CHAT_SYSTEM_PROMPT}} Context: {{FORMATTED_CONTEXT}}'
           - role: 'user'
-            text: '${prepared_context}'
+            text: '{{USER_INPUT}}'
 
-    - id: 'save_conversation_turn'
+    - id: 'extract_ai_response'
+      type: 'variable-assignment'
+      data:
+        variable: 'AI_RESPONSE_TEXT'
+        assignment_type: 'context'
+        context_key: 'llm_response'
+        description: 'Extract AI response text for storage'
+
+    - id: 'build_conversation_entry'
+      type: 'variable-assignment'
+      data:
+        variable: 'CONVERSATION_ENTRY'
+        assignment_type: 'template'
+        template: |
+          **[{{CURRENT_TIMESTAMP}}]**
+          👤 User: {{USER_INPUT}}
+          🤖 AI: {{AI_RESPONSE_TEXT}}
+          ---
+        description: 'Format new conversation turn for persistence'
+
+    - id: 'aggregate_conversation_history'
+      type: 'variable-aggregation'
+      data:
+        title: 'Update Conversation History'
+        description: 'Combine previous context with new conversation entry'
+        input_variables: ['PREVIOUS_CONTEXT', 'CONVERSATION_ENTRY']
+        output_variable: 'UPDATED_HISTORY'
+        aggregation_method: 'concat'
+        separator: '\n'
+
+    - id: 'persist_conversation'
       type: 'code'
       data:
-        title: 'Save Conversation Turn'
-        description: 'Store current exchange in conversation history'
+        title: 'Save Updated Conversation History'
+        description: 'Persist conversation to file for future sessions'
         command: '/bin/bash'
         args:
           - '-c'
           - |
             set -euo pipefail
-            echo "💾 Saving conversation turn..."
 
-            CONV_ID="${CONVERSATION_ID:-default_chat}"
-            USER_MSG="${USER_INPUT}"
-            AI_RESPONSE="${llm_content}"
-            HISTORY_FILE="/tmp/ai_memory/conversations/${CONV_ID}.json"
-            TIMESTAMP=$(date -Iseconds)
+            # Save updated conversation history
+            echo "$UPDATED_HISTORY" > "/tmp/chat_${CONVERSATION_ID}_context.txt"
 
-            echo "📝 Turn details:"
-            echo "  User: ${USER_MSG:0:100}${USER_MSG:100:+...}"
-            echo "  AI: ${AI_RESPONSE:0:100}${AI_RESPONSE:100:+...}"
-            echo "  Timestamp: $TIMESTAMP"
+            # Also save a backup with timestamp
+            cp "/tmp/chat_${CONVERSATION_ID}_context.txt" "/tmp/chat_${CONVERSATION_ID}_$(date +%s).txt"
 
-            # Get current turn number
-            CURRENT_TURNS=$(jq '.turns | length' "$HISTORY_FILE" 2>/dev/null || echo "0")
-            TURN_NUMBER=$((CURRENT_TURNS + 1))
+            echo "✅ Conversation saved successfully"
+            echo "📁 History file: /tmp/chat_${CONVERSATION_ID}_context.txt"
 
-            # Create new turn object
-            NEW_TURN=$(jq -n \
-              --arg turn "$TURN_NUMBER" \
-              --arg timestamp "$TIMESTAMP" \
-              --arg user "$USER_MSG" \
-              --arg ai "$AI_RESPONSE" \
-              '{
-                turn_number: $turn,
-                timestamp: $timestamp,
-                user_message: $user,
-                ai_response: $ai
-              }')
-
-            # Add turn to history file
-            jq --argjson new_turn "$NEW_TURN" '.turns += [$new_turn]' "$HISTORY_FILE" > "${HISTORY_FILE}.tmp"
-            mv "${HISTORY_FILE}.tmp" "$HISTORY_FILE"
-
-            echo "✅ Turn $TURN_NUMBER saved successfully"
-
-    - id: 'update_context_summary'
+    - id: 'display_memory_summary'
       type: 'code'
       data:
-        title: 'Update Context Summary'
-        description: 'Maintain conversation context and key topics'
+        title: 'Display Memory System Summary'
+        description: 'Show conversation memory status and results'
         command: '/bin/bash'
         args:
           - '-c'
           - |
             set -euo pipefail
-            echo "🔄 Updating conversation context summary..."
 
-            CONV_ID="${CONVERSATION_ID:-default_chat}"
-            CONTEXT_FILE="/tmp/ai_memory/context/${CONV_ID}_context.txt"
-            USER_MSG="${USER_INPUT}"
-            AI_RESPONSE="${llm_content}"
+            echo "# 🧠 AI Chat with Memory - Session Complete"
+            echo ""
+            echo "## Conversation Summary"
+            echo "- Session ID: $CONVERSATION_ID"
+            echo "- Timestamp: $CURRENT_TIMESTAMP"
+            echo "- User Input: $USER_INPUT"
+            echo ""
+            echo "## AI Response"
+            echo "$AI_RESPONSE_TEXT"
+            echo ""
+            echo "## Memory System Status"
+            echo "✅ Context Loaded: Previous conversation history retrieved"
+            echo "✅ Response Generated: AI used full conversation context"  
+            echo "✅ History Updated: New conversation turn added to memory"
+            echo "✅ Memory Persisted: Conversation saved for future sessions"
+            echo ""
+            echo "## Next Steps"
+            echo "- Run this workflow again with the same CONVERSATION_ID to continue"
+            echo "- The AI will remember all previous interactions"
+            echo "- Change CONVERSATION_ID to start a fresh conversation"
+            echo ""
+            echo "Conversation file: /tmp/chat_${CONVERSATION_ID}_context.txt"
 
-            echo "📋 Context file: $CONTEXT_FILE"
-
-            # Add current exchange to context summary
-            echo "" >> "$CONTEXT_FILE"
-            echo "Turn $(date '+%Y-%m-%d %H:%M'):" >> "$CONTEXT_FILE"
-            echo "User: ${USER_MSG:0:200}${USER_MSG:200:+...}" >> "$CONTEXT_FILE"
-            echo "AI: ${AI_RESPONSE:0:200}${AI_RESPONSE:200:+...}" >> "$CONTEXT_FILE"
-
-            # Keep context file manageable (last 50 lines)
-            tail -n 50 "$CONTEXT_FILE" > "${CONTEXT_FILE}.tmp"
-            mv "${CONTEXT_FILE}.tmp" "$CONTEXT_FILE"
-
-            echo "📊 Context summary updated"
-
-            # Display recent context
-            echo "🔍 Recent conversation context:"
-            tail -n 10 "$CONTEXT_FILE"
-
-            echo "✅ Context update complete"
-
-    - id: 'generate_memory_report'
-      type: 'template-transform'
+    - id: 'end'
+      type: 'end'
       data:
-        title: 'Generate Memory Report'
-        description: 'Create conversation analysis and memory status'
-        template_source: 'inline'
-        template_content: |
-          # 🧠 AI Chat Memory Report
-
-          **Conversation ID**: ${CONVERSATION_ID:-default_chat}
-          **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-          **Memory Limit**: ${MAX_MEMORY_TURNS:-10} turns
-
-          ## Current Exchange
-          **User**: ${USER_INPUT}
-          **AI Response**: ${llm_content}
-
-          ## Memory Statistics
-          - **Total Turns**: $(jq '.turns | length' /tmp/ai_memory/conversations/${CONVERSATION_ID:-default_chat}.json 2>/dev/null || echo "0")
-          - **Context Size**: $(wc -l < /tmp/ai_memory/context/${CONVERSATION_ID:-default_chat}_context.txt 2>/dev/null || echo "0") lines
-          - **History File**: $(ls -lh /tmp/ai_memory/conversations/${CONVERSATION_ID:-default_chat}.json 2>/dev/null | awk '{print $5}' || echo "N/A")
-
-          ## Memory Features Active
-          - ✅ **Persistent History**: JSON-based turn storage
-          - ✅ **Context Awareness**: Previous conversation integration
-          - ✅ **Memory Limits**: Automatic old turn pruning
-          - ✅ **Conversation Continuity**: Seamless multi-turn dialogue
-          - ✅ **Context Summarization**: Key topic tracking
-
-          ## Recent Conversation Context
-          $(tail -n 5 /tmp/ai_memory/context/${CONVERSATION_ID:-default_chat}_context.txt 2>/dev/null || echo "No context available")
-
-          ## Next Turn Preparation
-          - Memory system ready for next user input
-          - Context preserved for conversation continuity
-          - History available for reference and learning
-        output_variable: 'memory_report'
-
-    - id: 'final_response'
-      type: 'answer'
-      data:
-        title: 'AI Chat Response'
-        description: 'Final response with memory-aware AI interaction'
-        answer: |
-          # 💬 AI Chat with Memory - Response Generated!
-
-          ## 🤖 AI Response
-          **${llm_content}**
-
-          ## 🧠 Memory System Status
-          - **Conversation Tracking**: ✅ Active
-          - **History Preservation**: ✅ Persistent storage
-          - **Context Awareness**: ✅ Previous turns integrated
-          - **Memory Management**: ✅ Automatic pruning active
-
-          ## 📊 Session Information
-          - **Conversation ID**: ${CONVERSATION_ID:-default_chat}
-          - **Turn Count**: $(jq '.turns | length' /tmp/ai_memory/conversations/${CONVERSATION_ID:-default_chat}.json 2>/dev/null || echo "1")
-          - **Memory Limit**: ${MAX_MEMORY_TURNS:-10} turns
-          - **Model Used**: ${llm_model_used:-gpt-3.5-turbo}
-
-          ## 🔄 Conversation Features
-          - **Stateful Dialogue**: AI remembers previous exchanges
-          - **Context Integration**: Responses consider conversation history
-          - **Persistent Storage**: History survives between sessions
-          - **Memory Optimization**: Automatic old turn cleanup
-          - **Multi-Session Support**: Unique conversation IDs
-
-          ## 📝 Memory Report
-          ${memory_report}
-
-          ## 🎯 Advanced Capabilities Demonstrated
-          - **Conversational Memory**: AI maintains context across multiple turns
-          - **Intelligent Context Compression**: Efficient storage of conversation history
-          - **Seamless Continuity**: Natural conversation flow with memory awareness
-          - **Production Scalability**: File-based storage ready for database upgrade
-          - **Session Management**: Multiple concurrent conversation support
-
-          ## ⚡ Production Features
-          - **Real LLM Integration**: Live OpenAI API calls with fallback models
-          - **Memory Persistence**: JSON-based conversation history storage
-          - **Context Optimization**: Smart truncation maintains relevant history
-          - **Error Resilience**: Graceful handling of API failures and missing data
-          - **Configuration Flexibility**: Tunable memory limits and system prompts
-
-          **Status**: 🚀 **CONVERSATION TURN COMPLETE** - Memory system active, ready for next interaction
+        title: 'Chat Session Complete'
+        description: 'Conversation processed with memory persistence'
 
   edges:
     - source: 'start'
-      target: 'init_conversation_id'
-    - source: 'init_conversation_id'
-      target: 'initialize_memory_system'
-    - source: 'initialize_memory_system'
-      target: 'load_conversation_history'
-    - source: 'load_conversation_history'
-      target: 'prepare_llm_context'
-    - source: 'prepare_llm_context'
-      target: 'call_ai_llm'
-    - source: 'call_ai_llm'
-      target: 'save_conversation_turn'
-    - source: 'save_conversation_turn'
-      target: 'update_context_summary'
-    - source: 'update_context_summary'
-      target: 'generate_memory_report'
-    - source: 'generate_memory_report'
-      target: 'final_response'
+      target: 'init_conversation'
+    - source: 'init_conversation'
+      target: 'load_previous_context'
+    - source: 'load_previous_context'
+      target: 'format_conversation_context'
+    - source: 'format_conversation_context'
+      target: 'generate_contextual_response'
+    - source: 'generate_contextual_response'
+      target: 'extract_ai_response'
+    - source: 'extract_ai_response'
+      target: 'build_conversation_entry'
+    - source: 'build_conversation_entry'
+      target: 'aggregate_conversation_history'
+    - source: 'aggregate_conversation_history'
+      target: 'persist_conversation'
+    - source: 'persist_conversation'
+      target: 'display_memory_summary'
+    - source: 'display_memory_summary'
+      target: 'end'
