@@ -7,6 +7,7 @@
 
 import { BaseNodeGenerator, ValidationResult } from './base-generator.js';
 import { ShellSanitizer } from '../../security/sanitization.js';
+import { escapeShellValue } from '../shell-scripting/shell-escaping.js';
 import { FlowshGenerationError } from '../../errors/types.js';
 import { WorkflowNode } from '../../dsl/types.js';
 
@@ -303,7 +304,17 @@ CODE_EOF
     }
 
     const command = sanitizeResult.data!;
-    const argsList = config.args?.map(arg => `"${this.resolveVariables(arg)}"`).join(' ') || '';
+    const shouldEscapeArgs =
+      config.command === 'bash' ||
+      config.command === '/bin/bash' ||
+      (config.args?.includes('-c') ?? false);
+    const argsList =
+      config.args
+        ?.map(arg => {
+          const resolvedArg = this.resolveVariables(arg);
+          return `"${shouldEscapeArgs ? escapeShellValue(resolvedArg) : resolvedArg}"`;
+        })
+        .join(' ') || '';
 
     return `
         log_debug "$correlation_id" "Executing command: ${command}"

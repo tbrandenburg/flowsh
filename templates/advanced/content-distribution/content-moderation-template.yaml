@@ -362,7 +362,7 @@ graph:
             set -euo pipefail
             echo "🤖 Processing AI analysis results..."
 
-            AI_RESPONSE="${llm_content}"
+            AI_RESPONSE="{{llm_content}}"
             ANALYSIS_DIR="/tmp/content_moderation/analysis"
 
             echo "📋 AI Analysis Response:"
@@ -657,47 +657,48 @@ graph:
       data:
         title: 'Generate Moderation Summary'
         description: 'Create human-readable moderation summary and recommendations'
-        template_source: 'inline'
-        template_content: |
-          # 🛡️ Content Moderation Report
+        template:
+          source: 'inline'
+          content: |
+            # 🛡️ Content Moderation Report
 
-          **Analysis Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-          **Content Length**: $(jq -r '.content_analysis.word_count' $(cat /tmp/content_moderation/final_report_path.txt)) words
-          **Moderation Level**: ${MODERATION_STRICTNESS}
+            **Analysis Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
+            **Content Length**: $(jq -r '.content_analysis.word_count' $(cat /tmp/content_moderation/final_report_path.txt)) words
+            **Moderation Level**: ${MODERATION_STRICTNESS}
 
-          ## 🎯 Moderation Decision
-          **Status**: $(jq -r '.moderation_decision.overall_decision' $(cat /tmp/content_moderation/final_report_path.txt))
-          **Risk Level**: $(jq -r '.moderation_decision.risk_level' $(cat /tmp/content_moderation/final_report_path.txt))
-          **Manual Review Required**: $(jq -r '.moderation_decision.requires_manual_review' $(cat /tmp/content_moderation/final_report_path.txt))
-          **Confidence**: $(jq -r '.moderation_decision.confidence_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            ## 🎯 Moderation Decision
+            **Status**: $(jq -r '.moderation_decision.overall_decision' $(cat /tmp/content_moderation/final_report_path.txt))
+            **Risk Level**: $(jq -r '.moderation_decision.risk_level' $(cat /tmp/content_moderation/final_report_path.txt))
+            **Manual Review Required**: $(jq -r '.moderation_decision.requires_manual_review' $(cat /tmp/content_moderation/final_report_path.txt))
+            **Confidence**: $(jq -r '.moderation_decision.confidence_score' $(cat /tmp/content_moderation/final_report_path.txt))
 
-          ## 🔍 Analysis Results
+            ## 🔍 Analysis Results
 
-          ### Safety Assessment
-          - **Profanity Detected**: $(jq -r '.safety_analysis.profanity_detected' $(cat /tmp/content_moderation/final_report_path.txt))
-          - **AI Safety Rating**: $(jq -r '.safety_analysis.ai_safety_assessment' $(cat /tmp/content_moderation/final_report_path.txt))
-          - **Safety Score**: $(jq -r '.safety_analysis.ai_safety_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            ### Safety Assessment
+            - **Profanity Detected**: $(jq -r '.safety_analysis.profanity_detected' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **AI Safety Rating**: $(jq -r '.safety_analysis.ai_safety_assessment' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **Safety Score**: $(jq -r '.safety_analysis.ai_safety_score' $(cat /tmp/content_moderation/final_report_path.txt))
 
-          ### Sentiment Analysis
-          - **Overall Sentiment**: $(jq -r '.safety_analysis.sentiment' $(cat /tmp/content_moderation/final_report_path.txt))
-          - **Sentiment Score**: $(jq -r '.safety_analysis.sentiment_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            ### Sentiment Analysis
+            - **Overall Sentiment**: $(jq -r '.safety_analysis.sentiment' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **Sentiment Score**: $(jq -r '.safety_analysis.sentiment_score' $(cat /tmp/content_moderation/final_report_path.txt))
 
-          ### Content Metrics
-          - **Character Count**: $(jq -r '.content_analysis.content_length' $(cat /tmp/content_moderation/final_report_path.txt))
-          - **URLs Found**: $(jq -r '.content_analysis.url_count' $(cat /tmp/content_moderation/final_report_path.txt))
-          - **Email Addresses**: $(jq -r '.content_analysis.email_count' $(cat /tmp/content_moderation/final_report_path.txt))
+            ### Content Metrics
+            - **Character Count**: $(jq -r '.content_analysis.content_length' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **URLs Found**: $(jq -r '.content_analysis.url_count' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **Email Addresses**: $(jq -r '.content_analysis.email_count' $(cat /tmp/content_moderation/final_report_path.txt))
 
-          ## 📝 Recommendations
-          $(jq -r '.recommendations' $(cat /tmp/content_moderation/final_report_path.txt))
+            ## 📝 Recommendations
+            $(jq -r '.recommendations' $(cat /tmp/content_moderation/final_report_path.txt))
 
-          ## 🔧 Configuration Used
-          - **Strictness Level**: ${MODERATION_STRICTNESS}
-          - **Profanity Check**: ${ENABLE_PROFANITY_CHECK}
-          - **Sentiment Analysis**: ${ENABLE_SENTIMENT_ANALYSIS}
-          - **Webhook Alerts**: $([ -n "${WEBHOOK_URL}" ] && echo "Enabled" || echo "Disabled")
+            ## 🔧 Configuration Used
+            - **Strictness Level**: ${MODERATION_STRICTNESS}
+            - **Profanity Check**: ${ENABLE_PROFANITY_CHECK}
+            - **Sentiment Analysis**: ${ENABLE_SENTIMENT_ANALYSIS}
+            - **Webhook Alerts**: $([ -n "${WEBHOOK_URL}" ] && echo "Enabled" || echo "Disabled")
 
-          ## 📡 Notifications
-          **Webhook Status**: $(jq -r '.webhook_sent' /tmp/content_moderation/webhook_result.json 2>/dev/null || echo "Not configured")
+            ## 📡 Notifications
+            **Webhook Status**: $(jq -r '.webhook_sent' /tmp/content_moderation/webhook_result.json 2>/dev/null || echo "Not configured")
         output_variable: 'moderation_summary'
 
     - id: 'final_moderation_response'

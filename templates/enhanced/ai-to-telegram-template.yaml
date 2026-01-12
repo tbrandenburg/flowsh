@@ -163,8 +163,8 @@ graph:
 
             echo "🔍 Checking delivery status..."
 
-            # Check if telegram_success variable exists and is true
-            if [ "${telegram_success:-false}" = "true" ]; then
+            # Check if TELEGRAM_SUCCESS variable exists and is true
+            if [ "${TELEGRAM_SUCCESS:-false}" = "true" ]; then
               echo "✅ SUCCESS: Message delivered to Telegram!"
               echo "📱 Chat ID: $TELEGRAM_CHAT_ID"
               echo "📊 Content Type: ${content_type}"

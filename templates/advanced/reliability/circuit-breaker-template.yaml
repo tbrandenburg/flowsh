@@ -231,42 +231,43 @@ graph:
       data:
         title: 'Generate Circuit Breaker Report'
         description: 'Create comprehensive status report'
-        template_source: 'inline'
-        template_content: |
-          # ⚡ Circuit Breaker Protection Report
+        template:
+          source: 'inline'
+          content: |
+            # ⚡ Circuit Breaker Protection Report
 
-          **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-          **Primary Endpoint**: https://httpbin.org/status/200
-          **Fallback Endpoint**: https://httpbin.org/json
+            **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
+            **Primary Endpoint**: https://httpbin.org/status/200
+            **Fallback Endpoint**: https://httpbin.org/json
 
-          ## Circuit Status
-          - **State**: $(cat /tmp/circuit_state 2>/dev/null || echo "UNKNOWN")
-          - **Failure Count**: $(cat /tmp/failure_count 2>/dev/null || echo "0")/3
-          - **Response Source**: $(cat /tmp/response_source 2>/dev/null || echo "unknown")
+            ## Circuit Status
+            - **State**: $(cat /tmp/circuit_state 2>/dev/null || echo "UNKNOWN")
+            - **Failure Count**: $(cat /tmp/failure_count 2>/dev/null || echo "0")/3
+            - **Response Source**: $(cat /tmp/response_source 2>/dev/null || echo "unknown")
 
-          ## Configuration
-          - **Failure Threshold**: 3 consecutive failures
-          - **Recovery Timeout**: 30 seconds
-          - **Request Timeout**: 30 seconds
-          - **Connection Timeout**: 10 seconds
+            ## Configuration
+            - **Failure Threshold**: 3 consecutive failures
+            - **Recovery Timeout**: 30 seconds
+            - **Request Timeout**: 30 seconds
+            - **Connection Timeout**: 10 seconds
 
-          ## Production Features
-          - Real-time circuit state management
-          - Automatic failure counting and threshold detection
-          - Time-based recovery mechanism
-          - Fallback API integration
-          - Comprehensive error handling
+            ## Production Features
+            - Real-time circuit state management
+            - Automatic failure counting and threshold detection
+            - Time-based recovery mechanism
+            - Fallback API integration
+            - Comprehensive error handling
 
-          ## Next Actions
-          $(if [ "$(cat /tmp/circuit_state 2>/dev/null)" = "OPEN" ]; then
-            echo "- Circuit will attempt recovery in 30 seconds"
-            echo "- Monitor primary endpoint availability"
-            echo "- Review failure threshold if pattern persists"
-          else
-            echo "- Circuit operating normally"
-            echo "- Continue monitoring for failure patterns"
-            echo "- Ready for production traffic"
-          fi)
+            ## Next Actions
+            $(if [ "$(cat /tmp/circuit_state 2>/dev/null)" = "OPEN" ]; then
+              echo "- Circuit will attempt recovery in 30 seconds"
+              echo "- Monitor primary endpoint availability"
+              echo "- Review failure threshold if pattern persists"
+            else
+              echo "- Circuit operating normally"
+              echo "- Continue monitoring for failure patterns"
+              echo "- Ready for production traffic"
+            fi)
         output_variable: 'circuit_report'
 
     - id: 'final_status'
