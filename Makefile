@@ -23,7 +23,7 @@ help:
 	@echo "  make lint         Run ESLint (with auto-fix)"
 	@echo "  make format       Format code with Prettier"
 	@echo "  make check        Run all quality checks (lint + format + test + build)"
-	@echo "  make qa           Comprehensive QA pipeline (check + templates-all)"
+	@echo "  make qa           Comprehensive QA pipeline (check + CURRENTLY deactivated: templates-all)"
 	@echo
 	@echo "🎯 Template Operations:"
 	@echo "  make templates-all      Generate and execute scripts from all 35 templates (19 basic + 16 production)"
