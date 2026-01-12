@@ -226,7 +226,8 @@ export function generateShellScript(
     }
 
     // Variable setup
-    scriptParts.push(generateVariableSetup(workflow, allVariables));
+    const variableSetup = generateVariableSetup(workflow, allVariables);
+    scriptParts.push(variableSetup);
     if (monitor) {
       monitor.updateProgress(1);
     }
@@ -255,6 +256,9 @@ export function generateShellScript(
     }
 
     const script = scriptParts.filter(part => part.trim() !== '').join('\n\n');
+    const declaredVariables = collectDeclaredVariables(workflow, allVariables);
+    const unboundWarnings = detectPotentialUnboundVariables(script, declaredVariables);
+    warnings.push(...unboundWarnings);
 
     if (monitor) {
       monitor.finish(true);
@@ -464,6 +468,114 @@ function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, 
   }
 
   return '';
+}
+
+/**
+ * Collect variables declared through workflow configuration and node registration.
+ */
+function collectDeclaredVariables(
+  workflow: FlowshWorkflow,
+  variables: Map<string, string>
+): Set<string> {
+  const declared = new Set<string>(variables.keys());
+  const envVars = workflow.environment_variables || workflow.spec?.environment_variables || [];
+  const conversationVars =
+    workflow.conversation_variables || workflow.spec?.conversation_variables || [];
+
+  for (const envVar of envVars) {
+    if (envVar.variable) {
+      declared.add(envVar.variable);
+    }
+  }
+
+  for (const convVar of conversationVars) {
+    if (convVar.variable) {
+      declared.add(convVar.variable);
+    }
+  }
+
+  return declared;
+}
+
+function detectPotentialUnboundVariables(
+  shellScript: string,
+  declaredVariables: Set<string>
+): string[] {
+  const exportPattern = /^\s*export\s+([A-Z_][A-Z0-9_]*)(?:=|$)/gm;
+  const assignmentPattern = /^(?!\s*(?:local|declare|typeset|readonly)\b)\s*([A-Z_][A-Z0-9_]*)=/;
+  const referencePattern = /\$\{?([A-Z_][A-Z0-9_]*)\}?/g;
+  const knownShellVars = new Set([
+    'BASH_VERSION',
+    'BASH_SOURCE',
+    'BASH_LINENO',
+    'FUNCNAME',
+    'LINENO',
+    'PWD',
+    'OLDPWD',
+    'HOME',
+    'PATH',
+    'IFS',
+    'SHELLOPTS',
+    'UID',
+    'EUID',
+    'PPID',
+    'SHLVL',
+    'OSTYPE',
+    'MACHTYPE',
+    'HOSTNAME',
+    'HOSTTYPE',
+    'TERM',
+    'COLUMNS',
+    'LINES',
+    'RANDOM',
+  ]);
+
+  const exportedVars = new Set<string>();
+  for (const match of shellScript.matchAll(exportPattern)) {
+    if (match[1]) {
+      exportedVars.add(match[1]);
+    }
+  }
+
+  const assignedVars = new Set<string>();
+  for (const line of shellScript.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+    const match = trimmed.match(assignmentPattern);
+    if (match?.[1]) {
+      assignedVars.add(match[1]);
+    }
+  }
+
+  const warningVars = new Set<string>();
+  for (const line of shellScript.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+    const matches = trimmed.matchAll(referencePattern);
+    for (const match of matches) {
+      const varName = match[1];
+      if (!varName) {
+        continue;
+      }
+      if (
+        declaredVariables.has(varName) ||
+        assignedVars.has(varName) ||
+        exportedVars.has(varName) ||
+        knownShellVars.has(varName)
+      ) {
+        continue;
+      }
+      warningVars.add(varName);
+    }
+  }
+
+  return [...warningVars].sort().map(varName => {
+    return `Potentially unbound variable '${varName}' referenced in generated script`;
+  });
 }
 
 /**
