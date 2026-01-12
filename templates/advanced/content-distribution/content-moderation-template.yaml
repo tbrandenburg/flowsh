@@ -63,6 +63,60 @@ environment_variables:
     description: 'Internal processing variable for webhook assignment'
     required: false
     default: ''
+  - variable: 'CONTENT_FILE'
+    name: 'Content File Variable'
+    type: 'text'
+    description: 'Internal processing variable for content file path assignment'
+    required: false
+    default: ''
+  - variable: 'CHAR_COUNT'
+    name: 'Character Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for character count'
+    required: false
+    default: ''
+  - variable: 'WORD_COUNT'
+    name: 'Word Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for word count'
+    required: false
+    default: ''
+  - variable: 'LINE_COUNT'
+    name: 'Line Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for line count'
+    required: false
+    default: ''
+  - variable: 'STRICTNESS'
+    name: 'Strictness Variable'
+    type: 'text'
+    description: 'Internal processing variable for moderation strictness'
+    required: false
+    default: ''
+  - variable: 'ANALYSIS_DIR'
+    name: 'Analysis Directory Variable'
+    type: 'text'
+    description: 'Internal processing variable for analysis directory path'
+    required: false
+    default: ''
+  - variable: 'URL_COUNT'
+    name: 'URL Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for URL count'
+    required: false
+    default: ''
+  - variable: 'EMAIL_COUNT'
+    name: 'Email Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for email count'
+    required: false
+    default: ''
+  - variable: 'PHONE_COUNT'
+    name: 'Phone Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for phone count'
+    required: false
+    default: ''
 
 graph:
   nodes:

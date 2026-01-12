@@ -27,6 +27,30 @@ environment_variables:
     description: 'Internal processing variable for recovery time'
     required: false
     default: ''
+  - variable: 'CIRCUIT_STATE'
+    name: 'Circuit State Variable'
+    type: 'text'
+    description: 'Internal processing variable for circuit breaker state'
+    required: false
+    default: ''
+  - variable: 'FAILURE_COUNT'
+    name: 'Failure Count Variable'
+    type: 'text'
+    description: 'Internal processing variable for failure count tracking'
+    required: false
+    default: ''
+  - variable: 'LAST_FAILURE'
+    name: 'Last Failure Variable'
+    type: 'text'
+    description: 'Internal processing variable for last failure time tracking'
+    required: false
+    default: ''
+  - variable: 'CURRENT_TIME'
+    name: 'Current Time Variable'
+    type: 'text'
+    description: 'Internal processing variable for current timestamp'
+    required: false
+    default: ''
 
 graph:
   nodes:
