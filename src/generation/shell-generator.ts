@@ -412,8 +412,15 @@ function generateVariableSetup(workflow: FlowshWorkflow, variables: Map<string, 
     for (const envVar of envVars) {
       const varName = envVar.variable;
       if (varName) {
-        // Add environment variable with empty default to prevent unbound variable errors
-        allVarLines.push(`${varName}=\${${varName}:-""}`);
+        // Add environment variable with default value and export for subshells
+        const defaultValue = (envVar as any).default || '';
+        const escapedDefault =
+          typeof defaultValue === 'string'
+            ? defaultValue.replace(/"/g, '\\"')
+            : String(defaultValue);
+        allVarLines.push(`${varName}=\${${varName}:-"${escapedDefault}"}`);
+        // Export the variable to make it available in bash -c subshells
+        allVarLines.push(`export ${varName}`);
       }
     }
   }

@@ -36,6 +36,12 @@ environment_variables:
     description: 'Topic for content generation'
     required: false
     default: 'space exploration'
+  - variable: 'telegram_message'
+    name: 'Telegram Message Variable'
+    type: 'text'
+    description: 'Internal variable for telegram message content'
+    required: false
+    default: ''
 
 graph:
   nodes:
