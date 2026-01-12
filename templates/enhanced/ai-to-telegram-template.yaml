@@ -71,13 +71,13 @@ graph:
               if [[ ! "${OPENAI_API_KEY:-}" =~ ^sk- ]]; then
                 echo "⚠️  WARNING: OPENAI_API_KEY should start with 'sk-'"
               fi
-              echo "🧠 OpenAI API: Configured (${OPENAI_API_KEY:0:7}...)"
+              echo "🧠 OpenAI API: Configured"
             else
               echo "🧠 OpenAI API: Not configured, will use LLM v7 fallback"
             fi
 
             echo "✅ Environment validation passed"
-            echo "🤖 Bot Token: ${TELEGRAM_BOT_TOKEN:0:10}..."
+            echo "🤖 Bot Token: Configured"
             echo "💬 Chat ID: $TELEGRAM_CHAT_ID"
 
     - id: 'generate_content'
@@ -158,14 +158,14 @@ graph:
               echo "❌ DELIVERY FAILED"
               echo ""
               echo "🔧 Troubleshooting steps:"
-              echo "1. Verify TELEGRAM_BOT_TOKEN is correct (from @BotFather)"
-              echo "2. Verify TELEGRAM_CHAT_ID is correct (use @userinfobot)"
+              echo '1. Verify TELEGRAM_BOT_TOKEN is correct (from @BotFather)'
+              echo '2. Verify TELEGRAM_CHAT_ID is correct (use @userinfobot)'
               echo "3. Check that bot has permission to send messages to this chat"
               echo "4. Test bot manually by sending it a message first"
               echo "5. For groups/channels, ensure bot is added as admin"
               echo ""
               echo "Current configuration:"
-              echo "  Bot Token: ${TELEGRAM_BOT_TOKEN:0:10}..."
+              echo "  Bot Token: Configured"
               echo "  Chat ID: $TELEGRAM_CHAT_ID"
               exit 1
             fi

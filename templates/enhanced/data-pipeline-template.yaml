@@ -39,7 +39,7 @@ graph:
             if [ -n "${API_KEY:-}" ]; then
               echo "🔑 API Key: ${API_KEY:0:7}..."
             else
-              echo "🔑 API Key: Not provided (using public endpoints)"
+              echo '🔑 API Key: Not provided (using public endpoints)'
             fi
 
             echo "🚀 Pipeline ready to start"

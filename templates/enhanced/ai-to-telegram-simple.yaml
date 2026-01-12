@@ -23,12 +23,12 @@ graph:
             echo "🔍 Validating environment..."
 
             if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
-              echo "❌ ERROR: TELEGRAM_BOT_TOKEN not set (get from @BotFather)"
+              echo '❌ ERROR: TELEGRAM_BOT_TOKEN not set (get from @BotFather)'
               exit 1
             fi
 
             if [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-              echo "❌ ERROR: TELEGRAM_CHAT_ID not set (use @userinfobot)"
+              echo '❌ ERROR: TELEGRAM_CHAT_ID not set (use @userinfobot)'
               exit 1
             fi
 
