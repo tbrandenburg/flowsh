@@ -84,8 +84,8 @@ export class CodeNodeGenerator extends BaseNodeGenerator {
 
         // For shell script content in bash -c commands, escape quotes properly
         if (isShellCommand && hasCFlag && index > 0 && stringArgs[index - 1] === '-c') {
-          // Escape internal quotes to prevent shell syntax conflicts
-          const escaped = processed.replace(/"/g, '\\"');
+          // Escape shell-sensitive characters to avoid outer shell expansion.
+          const escaped = this.escapeShellValue(processed);
           return `"${escaped}"`;
         }
 
