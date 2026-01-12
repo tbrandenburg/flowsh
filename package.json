@@ -14,8 +14,8 @@
     "start": "node dist/cli/index.js",
     "test": "vitest",
     "test:run": "vitest run",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts",
+    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts"
   },

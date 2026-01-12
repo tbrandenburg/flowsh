@@ -356,13 +356,15 @@ graph:
         title: 'Process AI Analysis Results'
         description: 'Parse and integrate AI moderation results with rule-based analysis'
         command: '/bin/bash'
+        environment:
+          AI_RESPONSE: "$(get_workflow_var 'LLM_CONTENT' '')"
         args:
           - '-c'
           - |
             set -euo pipefail
             echo "🤖 Processing AI analysis results..."
 
-            AI_RESPONSE="$(get_workflow_var "LLM_CONTENT" "")"
+            AI_RESPONSE="${AI_RESPONSE:-}"
             ANALYSIS_DIR="/tmp/content_moderation/analysis"
 
             echo "📋 AI Analysis Response:"
