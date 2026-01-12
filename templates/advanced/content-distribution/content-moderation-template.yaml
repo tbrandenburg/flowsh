@@ -362,7 +362,7 @@ graph:
             set -euo pipefail
             echo "🤖 Processing AI analysis results..."
 
-            AI_RESPONSE="{{llm_content}}"
+            AI_RESPONSE="$(get_workflow_var "LLM_CONTENT" "")"
             ANALYSIS_DIR="/tmp/content_moderation/analysis"
 
             echo "📋 AI Analysis Response:"
