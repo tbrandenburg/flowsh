@@ -60,7 +60,6 @@ class TemplateDiscovery {
     // Support multiple lookup formats:
     // - circuit-breaker-template
     // - circuit-breaker
-    // - automated-testing-monitoring-template
   }
 
   getHierarchicalDisplay(): HierarchicalTemplates {

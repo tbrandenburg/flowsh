@@ -137,12 +137,10 @@ flowsh init --help
   - `ai-to-telegram` - Production-ready AI content generation
   - `data-pipeline` - Advanced data processing pipeline
 
-- **Advanced (10 templates)** - Complex workflows organized by use case:
-  - **AI Workflows**: `ai-chat-memory`, `multi-stage-ai-workflows`
-  - **Content Distribution**: `content-moderation`, `multi-format-distribution`, `scheduled-content-generation`
-  - **Data Processing**: `data-validation-cleanup`, `parallel-processing-aggregation`
-  - **DevOps**: `automated-testing-monitoring`
-  - **Meta**: `interactive-workflow-builder`
+- **Advanced (4 templates)** - Complex workflows organized by use case:
+  - **AI Workflows**: `ai-chat-memory`
+  - **Content Distribution**: `content-moderation`
+  - **Data Processing**: `data-validation-cleanup`
   - **Reliability**: `circuit-breaker`
 
 ### compile
