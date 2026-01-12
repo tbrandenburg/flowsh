@@ -71,6 +71,10 @@ export function validateWorkflow(workflow: FlowshWorkflow): ValidationResult {
   errors.push(...graphValidation.errors);
   warnings.push(...graphValidation.warnings);
 
+  const bashVariableWarnings = validateBashVariableUsage(workflow);
+  errors.push(...bashVariableWarnings.errors);
+  warnings.push(...bashVariableWarnings.warnings);
+
   return {
     valid: errors.length === 0,
     errors,
@@ -634,6 +638,112 @@ export function validateVariableReferences(
           });
         }
       }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Warns when bash commands reference variables that are not declared as environment variables.
+ */
+export function validateBashVariableUsage(workflow: FlowshWorkflow): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
+  const graph = workflow.graph ?? workflow.spec?.graph;
+
+  if (!graph) {
+    return { valid: true, errors, warnings };
+  }
+
+  const declaredVariables = new Set(
+    (workflow.environment_variables || workflow.spec?.environment_variables || []).map(
+      variable => variable.variable
+    )
+  );
+  const builtinEnvironmentVariables = new Set([
+    'HOME',
+    'PATH',
+    'PWD',
+    'SHELL',
+    'USER',
+    'TMPDIR',
+    'TERM',
+    'LANG',
+    'LC_ALL',
+    'LC_CTYPE',
+    'LC_MESSAGES',
+    'LC_TIME',
+    'LC_COLLATE',
+    'LC_NUMERIC',
+    'LC_MONETARY',
+    'LC_PAPER',
+    'LC_NAME',
+    'LC_ADDRESS',
+    'LC_TELEPHONE',
+    'LC_MEASUREMENT',
+    'LC_IDENTIFICATION',
+    'TZ',
+  ]);
+  const variableReferenceRegex =
+    /(?<!\\)\$([A-Z_][A-Z0-9_]*)|(?<!\\)\$\{([A-Z_][A-Z0-9_]*)[^}]*\}/g;
+
+  for (const node of graph.nodes) {
+    if (node.type !== 'code' && node.type !== 'agent') {
+      continue;
+    }
+
+    const nodeData = node.data as {
+      command?: string;
+      args?: string[];
+      environment_variables?: Record<string, string>;
+    };
+    const commandFragments = [nodeData?.command, ...(nodeData?.args || [])].filter(
+      (fragment): fragment is string => Boolean(fragment)
+    );
+
+    if (commandFragments.length === 0) {
+      continue;
+    }
+
+    const nodeDeclaredVariables = new Set<string>(declaredVariables);
+    if (nodeData?.environment_variables) {
+      for (const variableName of Object.keys(nodeData.environment_variables)) {
+        nodeDeclaredVariables.add(variableName);
+      }
+    }
+
+    const referencedVariables = new Set<string>();
+    const commandText = commandFragments.join(' ');
+
+    let match: RegExpExecArray | null;
+    while ((match = variableReferenceRegex.exec(commandText)) !== null) {
+      const variableName = match[1] ?? match[2];
+      if (!variableName || builtinEnvironmentVariables.has(variableName)) {
+        continue;
+      }
+      referencedVariables.add(variableName);
+    }
+
+    for (const variableName of referencedVariables) {
+      if (nodeDeclaredVariables.has(variableName)) {
+        continue;
+      }
+
+      warnings.push({
+        type: 'warning',
+        code: 'POTENTIAL_UNBOUND_VARIABLE',
+        message: `Variable ${variableName} is used in node ${node.id} but not declared in environment_variables`,
+        path: `node[${node.id}].data.command`,
+        nodeId: node.id,
+        suggestions: [
+          `Add ${variableName} to environment_variables or define it before use in the command`,
+        ],
+      });
     }
   }
 
