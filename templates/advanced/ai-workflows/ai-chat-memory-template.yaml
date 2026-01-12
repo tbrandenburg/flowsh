@@ -128,10 +128,10 @@ graph:
                 # Get last MAX_TURNS turns
                 START_INDEX=$((TOTAL_TURNS > MAX_TURNS ? TOTAL_TURNS - MAX_TURNS : 0))
                 
-                echo "🔍 Loading last $MAX_TURNS turns (starting from index $START_INDEX)"
+                echo "🔍 Loading last $MAX_TURNS turns starting from index $START_INDEX"
                 
                 # Extract recent history for context
-                jq -r --argjson start "$START_INDEX" '.turns[$start:] | .[] | "Turn " + (.turn_number|@sh) + " (" + .timestamp + "):\\nUser: " + .user_message + "\\nAI: " + .ai_response + "\\n"' "$HISTORY_FILE" > /tmp/recent_history.txt 2>/dev/null || echo "" > /tmp/recent_history.txt
+                jq -r --argjson start "$START_INDEX" '.turns[$start:][]' "$HISTORY_FILE" > /tmp/recent_history.txt 2>/dev/null || echo "" > /tmp/recent_history.txt
                 
                 # Create formatted context for LLM
                 echo "Previous Conversation Context:" > /tmp/formatted_context.txt
@@ -222,7 +222,7 @@ graph:
               --arg user "$USER_MSG" \
               --arg ai "$AI_RESPONSE" \
               '{
-                turn_number: ($turn | tonumber),
+                turn_number: $turn,
                 timestamp: $timestamp,
                 user_message: $user,
                 ai_response: $ai
