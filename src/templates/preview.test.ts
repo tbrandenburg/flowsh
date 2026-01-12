@@ -63,11 +63,11 @@ describe('Template Preview Functionality', () => {
     });
 
     it('should work with advanced templates', () => {
-      const command = 'node dist/cli/index.js init circuit-breaker --preview';
+      const command = 'node dist/cli/index.js init ai-chat-memory --preview';
       const output = execSync(command, { encoding: 'utf8' });
 
-      expect(output).toContain('# Template: circuit-breaker');
-      expect(output).toContain('# Category: advanced/reliability');
+      expect(output).toContain('# Template: ai-chat-memory');
+      expect(output).toContain('# Category: advanced/ai-workflows');
       expect(output).toContain('workflow:');
     });
 
@@ -240,7 +240,6 @@ describe('Template Preview Functionality', () => {
 
       // Should have expected categories
       expect(hierarchical.advanced).toHaveProperty('ai-workflows');
-      expect(hierarchical.advanced).toHaveProperty('reliability');
       expect(hierarchical.advanced).toHaveProperty('content-distribution');
     });
 
@@ -283,7 +282,7 @@ describe('Template Preview Functionality', () => {
     });
 
     it('should handle multiple preview requests efficiently', async () => {
-      const templates = ['ai-to-telegram-simple', 'data-pipeline-simple', 'circuit-breaker'];
+      const templates = ['ai-to-telegram-simple', 'data-pipeline-simple', 'ai-chat-memory'];
 
       const startTime = Date.now();
 
