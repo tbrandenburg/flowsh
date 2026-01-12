@@ -488,7 +488,7 @@ graph:
       data:
         title: 'Generate Comprehensive Processing Report'
         description: 'Create detailed parallel processing and aggregation report'
-        template: |
+        template_content: |
           # ⚡ Parallel Processing & Aggregation Report
 
           ## 📊 Executive Summary
