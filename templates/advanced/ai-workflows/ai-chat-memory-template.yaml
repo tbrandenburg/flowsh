@@ -360,6 +360,8 @@ graph:
 
   edges:
     - source: 'start'
+      target: 'init_conversation_id'
+    - source: 'init_conversation_id'
       target: 'initialize_memory_system'
     - source: 'initialize_memory_system'
       target: 'load_conversation_history'

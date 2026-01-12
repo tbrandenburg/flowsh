@@ -109,21 +109,25 @@ async function compileCommand(
       console.error('');
     }
 
-    // Check for missing environment variables and warn user
+    // Check for missing environment variables and add as comments to script
     const missingEnvVars = scanMissingEnvironmentVariables(parseResult.workflow);
+    let finalScript = generateResult.script;
     if (missingEnvVars.length > 0) {
-      console.error('⚠️  Missing environment variables:');
-      missingEnvVars.forEach(varName => {
-        console.error(`   → ${varName} (consider setting this before running the script)`);
-      });
-      console.error('');
+      const warnings = [
+        '# ⚠️  Missing environment variables:',
+        ...missingEnvVars.map(
+          varName => `#    → ${varName} (consider setting this before running the script)`
+        ),
+        '#',
+      ];
+      finalScript = warnings.join('\n') + '\n' + finalScript;
     }
 
     // Dry-run mode: validate and compile but don't output
     if (options.dryRun) {
       const nodeCount = parseResult.workflow?.graph?.nodes?.length || 0;
       const edgeCount = parseResult.workflow?.graph?.edges?.length || 0;
-      const scriptLines = generateResult.script.split('\n').length;
+      const scriptLines = finalScript.split('\n').length;
 
       console.log(`✅ Dry-run successful for ${workflowFile}`);
       console.log(`   Nodes: ${nodeCount}, Edges: ${edgeCount}`);
@@ -143,10 +147,10 @@ async function compileCommand(
 
     // Output to file or stdout
     if (options.output) {
-      await writeScriptToFile(generateResult.script, options.output);
+      await writeScriptToFile(finalScript, options.output);
     } else {
       // Output to stdout (jq-like behavior)
-      console.log(generateResult.script);
+      console.log(finalScript);
     }
   } catch (error) {
     handleError(error, 'Compilation');

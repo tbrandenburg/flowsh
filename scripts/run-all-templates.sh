@@ -41,16 +41,16 @@ for template in templates/basic/*-template.yaml templates/enhanced/*-simple.yaml
                     echo "  ✅ Executed successfully"
                     success=$((success + 1))
                 # STRICT ERROR CLASSIFICATION - Zero tolerance for critical failures
-                elif grep -q "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$result_file"; then
+                elif grep -q "unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content\|division by zero" "$result_file"; then
                     echo "  ❌ CRITICAL FAILURE - Shell script error detected"
                     echo "    Critical errors:"
-                    grep "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$result_file" | head -3 | sed 's/^/      /'
+                    grep "unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content\|division by zero" "$result_file" | head -3 | sed 's/^/      /'
                 elif grep -q "Missing.*API.*key\|OPENAI_API_KEY.*required\|Telegram chat_id is required\|requires.*API.*key" "$result_file" && \
-                     ! grep -q "bash:.*unbound variable\|syntax error\|Failed to resolve template content" "$result_file"; then
+                     ! grep -q "unbound variable\|syntax error\|Failed to resolve template content\|division by zero" "$result_file"; then
                     echo "  ⚠️  ACCEPTABLE - Missing environment variables (template functional)"
                     success=$((success + 1))
                 elif grep -q "Mock circuit breaker.*operation failed\|Circuit breaker operation failed\|Mock circuit breaker: operation failed" "$result_file" && \
-                     ! grep -q "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$result_file"; then
+                     ! grep -q "unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content\|division by zero" "$result_file"; then
                     echo "  ✅ Expected behavior - circuit breaker demonstrating failure handling"
                     success=$((success + 1))
                 else
