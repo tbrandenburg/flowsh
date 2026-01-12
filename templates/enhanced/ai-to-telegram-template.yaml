@@ -68,7 +68,7 @@ graph:
 
             # Check OpenAI key if provided
             if [ -n "${OPENAI_API_KEY:-}" ]; then
-              if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
+              if [[ ! "${OPENAI_API_KEY:-}" =~ ^sk- ]]; then
                 echo "⚠️  WARNING: OPENAI_API_KEY should start with 'sk-'"
               fi
               echo "🧠 OpenAI API: Configured (${OPENAI_API_KEY:0:7}...)"

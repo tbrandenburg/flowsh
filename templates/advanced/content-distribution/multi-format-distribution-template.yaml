@@ -66,6 +66,14 @@ graph:
         title: 'Multi-Format Content Distribution'
         description: 'Cross-platform content syndication and delivery tracking'
 
+    - id: 'init_platforms'
+      type: 'variable-assignment'
+      data:
+        variable: 'TARGET_PLATFORMS'
+        assignment_type: 'constant'
+        value: 'email,telegram,webhook'
+        description: 'Initialize target platforms'
+
     - id: 'initialize_distribution'
       type: 'code'
       data:

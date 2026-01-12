@@ -48,6 +48,14 @@ graph:
         title: 'Content Moderation Pipeline'
         description: 'Automated content safety and compliance analysis'
 
+    - id: 'init_strictness_var'
+      type: 'variable-assignment'
+      data:
+        variable: 'MODERATION_STRICTNESS'
+        assignment_type: 'constant'
+        value: 'moderate'
+        description: 'Initialize moderation strictness level'
+
     - id: 'initialize_moderation_system'
       type: 'code'
       data:
@@ -69,7 +77,7 @@ graph:
 
             echo "🔧 Moderation Configuration:"
             echo "  Content Length: ${#CONTENT} characters"
-            echo "  Strictness Level: $STRICTNESS"
+            echo "  Strictness Level: ${STRICTNESS:-moderate}"
             echo "  Profanity Check: $PROFANITY_CHECK"
             echo "  Sentiment Analysis: $SENTIMENT_CHECK"
             echo "  Webhook Alerts: $([ -n "$WEBHOOK" ] && echo "Enabled" || echo "Disabled")"
@@ -86,7 +94,7 @@ graph:
             echo '{"moderation_results":[],"flags":[],"scores":{},"recommendations":[]}' > /tmp/content_moderation/analysis/results.json
 
             # Set strictness parameters
-            case "$STRICTNESS" in
+            case "${STRICTNESS:-moderate}" in
               "lenient")
                 echo '{"profanity_threshold":0.8,"toxicity_threshold":0.7,"hate_threshold":0.8}' > /tmp/content_moderation/thresholds.json
                 ;;

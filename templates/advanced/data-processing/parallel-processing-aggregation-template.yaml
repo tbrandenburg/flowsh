@@ -77,6 +77,14 @@ graph:
         title: 'Parallel Processing & Aggregation System'
         description: 'Initializing high-performance parallel data processing pipeline'
 
+    - id: 'init_output_format'
+      type: 'variable-assignment'
+      data:
+        variable: 'OUTPUT_FORMAT'
+        assignment_type: 'constant'
+        value: 'json'
+        description: 'Initialize output format'
+
     - id: 'initialize_parallel_system'
       type: 'code'
       data:

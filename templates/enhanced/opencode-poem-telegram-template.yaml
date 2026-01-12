@@ -23,6 +23,24 @@ graph:
         title: 'OpenCode Poem Generator'
         description: 'Creative poetry automation with Telegram delivery'
 
+    - id: 'init_poem_type'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Poem Type'
+        description: 'Set poem type from environment'
+        variable: 'poem_type_var'
+        assignment_type: 'constant'
+        value: '${poem_type:-haiku}'
+
+    - id: 'init_poem_theme'
+      type: 'variable-assignment'
+      data:
+        title: 'Initialize Poem Theme'
+        description: 'Set poem theme from environment'
+        variable: 'poem_theme_var'
+        assignment_type: 'constant'
+        value: '${poem_theme:-nature and technology harmony}'
+
     - id: 'validate_env'
       type: 'code'
       data:
@@ -62,8 +80,8 @@ graph:
             echo "✅ Environment validation passed"
             echo "🤖 Bot: ${TELEGRAM_BOT_TOKEN:0:10}..."
             echo "💬 Chat: $TELEGRAM_CHAT_ID"
-            echo "🎭 Poem Type: ${poem_type}"
-            echo "🎨 Theme: ${poem_theme}"
+            echo "🎭 Poem Type: ${poem_type_var:-haiku}"
+            echo "🎨 Theme: ${poem_theme_var:-nature and technology harmony}"
 
     - id: 'generate_poem'
       type: 'agent'
@@ -76,7 +94,7 @@ graph:
           type: 'prompt'
           source: 'inline'
           content: |
-            Create a ${poem_type:-haiku} poem about "${poem_theme:-nature and technology harmony}".
+            Create a ${poem_type_var:-haiku} poem about "${poem_theme_var:-nature and technology harmony}".
 
             Make it beautiful, creative, and emotionally resonant.
             Use vivid imagery and thoughtful word choices.
@@ -84,13 +102,13 @@ graph:
 
             Output only the poem itself, without additional commentary or explanations.
         template_parameters:
-          type: '${poem_type:-haiku}'
-          theme: '${poem_theme:-nature and technology harmony}'
+          type: '${poem_type_var:-haiku}'
+          theme: '${poem_theme_var:-nature and technology harmony}'
         timeout: 45
         working_directory: '/tmp'
         environment_variables:
-          POEM_TYPE: '${poem_type:-haiku}'
-          POEM_THEME: '${poem_theme:-nature and technology harmony}'
+          POEM_TYPE: '${poem_type_var:-haiku}'
+          POEM_THEME: '${poem_theme_var:-nature and technology harmony}'
 
     - id: 'prepare_fallback'
       type: 'variable-assignment'
@@ -135,8 +153,8 @@ graph:
         value: |
           🎭 <b>Poem of the Day</b> 🎭
 
-          <b>Type:</b> <code>${poem_type:-haiku}</code>
-          <b>Theme:</b> <code>${poem_theme:-nature and technology harmony}</code>
+          <b>Type:</b> <code>${poem_type_var:-haiku}</code>
+          <b>Theme:</b> <code>${poem_theme_var:-nature and technology harmony}</code>
 
           ${final_poem:-A beautiful poem about harmony between nature and technology}
 
@@ -168,8 +186,8 @@ graph:
           # 🎭 OpenCode Poem to Telegram - COMPLETE!
 
           ## 📊 Generation Summary
-          - **Poem Type**: ${poem_type}
-          - **Theme**: ${poem_theme}  
+          - **Poem Type**: ${poem_type_var}
+          - **Theme**: ${poem_theme_var}  
           - **Agent Status**: ${agent_output:+✅ OpenCode Generated}${agent_output:-⚡ Fallback Used}
           - **Telegram Delivery**: ${telegram_success}
           - **Environment**: ✅ Validated
@@ -193,6 +211,10 @@ graph:
 
   edges:
     - source: 'start'
+      target: 'init_poem_type'
+    - source: 'init_poem_type'
+      target: 'init_poem_theme'
+    - source: 'init_poem_theme'
       target: 'validate_env'
     - source: 'validate_env'
       target: 'generate_poem'

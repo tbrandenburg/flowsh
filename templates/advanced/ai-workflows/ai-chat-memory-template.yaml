@@ -42,6 +42,14 @@ graph:
         title: 'AI Chat with Memory System'
         description: 'Stateful conversation processing with persistent history'
 
+    - id: 'init_conversation_id'
+      type: 'variable-assignment'
+      data:
+        variable: 'CONVERSATION_ID'
+        assignment_type: 'expression'
+        expression: 'echo "chat_$(date +%s)_$$"'
+        description: 'Generate unique conversation ID'
+
     - id: 'initialize_memory_system'
       type: 'code'
       data:

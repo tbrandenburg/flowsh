@@ -188,35 +188,43 @@ graph:
       data:
         title: 'Create Deployment Guide'
         description: 'Generate comprehensive deployment instructions'
-        template: |
-          # 🎉 Workflow Generated Successfully!
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            # 🎉 Workflow Generated Successfully!
 
-          ## Generated Workflow Details
-          **Requirements**: ${USER_REQUIREMENTS}
-          **Pattern**: {{select_pattern.output}}
-          **Complexity**: ${TARGET_COMPLEXITY}
-          **Validation**: {{validate_workflow.output}}
+            ## Generated Workflow Details
+            **Requirements**: ${USER_REQUIREMENTS}
+            **Pattern**: {{select_pattern.output}}
+            **Complexity**: ${TARGET_COMPLEXITY}
+            **Validation**: {{validate_workflow.output}}
 
-          ## Deployment Instructions
-          1. **Save Workflow**: Copy the generated YAML to a file (e.g., my-workflow.yaml)
-          2. **Set Environment Variables**: Configure required API keys and settings
-          3. **Test Workflow**: Test in a safe environment first
-          4. **Deploy**: Use your preferred workflow execution system
+            ## Deployment Instructions
+            1. **Save Workflow**: Copy the generated YAML to a file (e.g., my-workflow.yaml)
+            2. **Set Environment Variables**: Configure required API keys and settings
+            3. **Test Workflow**: Test in a safe environment first
+            4. **Deploy**: Use your preferred workflow execution system
 
-          ## Environment Variables Setup
-          ```bash
-          export OPENAI_API_KEY="your_openai_api_key"
-          export TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
-          export TELEGRAM_CHAT_ID="your_chat_id"
-          ```
+            ## Environment Variables Setup
+            ```bash
+            export OPENAI_API_KEY="your_openai_api_key"
+            export TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+            export TELEGRAM_CHAT_ID="your_chat_id"
+            ```
 
-          ## Generated Workflow YAML
-          ```yaml
-          {{generate_workflow.content}}
-          ```
+            ## Generated Workflow YAML
+            ```yaml
+            {{generate_workflow.content}}
+            ```
 
-          **Estimated Setup Time**: 5-8 minutes
-          **Success Probability**: 80%+
+            **Estimated Setup Time**: 5-8 minutes
+            **Success Probability**: 80%+
+
+        output_variable: 'deployment_guide'
+        template_parameters:
+          USER_REQUIREMENTS: '${USER_REQUIREMENTS}'
+          TARGET_COMPLEXITY: '${TARGET_COMPLEXITY}'
 
     - id: 'send_notification'
       type: 'telegram'

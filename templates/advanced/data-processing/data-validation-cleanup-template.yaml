@@ -65,6 +65,14 @@ graph:
         title: 'Data Validation & Cleanup System'
         description: 'Starting comprehensive data validation and cleaning process'
 
+    - id: 'init_output_format'
+      type: 'variable-assignment'
+      data:
+        variable: 'OUTPUT_FORMAT'
+        assignment_type: 'constant'
+        value: 'json'
+        description: 'Initialize output format'
+
     - id: 'initialize_validation'
       type: 'code'
       data:
@@ -90,7 +98,7 @@ graph:
           echo "📊 Data Source: ${INPUT_DATA_SOURCE}"
           echo "🔧 Validation Rules: ${VALIDATION_RULES}"
           echo "🧹 Cleanup Actions: ${CLEANUP_ACTIONS}"
-          echo "📝 Output Format: ${OUTPUT_FORMAT}"
+          echo "📝 Output Format: ${OUTPUT_FORMAT:-json}"
           echo "🚫 Error Threshold: ${ERROR_THRESHOLD}%"
 
           # Save configuration
@@ -296,7 +304,7 @@ graph:
               "validation_id": "{{initialize_validation.output}}",
               "timestamp": "$(date -Iseconds)",
               "input_source": "${INPUT_DATA_SOURCE}",
-              "output_format": "${OUTPUT_FORMAT}",
+              "output_format": "${OUTPUT_FORMAT:-json}",
               "validation_rules_applied": "${VALIDATION_RULES}",
               "cleanup_actions_applied": "${CLEANUP_ACTIONS}"
             },
@@ -398,7 +406,7 @@ graph:
           **Data Source**: ${INPUT_DATA_SOURCE}
           **Validation Rules**: ${VALIDATION_RULES}
           **Cleanup Actions**: ${CLEANUP_ACTIONS}
-          **Output Format**: ${OUTPUT_FORMAT}
+          **Output Format**: ${OUTPUT_FORMAT:-json}
           **Error Threshold**: ${ERROR_THRESHOLD}%
 
           ## 🎯 Results Overview

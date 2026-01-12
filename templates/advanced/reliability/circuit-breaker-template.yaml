@@ -36,6 +36,14 @@ graph:
         title: 'Circuit Breaker Protection Workflow'
         description: 'Production-ready API protection with failure recovery'
 
+    - id: 'init_endpoint'
+      type: 'variable-assignment'
+      data:
+        variable: 'PRIMARY_API_ENDPOINT'
+        assignment_type: 'constant'
+        value: 'https://httpbin.org/status/200'
+        description: 'Initialize primary API endpoint'
+
     - id: 'initialize_circuit'
       type: 'code'
       data:

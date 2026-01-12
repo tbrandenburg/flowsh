@@ -54,6 +54,14 @@ graph:
         title: 'Scheduled Content Generation System'
         description: 'Automated content creation with time-based scheduling and multi-platform publishing'
 
+    - id: 'init_content_type'
+      type: 'variable-assignment'
+      data:
+        variable: 'CONTENT_TYPE'
+        assignment_type: 'constant'
+        value: 'newsletter'
+        description: 'Initialize content type'
+
     - id: 'initialize_scheduler'
       type: 'code'
       data:

@@ -127,12 +127,17 @@ templates-all: build
 					if grep -q "✅.*succeeded\|✅.*completed\|Workflow completed successfully" "$$result_file"; then \
 						echo "  ✅ Executed successfully"; \
 						success=$$((success + 1)); \
-					elif grep -q "unbound variable\|not set\|Missing.*key\|requires.*variable\|Failed to resolve template content\|Telegram chat_id is required" "$$result_file" && \
-					     ! grep -q "bash:.*invalid variable name\|syntax error\|command not found.*get_var" "$$result_file"; then \
-						echo "  ✅ Expected behavior - template works (requires environment/template variables)"; \
+					# STRICT ERROR CLASSIFICATION - Zero tolerance for critical failures
+					elif grep -q "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$$result_file"; then \
+						echo "  ❌ CRITICAL FAILURE - Shell script error detected"; \
+						echo "    Critical errors:"; \
+						grep "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$$result_file" | head -3 | sed 's/^/      /'; \
+					elif grep -q "Missing.*API.*key\|OPENAI_API_KEY.*required\|Telegram chat_id is required\|requires.*API.*key" "$$result_file" && \
+					     ! grep -q "bash:.*unbound variable\|syntax error\|Failed to resolve template content" "$$result_file"; then \
+						echo "  ⚠️  ACCEPTABLE - Missing environment variables (template functional)"; \
 						success=$$((success + 1)); \
 					elif grep -q "Mock circuit breaker.*operation failed\|Circuit breaker operation failed\|Mock circuit breaker: operation failed" "$$result_file" && \
-					     ! grep -q "bash:.*invalid variable name\|syntax error\|command not found.*get_var" "$$result_file"; then \
+					     ! grep -q "bash:.*unbound variable\|syntax error\|command not found.*get_var\|Failed to resolve template content" "$$result_file"; then \
 						echo "  ✅ Expected behavior - circuit breaker demonstrating failure handling"; \
 						success=$$((success + 1)); \
 					else \

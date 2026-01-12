@@ -65,6 +65,14 @@ graph:
         title: 'Multi-Stage AI Processing Pipeline'
         description: 'Initializing complex AI workflow with multiple processing stages'
 
+    - id: 'init_ai_models'
+      type: 'variable-assignment'
+      data:
+        variable: 'AI_MODELS'
+        assignment_type: 'constant'
+        value: '{"stage1":"gpt-3.5-turbo","stage2":"gpt-4","stage3":"text-embedding-3-small"}'
+        description: 'Initialize AI models configuration'
+
     - id: 'initialize_pipeline'
       type: 'code'
       data:

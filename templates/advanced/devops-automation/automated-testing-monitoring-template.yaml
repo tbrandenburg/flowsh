@@ -65,6 +65,14 @@ graph:
         title: 'Automated Testing & Monitoring System'
         description: 'Starting comprehensive testing and monitoring automation'
 
+    - id: 'init_thresholds'
+      type: 'variable-assignment'
+      data:
+        variable: 'PERFORMANCE_THRESHOLDS'
+        assignment_type: 'constant'
+        value: '{"response_time":2000,"error_rate":5,"availability":99}'
+        description: 'Initialize performance thresholds'
+
     - id: 'initialize_monitoring'
       type: 'code'
       data:
