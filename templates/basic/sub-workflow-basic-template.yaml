@@ -52,7 +52,7 @@ graph:
       data:
         title: 'Validate First Dataset'
         description: 'Use sub-workflow to validate the first dataset'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=${dataset_1}
           processing_mode=validate
@@ -67,7 +67,7 @@ graph:
       data:
         title: 'Transform Second Dataset'
         description: 'Use sub-workflow to transform the second dataset'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=${dataset_2}
           processing_mode=transform
@@ -82,7 +82,7 @@ graph:
       data:
         title: 'Analyze Third Dataset'
         description: 'Use sub-workflow to analyze the third dataset'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=${dataset_3}
           processing_mode=analyze
@@ -112,7 +112,7 @@ graph:
       data:
         title: 'High Priority Processing'
         description: 'Additional processing for high-priority data'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=Combined high-priority data: ${dataset_1} | ${dataset_2} | ${dataset_3}
           processing_mode=analyze
@@ -146,7 +146,7 @@ graph:
       data:
         title: 'Parallel Processing - Chunk 1'
         description: 'Process first data chunk in parallel pattern'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=${parallel_data_chunk_1}
           processing_mode=validate
@@ -159,7 +159,7 @@ graph:
       data:
         title: 'Parallel Processing - Chunk 2'
         description: 'Process second data chunk in parallel pattern'
-        workflow_file: 'examples/nodes/sample-data/data-processing-subworkflow.yaml'
+        workflow_file: 'dev/sample-data/data-processing-subworkflow.yaml'
         input_mappings: |
           input_data=${parallel_data_chunk_2}
           processing_mode=transform
