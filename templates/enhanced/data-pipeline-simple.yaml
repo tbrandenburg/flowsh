@@ -88,27 +88,28 @@ graph:
       data:
         title: 'Generate Final Report'
         description: 'Create summary report'
-        template_source: 'inline'
-        template_content: |
-          # 📊 Data Pipeline Execution Report
+        template:
+          source: 'inline'
+          content: |
+            # 📊 Data Pipeline Execution Report
 
-          ## Summary
-          - **Pipeline**: Multi-Source Data Aggregation
-          - **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-          - **Status**: Complete
+            ## Summary
+            - **Pipeline**: Multi-Source Data Aggregation
+            - **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
+            - **Status**: Complete
 
-          ## API Responses
-          Successfully fetched data from public APIs with retry logic and error handling.
+            ## API Responses
+            Successfully fetched data from public APIs with retry logic and error handling.
 
-          ## Production Features
-          - Network connectivity validation
-          - Multiple API endpoint integration  
-          - Comprehensive error handling
-          - Response aggregation and analysis
-          - Template-based reporting
+            ## Production Features
+            - Network connectivity validation
+            - Multiple API endpoint integration  
+            - Comprehensive error handling
+            - Response aggregation and analysis
+            - Template-based reporting
 
-          ## Result
-          Data pipeline executed successfully with production-ready error handling.
+            ## Result
+            Data pipeline executed successfully with production-ready error handling.
         output_variable: 'pipeline_report'
 
     - id: 'final_output'
