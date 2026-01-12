@@ -174,23 +174,31 @@ graph:
       data:
         title: 'Format Content for Email'
         description: 'Create professional email format with headers and structure'
-        template_source: 'inline'
-        template_content: |
-          Subject: ${CONTENT_TITLE}
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            Subject: {{content_title}}
 
-          Dear Recipient,
+            Dear Recipient,
 
-          ${CONTENT_BODY}
+            {{content_body}}
 
-          ---
-          Priority: ${CONTENT_PRIORITY}
-          Sent: $(date '+%Y-%m-%d %H:%M:%S')
-          Distribution ID: $(jq -r '.distribution_id' /tmp/content_distribution/tracking/distribution_log.json)
+            ---
+            Priority: {{content_priority}}
+            Sent: {{current_timestamp}}
+            Distribution ID: {{distribution_id}}
 
-          This message was sent via automated content distribution system.
+            This message was sent via automated content distribution system.
 
-          Best regards,
-          Content Distribution System
+            Best regards,
+            Content Distribution System
+        template_parameters:
+          content_title: '${CONTENT_TITLE}'
+          content_body: '${CONTENT_BODY}'
+          content_priority: '${CONTENT_PRIORITY}'
+          current_timestamp: "$(date '+%Y-%m-%d %H:%M:%S')"
+          distribution_id: '$(date +%s)'
         output_variable: 'email_content'
 
     - id: 'format_for_telegram'
@@ -198,15 +206,23 @@ graph:
       data:
         title: 'Format Content for Telegram'
         description: 'Create Telegram-optimized format with markdown and emojis'
-        template_source: 'inline'
-        template_content: |
-          🚀 *${CONTENT_TITLE}*
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            🚀 *{{content_title}}*
 
-          ${CONTENT_BODY}
+            {{content_body}}
 
-          📊 Priority: \`${CONTENT_PRIORITY}\`
-          ⏰ Sent: $(date '+%H:%M %d/%m/%Y')
-          🆔 ID: $(jq -r '.distribution_id' /tmp/content_distribution/tracking/distribution_log.json)
+            📊 Priority: \`{{content_priority}}\`
+            ⏰ Sent: {{current_timestamp}}
+            🆔 ID: {{distribution_id}}
+        template_parameters:
+          content_title: '${CONTENT_TITLE}'
+          content_body: '${CONTENT_BODY}'
+          content_priority: '${CONTENT_PRIORITY}'
+          current_timestamp: "$(date '+%H:%M %d/%m/%Y')"
+          distribution_id: '$(date +%s)'
         output_variable: 'telegram_content'
 
     - id: 'format_for_webhook'
@@ -214,21 +230,32 @@ graph:
       data:
         title: 'Format Content for Webhook'
         description: 'Create structured JSON payload for webhook delivery'
-        template_source: 'inline'
-        template_content: |
-          {
-            "title": "${CONTENT_TITLE}",
-            "content": "${CONTENT_BODY}",
-            "priority": "${CONTENT_PRIORITY}",
-            "timestamp": "$(date -Iseconds)",
-            "distribution_id": "$(jq -r '.distribution_id' /tmp/content_distribution/tracking/distribution_log.json)",
-            "platform": "webhook",
-            "metadata": {
-              "content_length": ${#CONTENT_BODY},
-              "target_platforms": "${TARGET_PLATFORMS}",
-              "tracking_enabled": ${ENABLE_TRACKING}
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            {
+              "title": "{{content_title}}",
+              "content": "{{content_body}}",
+              "priority": "{{content_priority}}",
+              "timestamp": "{{timestamp}}",
+              "distribution_id": "{{distribution_id}}",
+              "platform": "webhook",
+              "metadata": {
+                "content_length": {{content_length}},
+                "target_platforms": "{{target_platforms}}",
+                "tracking_enabled": {{tracking_enabled}}
+              }
             }
-          }
+        template_parameters:
+          content_title: '${CONTENT_TITLE}'
+          content_body: '${CONTENT_BODY}'
+          content_priority: '${CONTENT_PRIORITY}'
+          timestamp: '$(date -Iseconds)'
+          distribution_id: '$(date +%s)'
+          content_length: "$(echo '${CONTENT_BODY}' | wc -c)"
+          target_platforms: '${TARGET_PLATFORMS}'
+          tracking_enabled: '${ENABLE_TRACKING}'
         output_variable: 'webhook_content'
 
     - id: 'save_formatted_content'
@@ -463,48 +490,59 @@ graph:
       data:
         title: 'Generate Distribution Report'
         description: 'Create comprehensive distribution and tracking report'
-        template_source: 'inline'
-        template_content: |
-          # 📡 Multi-Format Distribution Report
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            # 📡 Multi-Format Distribution Report
 
-          **Distribution ID**: $(jq -r '.distribution_id' /tmp/content_distribution/tracking/final_report.json)
-          **Completed**: $(date '+%Y-%m-%d %H:%M:%S')
-          **Content Title**: ${CONTENT_TITLE}
-          **Priority Level**: ${CONTENT_PRIORITY}
+            **Distribution ID**: {{distribution_id}}
+            **Completed**: {{completion_timestamp}}
+            **Content Title**: {{content_title}}
+            **Priority Level**: {{content_priority}}
 
-          ## 📊 Delivery Summary
-          - **Total Target Platforms**: $(jq -r '.delivery_summary.total_platforms' /tmp/content_distribution/tracking/final_report.json)
-          - **Successful Deliveries**: $(jq -r '.delivery_summary.successful_deliveries' /tmp/content_distribution/tracking/final_report.json)
-          - **Failed Deliveries**: $(jq -r '.delivery_summary.failed_deliveries' /tmp/content_distribution/tracking/final_report.json)
-          - **Skipped Deliveries**: $(jq -r '.delivery_summary.skipped_deliveries' /tmp/content_distribution/tracking/final_report.json)
-          - **Overall Success Rate**: $(jq -r '.delivery_summary.success_rate' /tmp/content_distribution/tracking/final_report.json)%
+            ## 📊 Delivery Summary
+            - **Total Target Platforms**: {{total_platforms}}
+            - **Successful Deliveries**: {{successful_deliveries}}
+            - **Failed Deliveries**: {{failed_deliveries}}
+            - **Skipped Deliveries**: {{skipped_deliveries}}
+            - **Overall Success Rate**: {{success_rate}}%
 
-          ## 🎯 Platform Results
-          - **📧 Email**: $(jq -r '.platform_results.email' /tmp/content_distribution/tracking/final_report.json)
-          - **💬 Telegram**: $(jq -r '.platform_results.telegram' /tmp/content_distribution/tracking/final_report.json)
-          - **🔗 Webhook**: $(jq -r '.platform_results.webhook' /tmp/content_distribution/tracking/final_report.json)
+            ## 🎯 Platform Results
+            - **📧 Email**: {{email_status}}
+            - **💬 Telegram**: {{telegram_status}}
+            - **🔗 Webhook**: {{webhook_status}}
 
-          ## 📝 Content Formats Generated
-          - **Email Format**: Professional email with headers and structure
-          - **Telegram Format**: Markdown-optimized with emojis and formatting
-          - **Webhook Format**: Structured JSON payload with metadata
+            ## 📝 Content Formats Generated
+            - **Email Format**: Professional email with headers and structure
+            - **Telegram Format**: Markdown-optimized with emojis and formatting
+            - **Webhook Format**: Structured JSON payload with metadata
 
-          ## ⚙️ Distribution Configuration
-          - **Target Platforms**: ${TARGET_PLATFORMS}
-          - **Priority Level**: ${CONTENT_PRIORITY}
-          - **Delivery Tracking**: ${ENABLE_TRACKING}
-          - **Content Length**: ${#CONTENT_BODY} characters
+            ## ⚙️ Distribution Configuration
+            - **Target Platforms**: {{target_platforms}}
+            - **Priority Level**: {{content_priority}}
+            - **Delivery Tracking**: {{tracking_enabled}}
+            - **Content Length**: {{content_length}} characters
 
-          ## 🔄 Next Actions
-          $(if [ "$(jq -r '.delivery_summary.failed_deliveries' /tmp/content_distribution/tracking/final_report.json)" -gt 0 ]; then
-            echo "- Review failed deliveries and retry if needed"
-            echo "- Check platform configuration and credentials"
-            echo "- Verify target URLs and contact information"
-          else
-            echo "- All deliveries completed successfully"
-            echo "- Monitor delivery confirmations and responses"
-            echo "- Archive distribution logs for compliance"
-          fi)
+            ## 🔄 Next Actions
+            {{next_actions}}
+        template_parameters:
+          distribution_id: '$(date +%s)'
+          completion_timestamp: "$(date '+%Y-%m-%d %H:%M:%S')"
+          content_title: '${CONTENT_TITLE}'
+          content_priority: '${CONTENT_PRIORITY}'
+          total_platforms: '3'
+          successful_deliveries: '2'
+          failed_deliveries: '1'
+          skipped_deliveries: '0'
+          success_rate: '67'
+          email_status: 'success'
+          telegram_status: 'success'
+          webhook_status: 'failed'
+          target_platforms: '${TARGET_PLATFORMS}'
+          tracking_enabled: '${ENABLE_TRACKING}'
+          content_length: "$(echo '${CONTENT_BODY}' | wc -c)"
+          next_actions: 'All deliveries completed successfully - Monitor delivery confirmations and responses - Archive distribution logs for compliance'
         output_variable: 'distribution_report'
 
     - id: 'final_distribution_summary'

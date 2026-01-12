@@ -540,43 +540,56 @@ graph:
       data:
         title: 'Generate Comprehensive Monitoring Report'
         description: 'Create detailed monitoring and testing report'
-        template_content: |
-          # 🚀 Automated Testing & Monitoring Report
+        template:
+          type: 'prompt'
+          source: 'inline'
+          content: |
+            # 🚀 Automated Testing & Monitoring Report
 
-          ## 📊 Executive Summary
-          **Service**: ${SERVICE_URL}
-          **Monitoring Session**: $(date '+%Y%m%d_%H%M%S')
-          **Test Types**: ${TEST_TYPES}
-          **Overall Status**: Based on test results analysis
+            ## 📊 Executive Summary
+            **Service**: {{service_url}}
+            **Monitoring Session**: {{monitoring_session}}
+            **Test Types**: {{test_types}}
+            **Overall Status**: Based on test results analysis
 
-          ## 🏥 Health Check Results
-          Health checks completed - see detailed results in monitoring logs
+            ## 🏥 Health Check Results
+            Health checks completed - see detailed results in monitoring logs
 
-          ## ⚡ Performance Analysis
-          Performance tests completed - metrics collected and analyzed
+            ## ⚡ Performance Analysis
+            Performance tests completed - metrics collected and analyzed
 
-          ## 🧠 AI Analysis & Insights
-          Automated analysis provides recommendations based on test results
+            ## 🧠 AI Analysis & Insights
+            Automated analysis provides recommendations based on test results
 
-          ## 🔧 Configuration Details
-          - **Monitoring Frequency**: ${MONITORING_FREQUENCY}
-          - **Performance Thresholds**: ${PERFORMANCE_THRESHOLDS}
-          - **Alert Channels**: ${ALERT_CHANNELS}
-          - **Test Endpoints**: ${TEST_ENDPOINTS}
+            ## 🔧 Configuration Details
+            - **Monitoring Frequency**: {{monitoring_frequency}}
+            - **Performance Thresholds**: {{performance_thresholds}}
+            - **Alert Channels**: {{alert_channels}}
+            - **Test Endpoints**: {{test_endpoints}}
 
-          ## 📈 Recommendations
-          - Monitor response time trends over time
-          - Set up continuous monitoring for critical endpoints
-          - Implement automated alerting for threshold breaches
-          - Consider load testing for capacity planning
+            ## 📈 Recommendations
+            - Monitor response time trends over time
+            - Set up continuous monitoring for critical endpoints
+            - Implement automated alerting for threshold breaches
+            - Consider load testing for capacity planning
 
-          ## 🚨 Alert Configuration
-          Current alert channels: ${ALERT_CHANNELS}
-          Recommended monitoring intervals: Based on service criticality
+            ## 🚨 Alert Configuration
+            Current alert channels: {{alert_channels}}
+            Recommended monitoring intervals: Based on service criticality
 
-          ---
-          **Report Generated**: $(date -Iseconds)
-          **Next Monitoring**: Based on frequency setting (${MONITORING_FREQUENCY})
+            ---
+            **Report Generated**: {{generation_timestamp}}
+            **Next Monitoring**: Based on frequency setting ({{monitoring_frequency}})
+        template_parameters:
+          service_url: '${SERVICE_URL}'
+          monitoring_session: "$(date '+%Y%m%d_%H%M%S')"
+          test_types: '${TEST_TYPES}'
+          monitoring_frequency: '${MONITORING_FREQUENCY}'
+          performance_thresholds: '${PERFORMANCE_THRESHOLDS}'
+          alert_channels: '${ALERT_CHANNELS}'
+          test_endpoints: '${TEST_ENDPOINTS}'
+          generation_timestamp: '$(date -Iseconds)'
+        output_variable: 'monitoring_report'
 
     - id: 'check_alert_thresholds'
       type: 'code'
