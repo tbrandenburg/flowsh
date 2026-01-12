@@ -118,11 +118,11 @@ flowsh init
 
 # Explore templates before creating (NEW!)
 flowsh init ai-to-telegram-simple --preview
-flowsh init circuit-breaker --preview
+flowsh init ai-chat-memory --preview
 
 # Create workflow from template
 flowsh init ai-to-telegram-simple my-workflow.yaml
-flowsh init circuit-breaker api-protection.yaml
+flowsh init ai-chat-memory api-protection.yaml
 flowsh init data-pipeline-simple processor.yaml
 
 # Get help with templates
@@ -141,7 +141,7 @@ flowsh init --help
   - **AI Workflows**: `ai-chat-memory`
   - **Content Distribution**: `content-moderation`
   - **Data Processing**: `data-validation-cleanup`
-  - **Reliability**: `circuit-breaker`
+  - **Reliability**: _temporarily unavailable_
 
 ### compile
 

@@ -6,7 +6,7 @@ The Circuit Breaker pattern is a critical reliability design pattern that preven
 
 ## Template Details
 
-- **File**: `circuit-breaker-template.yaml`
+- **File**: `circuit-breaker-template.yaml.disabled` (rename to `.yaml` to re-enable)
 - **Category**: Advanced → Reliability
 - **Deployment Time**: ~7 minutes (setup + customization + testing)
 - **Success Rate**: 75%+ (tested with real API endpoints)
@@ -36,7 +36,7 @@ The Circuit Breaker pattern is a critical reliability design pattern that preven
 
 ```bash
 # Download and compile
-curl -o circuit-breaker.yaml https://github.com/user/flowsh/raw/main/templates/advanced/reliability/circuit-breaker-template.yaml
+curl -o circuit-breaker.yaml https://github.com/user/flowsh/raw/main/templates/advanced/reliability/circuit-breaker-template.yaml.disabled
 flowsh compile circuit-breaker.yaml > protect-api.sh
 chmod +x protect-api.sh
 ```
