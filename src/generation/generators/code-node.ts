@@ -82,10 +82,11 @@ export class CodeNodeGenerator extends BaseNodeGenerator {
         const argStr = String(arg);
         const processed = this.processTemplateVariablesForSubshell(argStr, node.id);
 
-        // Don't escape shell script content for bash -c commands
+        // For shell script content in bash -c commands, escape quotes properly
         if (isShellCommand && hasCFlag && index > 0 && stringArgs[index - 1] === '-c') {
-          // This is a shell script - preserve shell syntax by not escaping
-          return `"${processed}"`;
+          // Escape internal quotes to prevent shell syntax conflicts
+          const escaped = processed.replace(/"/g, '\\"');
+          return `"${escaped}"`;
         }
 
         // Quote arguments that might contain spaces or special chars
