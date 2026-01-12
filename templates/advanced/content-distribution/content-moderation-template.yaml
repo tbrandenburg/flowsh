@@ -195,12 +195,7 @@ environment_variables:
     description: 'Internal processing variable for hate speech score'
     required: false
     default: ''
-  - variable: 'HATE_TERMS'
-    name: 'Hate Terms Variable'
-    type: 'text'
-    description: 'Internal processing variable for hate terms list'
-    required: false
-    default: ''
+
   - variable: 'HTTP_CODE'
     name: 'HTTP Code Variable'
     type: 'text'
@@ -225,12 +220,7 @@ environment_variables:
     description: 'Internal processing variable for negative sentiment ratio'
     required: false
     default: ''
-  - variable: 'NEGATIVE_WORDS'
-    name: 'Negative Words Variable'
-    type: 'text'
-    description: 'Internal processing variable for negative words list'
-    required: false
-    default: ''
+
   - variable: 'NEUTRAL_COUNT'
     name: 'Neutral Count Variable'
     type: 'text'
@@ -243,12 +233,7 @@ environment_variables:
     description: 'Internal processing variable for neutral sentiment ratio'
     required: false
     default: ''
-  - variable: 'NEUTRAL_WORDS'
-    name: 'Neutral Words Variable'
-    type: 'text'
-    description: 'Internal processing variable for neutral words list'
-    required: false
-    default: ''
+
   - variable: 'NORMALIZED_SCORE'
     name: 'Normalized Score Variable'
     type: 'text'
@@ -279,12 +264,7 @@ environment_variables:
     description: 'Internal processing variable for positive sentiment ratio'
     required: false
     default: ''
-  - variable: 'POSITIVE_WORDS'
-    name: 'Positive Words Variable'
-    type: 'text'
-    description: 'Internal processing variable for positive words list'
-    required: false
-    default: ''
+
   - variable: 'PROFANITY_ANALYSIS'
     name: 'Profanity Analysis Variable'
     type: 'text'
@@ -309,12 +289,7 @@ environment_variables:
     description: 'Internal processing variable for profanity score'
     required: false
     default: ''
-  - variable: 'PROFANITY_WORDS'
-    name: 'Profanity Words Variable'
-    type: 'text'
-    description: 'Internal processing variable for profanity words list'
-    required: false
-    default: ''
+
   - variable: 'REPORT_FILE'
     name: 'Report File Variable'
     type: 'text'
@@ -387,12 +362,7 @@ environment_variables:
     description: 'Internal processing variable for violence/threat score'
     required: false
     default: ''
-  - variable: 'VIOLENCE_TERMS'
-    name: 'Violence Terms Variable'
-    type: 'text'
-    description: 'Internal processing variable for violence terms list'
-    required: false
-    default: ''
+
   - variable: 'WEBHOOK_RESPONSE'
     name: 'Webhook Response Variable'
     type: 'text'
