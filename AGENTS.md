@@ -292,7 +292,7 @@ Agents must NOT:
 
 **Agent Priority: Use templates first when creating workflows**
 
-flowsh includes a comprehensive template system with 14 production-ready workflows. Agents should **always start with templates** rather than creating workflows from scratch.
+flowsh includes a comprehensive template system with 8 production-ready workflows. Agents should **always start with templates** rather than creating workflows from scratch.
 
 **Template Discovery:**
 
@@ -305,12 +305,10 @@ flowsh init --help            # Same as above
 
 - **Enhanced (4)**: Simple, ready-to-use templates
   - `ai-to-telegram-simple`, `data-pipeline-simple`, `ai-to-telegram`, `data-pipeline`
-- **Advanced (10)**: Complex workflows by subcategory
-  - `ai-workflows/`: `ai-chat-memory`, `multi-stage-ai-workflows`
-  - `content-distribution/`: `content-moderation`, `multi-format-distribution`, `scheduled-content-generation`
-  - `data-processing/`: `data-validation-cleanup`, `parallel-processing-aggregation`
-  - `devops-automation/`: `automated-testing-monitoring`
-  - `meta-workflows/`: `interactive-workflow-builder`
+- **Advanced (4)**: Complex workflows by subcategory
+  - `ai-workflows/`: `ai-chat-memory`
+  - `content-distribution/`: `content-moderation`
+  - `data-processing/`: `data-validation-cleanup`
   - `reliability/`: `circuit-breaker`
 
 **Template Usage Pattern for Agents:**

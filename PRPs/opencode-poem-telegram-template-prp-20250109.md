@@ -32,7 +32,6 @@ Create a new flowsh template called "opencode-poem-telegram" that combines OpenC
 
 1. **`ai-to-telegram-simple.yaml`** - For Telegram integration patterns and environment validation
 2. **`simple-workflow.yaml`** - For opencode agent node usage pattern
-3. **`multi-stage-ai-workflows-template.yaml`** - For creative content generation structure
 
 ### Expected Output Example:
 

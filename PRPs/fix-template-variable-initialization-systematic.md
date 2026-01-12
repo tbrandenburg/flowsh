@@ -7,8 +7,6 @@
 **Current Failures**:
 
 - `content-moderation-template.yaml`: `PROFANITY_WORDS: unbound variable` (line 553)
-- `multi-format-distribution-template.yaml`: `email_content: unbound variable` (line 1096)
-- `scheduled-content-generation-template.yaml`: `MAIN_CONTENT: unbound variable` (line 582)
 - `circuit-breaker-template.yaml`: `PRIMARY_SUCCESS: unbound variable` (line 479)
 
 **Root Cause**: Templates use extensive `environment_variables` sections that declare variables for template processing, but the actual shell script generation doesn't properly initialize these as global shell variables before they're used in code node bash blocks.
@@ -171,22 +169,6 @@ IMPORTANT: Execute every task in order, top to bottom. Each task is atomic and i
 - **GOTCHA**: Keep template functionality but reduce variable complexity
 - **VALIDATE**: `cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/content-moderation-template.yaml`
 
-### SIMPLIFY templates/advanced/content-distribution/multi-format-distribution-template.yaml
-
-- **IMPLEMENT**: Similar simplification to content-moderation template
-- **PATTERN**: Essential variables only, local variables for single-use cases
-- **REMOVE**: Unnecessary environment variable declarations
-- **GOTCHA**: Maintain template's educational value while reducing complexity
-- **VALIDATE**: `cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/multi-format-distribution-template.yaml`
-
-### SIMPLIFY templates/advanced/content-distribution/scheduled-content-generation-template.yaml
-
-- **IMPLEMENT**: Reduce variable complexity similar to other templates
-- **PATTERN**: Simple environment_variables section with clear defaults
-- **REMOVE**: Over-engineered variable processing
-- **GOTCHA**: Focus on showing node functionality rather than variable processing
-- **VALIDATE**: `cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/scheduled-content-generation-template.yaml`
-
 ### SIMPLIFY templates/advanced/reliability/circuit-breaker-template.yaml
 
 - **IMPLEMENT**: Simplify circuit breaker template variables
@@ -273,8 +255,6 @@ cd /home/tom/workspace/ai/made/workspace/flowsh && npm test -- --grep "shell.*ge
 
 ```bash
 cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/content-moderation-template.yaml
-cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/multi-format-distribution-template.yaml
-cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/content-distribution/scheduled-content-generation-template.yaml
 cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/advanced/reliability/circuit-breaker-template.yaml
 ```
 
@@ -282,8 +262,6 @@ cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh validate templates/adv
 
 ```bash
 cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh compile templates/advanced/content-distribution/content-moderation-template.yaml >/dev/null
-cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh compile templates/advanced/content-distribution/multi-format-distribution-template.yaml >/dev/null
-cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh compile templates/advanced/content-distribution/scheduled-content-generation-template.yaml >/dev/null
 cd /home/tom/workspace/ai/made/workspace/flowsh && flowsh compile templates/advanced/reliability/circuit-breaker-template.yaml >/dev/null
 ```
 
@@ -297,7 +275,7 @@ cd /home/tom/workspace/ai/made/workspace/flowsh && timeout 900 make qa
 
 ## ACCEPTANCE CRITERIA
 
-- [ ] All 4 failing templates now pass compilation and execution
+- [ ] All failing templates now pass compilation and execution
 - [ ] No "unbound variable" errors in any template
 - [ ] Templates are simplified to focus on node functionality rather than variable complexity
 - [ ] All unit tests pass with enhanced variable handling

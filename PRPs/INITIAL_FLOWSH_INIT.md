@@ -83,7 +83,7 @@ flowsh init ai-to-telegram-simple my-bot.yaml
 flowsh init circuit-breaker workflows/resilient-api.yaml
 
 # Create workflow from advanced template
-flowsh init automated-testing-monitoring ci-pipeline.yaml
+flowsh init ai-chat-memory chat-session.yaml
 ```
 
 **Expected Output Format:**
@@ -106,20 +106,12 @@ Available templates:
   advanced:
     ai-workflows:
       - ai-chat-memory-template
-      - multi-stage-ai-workflows-template
     reliability:
       - circuit-breaker-template
-    devops-automation:
-      - automated-testing-monitoring-template
     content-distribution:
       - content-moderation-template
-      - multi-format-distribution-template
-      - scheduled-content-generation-template
     data-processing:
       - data-validation-cleanup-template
-      - parallel-processing-aggregation-template
-    meta-workflows:
-      - interactive-workflow-builder-template
 ```
 
 **Error Handling Examples:**
