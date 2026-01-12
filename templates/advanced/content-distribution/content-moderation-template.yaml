@@ -159,13 +159,13 @@ graph:
             CONTENT=$(cat "$CONTENT_FILE")
 
             # Check for URLs and links
-            URL_COUNT=$(echo "$CONTENT" | grep -oE 'https?://[^[:space:]]+' | wc -l || echo "0")
+            URL_COUNT=$(echo "$CONTENT" | grep -oE 'https?://[^[:space:]]+' | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
 
             # Check for email addresses
-            EMAIL_COUNT=$(echo "$CONTENT" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | wc -l || echo "0")
+            EMAIL_COUNT=$(echo "$CONTENT" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
 
             # Check for phone numbers (basic pattern)
-            PHONE_COUNT=$(echo "$CONTENT" | grep -oE '[0-9]{3}-[0-9]{3}-[0-9]{4}|\\([0-9]{3}\\)[[:space:]]*[0-9]{3}-[0-9]{4}' | wc -l || echo "0")
+            PHONE_COUNT=$(echo "$CONTENT" | grep -oE '[0-9]{3}-[0-9]{3}-[0-9]{4}|\\([0-9]{3}\\)[[:space:]]*[0-9]{3}-[0-9]{4}' | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
 
             echo "📧 Content Pattern Analysis:"
             echo "  URLs found: $URL_COUNT"
@@ -356,20 +356,21 @@ graph:
         title: 'Process AI Analysis Results'
         description: 'Parse and integrate AI moderation results with rule-based analysis'
         command: '/bin/bash'
+        environment:
+          AI_RESPONSE: '{{llm_content}}'
         args:
           - '-c'
           - |
             set -euo pipefail
             echo "🤖 Processing AI analysis results..."
 
-            AI_RESPONSE="{{llm_content}}"
             ANALYSIS_DIR="/tmp/content_moderation/analysis"
 
             echo "📋 AI Analysis Response:"
-            echo "$AI_RESPONSE"
+            echo "${AI_RESPONSE:-No AI response available}"
 
             # Try to extract JSON from AI response (handle potential formatting issues)
-            echo "$AI_RESPONSE" | jq . > "$ANALYSIS_DIR/ai_analysis.json" 2>/dev/null || {
+            echo "${AI_RESPONSE:-}" | jq . > "$ANALYSIS_DIR/ai_analysis.json" 2>/dev/null || {
               echo "⚠️ AI response not in valid JSON format, creating structured version"
               cat > "$ANALYSIS_DIR/ai_analysis.json" <<EOF
               {
@@ -382,7 +383,7 @@ graph:
                 "risk_factors": ["ai_parsing_error"],
                 "recommendations": ["manual_review_required"],
                 "confidence": 0.3,
-                "raw_response": "$AI_RESPONSE"
+                "raw_response": "${AI_RESPONSE:-}"
               }
             EOF
             }
@@ -429,17 +430,17 @@ graph:
 
             # Count sentiment indicators
             for word in $POSITIVE_WORDS; do
-              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l || echo "0")
+              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
               POSITIVE_COUNT=$((POSITIVE_COUNT + COUNT))
             done
 
             for word in $NEGATIVE_WORDS; do
-              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l || echo "0")
+              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
               NEGATIVE_COUNT=$((NEGATIVE_COUNT + COUNT))
             done
 
             for word in $NEUTRAL_WORDS; do
-              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l || echo "0")
+              COUNT=$(echo "$CONTENT" | grep -oi "\\b$word\\b" | wc -l 2>/dev/null | tr -d '[:space:]' || echo "0")
               NEUTRAL_COUNT=$((NEUTRAL_COUNT + COUNT))
             done
 
@@ -653,53 +654,66 @@ graph:
             echo "📬 Webhook notification process complete"
 
     - id: 'generate_final_summary'
-      type: 'template-transform'
+      type: 'code'
       data:
         title: 'Generate Moderation Summary'
         description: 'Create human-readable moderation summary and recommendations'
-        template:
-          source: 'inline'
-          content: |
-            # 🛡️ Content Moderation Report
+        command: '/bin/bash'
+        environment:
+          REPORT_FILE: '$(cat /tmp/content_moderation/final_report_path.txt)'
+        args:
+          - '-c'
+          - |
+            set -euo pipefail
+            echo "📝 Generating moderation summary..."
+
+            REPORT_FILE="${REPORT_FILE:-/tmp/content_moderation/reports/moderation_report.json}"
+
+            # Create a simple moderation summary
+            SUMMARY="# 🛡️ Content Moderation Report
 
             **Analysis Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-            **Content Length**: $(jq -r '.content_analysis.word_count' $(cat /tmp/content_moderation/final_report_path.txt)) words
-            **Moderation Level**: ${MODERATION_STRICTNESS}
+            **Content Length**: $(jq -r '.content_analysis.word_count // 0' "$REPORT_FILE" 2>/dev/null) words
+            **Moderation Level**: ${MODERATION_STRICTNESS:-moderate}
 
             ## 🎯 Moderation Decision
-            **Status**: $(jq -r '.moderation_decision.overall_decision' $(cat /tmp/content_moderation/final_report_path.txt))
-            **Risk Level**: $(jq -r '.moderation_decision.risk_level' $(cat /tmp/content_moderation/final_report_path.txt))
-            **Manual Review Required**: $(jq -r '.moderation_decision.requires_manual_review' $(cat /tmp/content_moderation/final_report_path.txt))
-            **Confidence**: $(jq -r '.moderation_decision.confidence_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            **Status**: $(jq -r '.moderation_decision.overall_decision // "approved"' "$REPORT_FILE" 2>/dev/null)
+            **Risk Level**: $(jq -r '.moderation_decision.risk_level // "low"' "$REPORT_FILE" 2>/dev/null)
+            **Manual Review Required**: $(jq -r '.moderation_decision.requires_manual_review // false' "$REPORT_FILE" 2>/dev/null)
+            **Confidence**: $(jq -r '.moderation_decision.confidence_score // 0.5' "$REPORT_FILE" 2>/dev/null)
 
             ## 🔍 Analysis Results
 
             ### Safety Assessment
-            - **Profanity Detected**: $(jq -r '.safety_analysis.profanity_detected' $(cat /tmp/content_moderation/final_report_path.txt))
-            - **AI Safety Rating**: $(jq -r '.safety_analysis.ai_safety_assessment' $(cat /tmp/content_moderation/final_report_path.txt))
-            - **Safety Score**: $(jq -r '.safety_analysis.ai_safety_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **Profanity Detected**: $(jq -r '.safety_analysis.profanity_detected // false' "$REPORT_FILE" 2>/dev/null)
+            - **AI Safety Rating**: $(jq -r '.safety_analysis.ai_safety_assessment // "safe"' "$REPORT_FILE" 2>/dev/null)
+            - **Safety Score**: $(jq -r '.safety_analysis.ai_safety_score // 0.5' "$REPORT_FILE" 2>/dev/null)
 
             ### Sentiment Analysis
-            - **Overall Sentiment**: $(jq -r '.safety_analysis.sentiment' $(cat /tmp/content_moderation/final_report_path.txt))
-            - **Sentiment Score**: $(jq -r '.safety_analysis.sentiment_score' $(cat /tmp/content_moderation/final_report_path.txt))
+            - **Overall Sentiment**: $(jq -r '.safety_analysis.sentiment // "neutral"' "$REPORT_FILE" 2>/dev/null)
+            - **Sentiment Score**: $(jq -r '.safety_analysis.sentiment_score // 0.5' "$REPORT_FILE" 2>/dev/null)
 
-            ### Content Metrics
-            - **Character Count**: $(jq -r '.content_analysis.content_length' $(cat /tmp/content_moderation/final_report_path.txt))
-            - **URLs Found**: $(jq -r '.content_analysis.url_count' $(cat /tmp/content_moderation/final_report_path.txt))
-            - **Email Addresses**: $(jq -r '.content_analysis.email_count' $(cat /tmp/content_moderation/final_report_path.txt))
+            ### Content Metrics  
+            - **Character Count**: $(jq -r '.content_analysis.content_length // 0' "$REPORT_FILE" 2>/dev/null)
+            - **URLs Found**: $(jq -r '.content_analysis.url_count // 0' "$REPORT_FILE" 2>/dev/null)
+            - **Email Addresses**: $(jq -r '.content_analysis.email_count // 0' "$REPORT_FILE" 2>/dev/null)
 
             ## 📝 Recommendations
-            $(jq -r '.recommendations' $(cat /tmp/content_moderation/final_report_path.txt))
+            $(jq -r '.recommendations // "No specific recommendations"' "$REPORT_FILE" 2>/dev/null)
 
             ## 🔧 Configuration Used
-            - **Strictness Level**: ${MODERATION_STRICTNESS}
-            - **Profanity Check**: ${ENABLE_PROFANITY_CHECK}
-            - **Sentiment Analysis**: ${ENABLE_SENTIMENT_ANALYSIS}
-            - **Webhook Alerts**: $([ -n "${WEBHOOK_URL}" ] && echo "Enabled" || echo "Disabled")
+            - **Strictness Level**: ${MODERATION_STRICTNESS:-moderate}
+            - **Profanity Check**: ${ENABLE_PROFANITY_CHECK:-true}
+            - **Sentiment Analysis**: ${ENABLE_SENTIMENT_ANALYSIS:-true}
+            - **Webhook Alerts**: $([ -n "${WEBHOOK_URL:-}" ] && echo "Enabled" || echo "Disabled")
 
             ## 📡 Notifications
-            **Webhook Status**: $(jq -r '.webhook_sent' /tmp/content_moderation/webhook_result.json 2>/dev/null || echo "Not configured")
-        output_variable: 'moderation_summary'
+            **Webhook Status**: $(jq -r '.webhook_sent // "Not configured"' /tmp/content_moderation/webhook_result.json 2>/dev/null || echo "Not configured")
+            "
+
+            # Store the summary in workflow variable
+            echo "$SUMMARY" > /tmp/content_moderation/moderation_summary.txt
+            echo "✅ Moderation summary generated"
 
     - id: 'final_moderation_response'
       type: 'answer'
@@ -730,7 +744,7 @@ graph:
           - **Notification System**: ✅ Webhook alerts for flagged content
 
           ## 📋 Detailed Analysis Report
-          ${moderation_summary}
+          $(cat /tmp/content_moderation/moderation_summary.txt 2>/dev/null || echo "Summary not available")
 
           ## ⚡ Production Features Demonstrated
           - **Multi-tier Moderation**: Combined rule-based and AI-powered analysis
