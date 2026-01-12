@@ -11,6 +11,7 @@ on:
     paths:
       - 'templates/**/*.yaml'
       - 'src/generation/**/*.ts'
+  workflow_dispatch:
 
 jobs:
   template-validation:
