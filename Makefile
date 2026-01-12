@@ -98,7 +98,7 @@ templates-all: build
 	@echo "Generating and executing shell scripts from all production templates..."
 	@mkdir -p dev/generated-outputs/templates/
 	@mkdir -p dev/execution-results/templates/
-	@./dev/template-validation/run-all-templates.sh
+	@./scripts/run-all-templates.sh
 
 # Validate all production templates
 templates-validate: build
