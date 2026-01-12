@@ -107,6 +107,21 @@ describe('CLI Output Option', () => {
   });
 });
 
+describe('CLI Bash Syntax Validation', () => {
+  it('should fail compilation when generated script has bash syntax errors', () => {
+    const command = 'node dist/cli/index.js compile tests/workflows/invalid-bash-test.yaml';
+
+    try {
+      execSync(command, { encoding: 'utf8' });
+      expect(false).toBe(true);
+    } catch (error: any) {
+      const errorOutput = error.stderr?.toString() ?? error.stdout?.toString() ?? error.message;
+      expect(errorOutput).toContain('Compilation failed:');
+      expect(errorOutput).toContain('Bash syntax validation failed');
+    }
+  });
+});
+
 describe('CLI DSL Command', () => {
   it('should execute dsl command and show DSL structure', () => {
     const command = 'node dist/cli/index.js dsl';
