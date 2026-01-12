@@ -14,8 +14,10 @@ import { initCommand } from '../templates/init-command.js';
 import { DSLIntrospector } from '../dsl/introspection.js';
 import { parseWorkflowFile } from '../parsing/parser.js';
 import { Command } from 'commander';
+import { execFileSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 // Simple error handling - no fancy logging or correlation IDs
 function handleError(error: unknown, operation: string): never {
@@ -49,6 +51,29 @@ async function writeScriptToFile(script: string, outputFile: string): Promise<vo
       throw new Error(`Invalid path: ${outputFile}`);
     } else {
       throw new Error(`Failed to write file: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Validate generated script for bash syntax errors.
+ */
+function validateBashSyntax(script: string): void {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowsh-syntax-check-'));
+  const tempFile = path.join(tempDir, 'script.sh');
+
+  try {
+    fs.writeFileSync(tempFile, script, 'utf8');
+    execFileSync('bash', ['-n', tempFile], { stdio: 'pipe' });
+  } catch (error: any) {
+    const errorOutput = error?.stderr?.toString?.() || error?.message || 'Unknown bash error';
+    throw new Error(`Bash syntax validation failed:\n${errorOutput}`);
+  } finally {
+    try {
+      fs.unlinkSync(tempFile);
+      fs.rmdirSync(tempDir);
+    } catch {
+      // Best-effort cleanup
     }
   }
 }
@@ -121,6 +146,16 @@ async function compileCommand(
         '#',
       ];
       finalScript = warnings.join('\n') + '\n' + finalScript;
+    }
+
+    if (options.verbose) {
+      console.error('🔍 Validating bash syntax...');
+    }
+
+    validateBashSyntax(finalScript);
+
+    if (options.verbose) {
+      console.error('✅ Bash syntax validation passed');
     }
 
     // Dry-run mode: validate and compile but don't output
