@@ -2,32 +2,6 @@ workflow:
   name: 'Circuit Breaker API Protection - Production Ready'
   description: 'Protect external API calls with circuit breaker pattern and failure recovery'
 
-environment_variables:
-  - variable: 'PRIMARY_API_ENDPOINT'
-    name: 'Primary API Endpoint'
-    type: 'text'
-    description: 'The API endpoint to protect with circuit breaker'
-    required: true
-    default: 'https://httpbin.org/status/200'
-  - variable: 'FALLBACK_API_ENDPOINT'
-    name: 'Fallback API Endpoint'
-    type: 'text'
-    description: 'Backup API endpoint when circuit is open'
-    required: false
-    default: 'https://httpbin.org/json'
-  - variable: 'FAILURE_THRESHOLD'
-    name: 'Failure Threshold'
-    type: 'text'
-    description: 'Number of failures before opening circuit'
-    required: false
-    default: '3'
-  - variable: 'RECOVERY_TIMEOUT'
-    name: 'Recovery Timeout (seconds)'
-    type: 'text'
-    description: 'Time before attempting recovery'
-    required: false
-    default: '30'
-
 graph:
   nodes:
     - id: 'start'
@@ -35,14 +9,6 @@ graph:
       data:
         title: 'Circuit Breaker Protection Workflow'
         description: 'Production-ready API protection with failure recovery'
-
-    - id: 'init_endpoint'
-      type: 'variable-assignment'
-      data:
-        variable: 'PRIMARY_API_ENDPOINT'
-        assignment_type: 'constant'
-        value: 'https://httpbin.org/status/200'
-        description: 'Initialize primary API endpoint'
 
     - id: 'initialize_circuit'
       type: 'code'
@@ -56,11 +22,11 @@ graph:
             set -euo pipefail
             echo "⚡ Initializing Circuit Breaker..."
 
-            # Validate configuration
-            PRIMARY_ENDPOINT="${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}"
-            FALLBACK_ENDPOINT="${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}"
-            THRESHOLD="${FAILURE_THRESHOLD:-3}"
-            RECOVERY_TIME="${RECOVERY_TIMEOUT:-30}"
+            # Validate configuration - using template variables for reliability
+            PRIMARY_ENDPOINT="https://httpbin.org/status/200"
+            FALLBACK_ENDPOINT="https://httpbin.org/json"
+            THRESHOLD="3"
+            RECOVERY_TIME="30"
 
             echo "🔧 Configuration:"
             echo "  Primary: $PRIMARY_ENDPOINT"
@@ -91,8 +57,8 @@ graph:
             FAILURE_COUNT=$(cat /tmp/failure_count 2>/dev/null || echo "0")
             LAST_FAILURE=$(cat /tmp/last_failure_time 2>/dev/null || echo "0")
             CURRENT_TIME=$(date +%s)
-            THRESHOLD="${FAILURE_THRESHOLD:-3}"
-            RECOVERY_TIME="${RECOVERY_TIMEOUT:-30}"
+            THRESHOLD="3"
+            RECOVERY_TIME="30"
 
             echo "📊 Current State:"
             echo "  Circuit: $CIRCUIT_STATE"
@@ -120,8 +86,8 @@ graph:
             set -euo pipefail
 
             CIRCUIT_STATE=$(cat /tmp/circuit_state 2>/dev/null || echo "CLOSED")
-            PRIMARY_ENDPOINT="${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}"
-            THRESHOLD="${FAILURE_THRESHOLD:-3}"
+            PRIMARY_ENDPOINT="https://httpbin.org/status/200"
+            THRESHOLD="3"
 
             echo "🌐 Attempting primary API call..."
             echo "  Endpoint: $PRIMARY_ENDPOINT"
@@ -135,7 +101,7 @@ graph:
             fi
 
             # Attempt the API call
-            if curl -s --connect-timeout 10 --max-time 30 "$PRIMARY_ENDPOINT" > /tmp/primary_response 2>/dev/null; then
+            if curl -s --connect-timeout 10 --max-time 30 "https://httpbin.org/status/200" > /tmp/primary_response 2>/dev/null; then
               echo "✅ Primary API call successful"
               echo "true" > /tmp/primary_success
               
@@ -180,7 +146,7 @@ graph:
 
             PRIMARY_SUCCESS=$(cat /tmp/primary_success 2>/dev/null || echo "false")
             CIRCUIT_STATE=$(cat /tmp/circuit_state 2>/dev/null || echo "CLOSED")
-            FALLBACK_ENDPOINT="${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}"
+            FALLBACK_ENDPOINT="https://httpbin.org/json"
 
             echo "🎯 Processing circuit breaker decision..."
             echo "  Primary Success: $PRIMARY_SUCCESS"
@@ -196,7 +162,7 @@ graph:
             else
               echo "🔄 Attempting fallback API call..."
               
-              if curl -s --connect-timeout 5 --max-time 15 "$FALLBACK_ENDPOINT" > /tmp/fallback_response 2>/dev/null; then
+              if curl -s --connect-timeout 5 --max-time 15 "https://httpbin.org/json" > /tmp/fallback_response 2>/dev/null; then
                 echo "✅ Fallback API call successful"
                 echo "📊 Fallback Response:"
                 head -c 200 /tmp/fallback_response || echo "[Response too large to display]"
@@ -218,17 +184,17 @@ graph:
           # ⚡ Circuit Breaker Protection Report
 
           **Timestamp**: $(date '+%Y-%m-%d %H:%M:%S')
-          **Primary Endpoint**: ${PRIMARY_API_ENDPOINT:-https://httpbin.org/status/200}
-          **Fallback Endpoint**: ${FALLBACK_API_ENDPOINT:-https://httpbin.org/json}
+          **Primary Endpoint**: https://httpbin.org/status/200
+          **Fallback Endpoint**: https://httpbin.org/json
 
           ## Circuit Status
           - **State**: $(cat /tmp/circuit_state 2>/dev/null || echo "UNKNOWN")
-          - **Failure Count**: $(cat /tmp/failure_count 2>/dev/null || echo "0")/${FAILURE_THRESHOLD:-3}
+          - **Failure Count**: $(cat /tmp/failure_count 2>/dev/null || echo "0")/3
           - **Response Source**: $(cat /tmp/response_source 2>/dev/null || echo "unknown")
 
           ## Configuration
-          - **Failure Threshold**: ${FAILURE_THRESHOLD:-3} consecutive failures
-          - **Recovery Timeout**: ${RECOVERY_TIMEOUT:-30} seconds
+          - **Failure Threshold**: 3 consecutive failures
+          - **Recovery Timeout**: 30 seconds
           - **Request Timeout**: 30 seconds
           - **Connection Timeout**: 10 seconds
 
@@ -241,7 +207,7 @@ graph:
 
           ## Next Actions
           $(if [ "$(cat /tmp/circuit_state 2>/dev/null)" = "OPEN" ]; then
-            echo "- Circuit will attempt recovery in ${RECOVERY_TIMEOUT:-30} seconds"
+            echo "- Circuit will attempt recovery in 30 seconds"
             echo "- Monitor primary endpoint availability"
             echo "- Review failure threshold if pattern persists"
           else
@@ -266,8 +232,8 @@ graph:
           - **State Management**: Real-time circuit state tracking
 
           ## 🔧 Circuit Configuration
-          - **Failure Threshold**: ${FAILURE_THRESHOLD:-3} consecutive failures
-          - **Recovery Timeout**: ${RECOVERY_TIMEOUT:-30} seconds
+          - **Failure Threshold**: 3 consecutive failures
+          - **Recovery Timeout**: 30 seconds
           - **Endpoints**: Primary + Fallback with independent timeout settings
           - **State Persistence**: File-based state management (production: use Redis/DB)
 
