@@ -9,6 +9,12 @@ environment_variables:
     description: 'Internal processing variable for primary endpoint'
     required: false
     default: ''
+  - variable: 'FALLBACK_ENDPOINT'
+    name: 'Fallback Endpoint Variable'
+    type: 'text'
+    description: 'Internal processing variable for fallback endpoint'
+    required: false
+    default: ''
 
 graph:
   nodes:

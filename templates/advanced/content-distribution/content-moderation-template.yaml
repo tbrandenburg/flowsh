@@ -45,6 +45,12 @@ environment_variables:
     description: 'Webhook URL for moderation alerts (optional)'
     required: false
     default: ''
+  - variable: 'PROFANITY_CHECK'
+    name: 'Profanity Check Variable'
+    type: 'text'
+    description: 'Internal processing variable for profanity check assignment'
+    required: false
+    default: ''
 
 graph:
   nodes:

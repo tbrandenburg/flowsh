@@ -69,6 +69,12 @@ environment_variables:
     description: 'Track delivery success across platforms (true/false)'
     required: false
     default: 'true'
+  - variable: 'PLATFORMS'
+    name: 'Platforms Variable'
+    type: 'text'
+    description: 'Internal processing variable for platforms assignment'
+    required: false
+    default: ''
 
 graph:
   nodes:
