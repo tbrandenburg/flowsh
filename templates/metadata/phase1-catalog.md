@@ -54,6 +54,18 @@
 - Internet connectivity
 - No API keys required (uses public endpoints)
 
+## Deprecated/Removed Enhanced Templates
+
+The following enhanced templates were removed to prioritize simpler or basic alternatives:
+
+- `ai-to-telegram-template.yaml`
+- `llm-to-telegram-demo-template.yaml`
+- `data-pipeline-template.yaml`
+- `api-aggregation-template.yaml`
+- `file-processing-template.yaml`
+- `counting-loop-template.yaml`
+- `hello-world-template.yaml`
+
 ## Skill Integration
 
 Both templates integrate with the `flowsh-workflow-intelligence` skill:
