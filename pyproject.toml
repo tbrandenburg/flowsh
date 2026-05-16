@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling>=1.27"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
 
 [project]
 name = "flowsh"
@@ -11,18 +11,24 @@ requires-python = ">=3.11"
 dependencies = [
   "PyYAML>=6,<7",
   "pydantic>=2,<3",
+  "typer>=0.20,<0.21",
 ]
 
 [project.scripts]
-flowsh = "scripts.workflow_to_harness:main"
+flowsh = "flowsh.cli:main"
 
 [dependency-groups]
 dev = [
   "pytest>=8,<9",
+  "ruff>=0.14,<0.15",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["scripts"]
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

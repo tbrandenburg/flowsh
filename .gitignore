@@ -16,4 +16,5 @@ venv/
 .env.*
 
 .harness/
+.flowsh/
 dev/

@@ -1,9 +1,9 @@
 # flowsh
 
-`flowsh` is now deliberately reduced to one tool:
+`flowsh` is a small `uv` Python CLI deliberately reduced to one tool:
 
 ```bash
-uv run flowsh .made/workflows.yml --output-root .
+uv run flowsh .made/workflows.yml
 ```
 
 It reads MADE workflow YAML and writes executable Bash harness scripts for OpenCode.
@@ -16,9 +16,6 @@ Only this top-level shape is supported:
 workflows:
   - id: wf_example
     name: Example
-    enabled: true
-    schedule: manual
-    shellScriptPath: .harness/example.sh
     steps:
       - type: vars
         name: Capture date
@@ -37,13 +34,15 @@ workflows:
 
 Supported step types are only `vars`, `bash`, and `agent`.
 
+Harness paths are derived from workflow ids. `wf_example` writes `.harness/example.sh`.
+
 ## Commands
 
 ```bash
 # Generate every workflow harness
-uv run flowsh .made/workflows.yml --output-root .
+uv run flowsh .made/workflows.yml
 
-# Generate one workflow by id or name
+# Generate one workflow by id
 uv run flowsh .made/workflows.yml --workflow wf_example
 
 # Show planned outputs without writing files
@@ -51,16 +50,18 @@ uv run flowsh .made/workflows.yml --dry-run
 
 # Overwrite existing harness files
 uv run flowsh .made/workflows.yml --force
-
-# Print JSON Schema for the supported workflow file
-uv run flowsh .made/workflows.yml --print-schema
 ```
+
+Generated harness logs go to `.flowsh/logs` by default. Set `FLOWSH_LOG_DIR` when running a harness to use another local log directory.
 
 ## Development
 
 ```bash
+uv sync
 make install
 make qa
 ```
 
-`make qa` only validates the Python blueprint and its tests. There is no TypeScript compiler, template system, DSL explorer, or legacy node registry.
+`make install` installs `flowsh` into the user PATH with `uv tool install --force .`.
+
+`make qa` runs Ruff, Python compile checks, and pytest. There is no TypeScript compiler, template system, DSL explorer, or legacy node registry.
