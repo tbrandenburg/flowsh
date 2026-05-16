@@ -109,9 +109,20 @@ uv sync
 make install
 make build
 make qa
+make hygiene
+make clean
 ```
 
 `make install` installs `flowsh` into the user PATH with `uv tool install --force .`.
 `make build` creates reproducible source and wheel distributions under ignored `dist/`.
 
-`make qa` runs Ruff, Python compile checks, pytest, and package builds locally and in CI. There is no TypeScript compiler, template system, DSL explorer, legacy node registry, or archived legacy workflow spec in this repository.
+`make qa` runs Ruff, Python compile checks, pytest, and package builds locally and in CI.
+The pytest suite also verifies `python -m flowsh`, `uv run flowsh`, and the direct
+`scripts/workflow_to_harness.py` entrypoint against the same help contract.
+`make hygiene` prints tracked, untracked, and ignored files with
+`git status --short --ignored`; review it before release to confirm only intended
+source changes are present and generated artifacts remain ignored. `make clean`
+removes local caches, build outputs, generated harnesses, and generated logs.
+
+There is no TypeScript compiler, template system, DSL explorer, legacy node
+registry, or archived legacy workflow spec in this repository.
