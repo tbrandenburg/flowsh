@@ -15,6 +15,7 @@ def render_harness(workflow: Workflow) -> str:
     lines: list[str] = [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
+        "umask 077",
         "",
         f"SCRIPT_NAME={bash_quote(script_name)}",
         'WORKFLOW_NAME="${SCRIPT_NAME%.sh}"',
@@ -33,10 +34,71 @@ def render_harness(workflow: Workflow) -> str:
         "  exit 2",
         "fi",
         "",
+        section("refuse_symlink_path() - keep generated logs inside plain relative paths"),
+        "refuse_symlink_path() {",
+        '  local target="$1"',
+        "",
+        '  if [[ -z "$target" ]]; then',
+        '    printf "ERROR: Log directory must not be empty\\n" >&2',
+        "    return 1",
+        "  fi",
+        '  if [[ "$target" == /* ]]; then',
+        '    printf "ERROR: Log directory must be relative: %s\\n" "$target" >&2',
+        "    return 1",
+        "  fi",
+        "",
+        "  local current=",
+        "  local part",
+        '  IFS=/ read -r -a path_parts <<< "$target"',
+        '  for part in "${path_parts[@]}"; do',
+        '    if [[ -z "$part" || "$part" == "." ]]; then',
+        "      continue",
+        "    fi",
+        '    if [[ "$part" == ".." ]]; then',
+        "      printf '%s: %s\\n' "
+        '"ERROR: Log directory must not contain .. path segments" "$target" >&2',
+        "      return 1",
+        "    fi",
+        '    current="${current:+${current}/}${part}"',
+        '    if [[ -L "$current" ]]; then',
+        '      printf "ERROR: Refusing to write logs through symlinked path: %s\\n" "$current" >&2',
+        "      return 1",
+        "    fi",
+        "  done",
+        "}",
+        "",
         section("Log file setup - local by default, override with FLOWSH_LOG_DIR"),
         'LOG_DIR="${FLOWSH_LOG_DIR:-.flowsh/logs}"',
-        'mkdir -p "$LOG_DIR"',
-        'LOG_FILE="${LOG_DIR}/${LOG_BASENAME}"',
+        "LOG_FILE=",
+        'if [[ "$DRY_RUN" == false ]]; then',
+        '  refuse_symlink_path "$LOG_DIR" || exit 1',
+        '  if [[ -e "$LOG_DIR" && ! -d "$LOG_DIR" ]]; then',
+        '    printf "ERROR: Log path exists but is not a directory: %s\\n" "$LOG_DIR" >&2',
+        "    exit 1",
+        "  fi",
+        '  if ! mkdir -p "$LOG_DIR"; then',
+        '    printf "ERROR: Cannot create log directory: %s\\n" "$LOG_DIR" >&2',
+        "    exit 1",
+        "  fi",
+        '  refuse_symlink_path "$LOG_DIR" || exit 1',
+        '  if [[ ! -d "$LOG_DIR" ]]; then',
+        '    printf "ERROR: Log path exists but is not a directory: %s\\n" "$LOG_DIR" >&2',
+        "    exit 1",
+        "  fi",
+        '  if ! chmod 700 "$LOG_DIR"; then',
+        '    printf "ERROR: Cannot set log directory permissions: %s\\n" "$LOG_DIR" >&2',
+        "    exit 1",
+        "  fi",
+        '  LOG_FILE="${LOG_DIR}/${LOG_BASENAME}"',
+        '  if ! : > "$LOG_FILE"; then',
+        '    printf "ERROR: Cannot create log file: %s\\n" "$LOG_FILE" >&2',
+        "    exit 1",
+        "  fi",
+        '  if ! chmod 600 "$LOG_FILE"; then',
+        '    printf "ERROR: Cannot set log file permissions: %s\\n" "$LOG_FILE" >&2',
+        "    exit 1",
+        "  fi",
+        "fi",
         "",
         section("log() - ISO-8601 UTC timestamps, INFO/ERROR, stderr + log file"),
         "log() {",
@@ -44,7 +106,12 @@ def render_harness(workflow: Workflow) -> str:
         "  local message",
         "  message=\"$(date -u +'%Y-%m-%dT%H:%M:%SZ') [${level}] $*\"",
         "  printf '%s\\n' \"$message\" >&2",
-        '  printf \'%s\\n\' "$message" >> "$LOG_FILE" 2>/dev/null || true',
+        '  if [[ -n "$LOG_FILE" ]]; then',
+        '    if ! printf \'%s\\n\' "$message" >> "$LOG_FILE"; then',
+        '      printf "ERROR: Cannot write log file: %s\\n" "$LOG_FILE" >&2',
+        "      exit 1",
+        "    fi",
+        "  fi",
         "}",
         "",
         section("catch() - centralized step failure hook"),
@@ -67,8 +134,8 @@ def render_harness(workflow: Workflow) -> str:
         "",
         "  set +e",
         '  if ( : >> "$LOG_FILE" ) 2>/dev/null; then',
-        '    "$step_name" 2>&1 | tee -a "$LOG_FILE"',
-        "    local status=${PIPESTATUS[0]}",
+        '    "$step_name" > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)',
+        "    local status=$?",
         "  else",
         '    "$step_name"',
         "    local status=$?",
@@ -118,6 +185,11 @@ def render_harness(workflow: Workflow) -> str:
         "    return 0",
         "  fi",
         "",
+        "  if ! command -v opencode >/dev/null 2>&1; then",
+        '    log ERROR "opencode CLI not found in PATH"',
+        "    return 127",
+        "  fi",
+        "",
         '  printf \'%s\' "$prompt" | "${cmd[@]}"',
         "}",
         "",
@@ -126,8 +198,9 @@ def render_harness(workflow: Workflow) -> str:
         "",
     ]
 
+    used_function_names: set[str] = set()
     for index, step in enumerate(workflow.steps, start=1):
-        lines.extend(render_step(index, step))
+        lines.extend(render_step(index, step, used_function_names))
 
     lines.extend(
         [
@@ -139,17 +212,37 @@ def render_harness(workflow: Workflow) -> str:
     return "\n".join(lines)
 
 
-def render_step(index: int, step: Step) -> list[str]:
-    function_name = step_function_name(index, step.name)
+def render_step(index: int, step: Step, used_function_names: set[str] | None = None) -> list[str]:
+    function_name = step_function_name(index, step.name, used_function_names)
     title = step.name or default_step_title(index, step)
     lines = [section(f"Step {index} ({step.type}): {title}"), f"{function_name}() {{"]
 
     if isinstance(step, VarsStep):
+        lines.append("  local status=0")
         for name, command in step.values.items():
-            lines.append(f"  {name}=$({command})")
+            delimiter = heredoc_delimiter(f"VARS_{name}", command)
+            lines.append(f"  {name}=$(bash -euo pipefail <<'{delimiter}'")
+            lines.extend(script_lines(command))
+            lines.extend(
+                [
+                    delimiter,
+                    "  )",
+                    "  status=$?",
+                    "  if [[ $status -ne 0 ]]; then",
+                    '    return "$status"',
+                    "  fi",
+                    f"  export {name}",
+                ]
+            )
     elif isinstance(step, BashStep):
-        for command_line in step.run.strip().splitlines():
-            lines.append(f"  {command_line}" if command_line.strip() else "")
+        delimiter = heredoc_delimiter("BASH", step.run)
+        lines.extend(
+            [
+                f"  bash -euo pipefail <<'{delimiter}'",
+                *step.run.strip().splitlines(),
+                delimiter,
+            ]
+        )
     elif isinstance(step, AgentStep):
         delimiter = heredoc_delimiter("PROMPT", step.prompt)
         lines.extend(
@@ -191,7 +284,11 @@ def truncate_one_line(text: str, limit: int = 80) -> str:
     return compact[: limit - 1] + "..."
 
 
-def step_function_name(index: int, name: str | None) -> str:
+def step_function_name(
+    index: int,
+    name: str | None,
+    used_function_names: set[str] | None = None,
+) -> str:
     source = name or f"step_{index}"
     slug = re.sub(r"[^A-Za-z0-9_]+", "_", source).strip("_")
     if not slug:
@@ -200,7 +297,18 @@ def step_function_name(index: int, name: str | None) -> str:
         slug = f"step_{slug}"
     if not slug.startswith("step_"):
         slug = f"step_{slug}"
-    return slug.lower()
+    base = slug.lower()
+    if used_function_names is None:
+        return base
+
+    function_name = base
+    suffix = 2
+    while function_name in used_function_names:
+        function_name = f"{base}_{suffix}"
+        suffix += 1
+
+    used_function_names.add(function_name)
+    return function_name
 
 
 def heredoc_delimiter(base: str, text: str) -> str:
@@ -212,15 +320,20 @@ def heredoc_delimiter(base: str, text: str) -> str:
     return delimiter
 
 
+def script_lines(script: str) -> list[str]:
+    return script.strip().splitlines()
+
+
 def bash_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
 def section(title: str) -> str:
+    safe_title = truncate_one_line(title, limit=120)
     return "\n".join(
         [
             "# ---------------------------------------------------------------------------",
-            f"# {title}",
+            f"# {safe_title}",
             "# ---------------------------------------------------------------------------",
         ]
     )

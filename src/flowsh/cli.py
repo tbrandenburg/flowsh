@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import os
 import stat
 import sys
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from flowsh import __version__
 from flowsh.models import Workflow, WorkflowParseError, parse_workflows
 from flowsh.render import harness_path, render_harness
 
 app = typer.Typer(
     add_completion=False,
+    context_settings={"terminal_width": 120, "max_content_width": 120},
     help="Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.",
+    pretty_exceptions_enable=False,
+    rich_markup_mode=None,
 )
 
 
@@ -47,8 +53,19 @@ def generate(
             help="Overwrite existing files. Without this, existing files cause a failure.",
         ),
     ] = False,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=lambda value: print_version(value),
+            help="Show the flowsh version and exit.",
+            is_eager=True,
+        ),
+    ] = False,
 ) -> None:
     """Generate Bash harnesses from workflow YAML."""
+
+    _ = version
 
     try:
         workflows = parse_workflows(workflow_yaml)
@@ -56,6 +73,9 @@ def generate(
         write_harnesses(selected, dry_run=dry_run, force=force)
     except WorkflowParseError as error:
         print(f"ERROR: {error}", file=sys.stderr)
+        raise typer.Exit(1) from error
+    except OSError as error:
+        print(f"ERROR: Cannot write harness: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
 
 
@@ -71,20 +91,86 @@ def select_workflows(workflows: list[Workflow], selector: str | None) -> list[Wo
     raise WorkflowParseError(f"No workflow id matched {selector!r}. Known workflows: {known}")
 
 
-def write_harnesses(workflows: list[Workflow], *, dry_run: bool, force: bool) -> None:
-    for workflow in workflows:
-        output_path = harness_path(workflow)
-        if dry_run:
-            print(f"DRY-RUN would write {output_path} for workflow {workflow.name!r}")
-            continue
+def print_version(value: bool) -> None:
+    if not value:
+        return
 
-        if output_path.exists() and not force:
+    print(f"flowsh {__version__}")
+    raise typer.Exit
+
+
+def write_harnesses(workflows: list[Workflow], *, dry_run: bool, force: bool) -> None:
+    output_paths = [(workflow, harness_path(workflow)) for workflow in workflows]
+
+    if dry_run:
+        for workflow, output_path in output_paths:
+            print(f"DRY-RUN would write {output_path} for workflow {workflow.name!r}")
+        return
+
+    if not force:
+        conflicts = [path for _, path in output_paths if path.exists() or path.is_symlink()]
+        if conflicts:
+            conflict_list = ", ".join(str(path) for path in conflicts)
+            message = f"Refusing to overwrite existing file(s): {conflict_list} (use --force)"
+            raise WorkflowParseError(message)
+
+    rendered_harnesses = [
+        (output_path, render_harness(workflow)) for workflow, output_path in output_paths
+    ]
+
+    for output_path, script in rendered_harnesses:
+        if (output_path.exists() or output_path.is_symlink()) and not force:
             message = f"Refusing to overwrite existing file: {output_path} (use --force)"
             raise WorkflowParseError(message)
 
-        script = render_harness(workflow)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(script, encoding="utf-8")
-        mode = output_path.stat().st_mode
-        output_path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        ensure_output_directory(output_path.parent)
+        write_executable(output_path, script)
         print(f"Wrote {output_path}")
+
+
+def ensure_output_directory(path: Path) -> None:
+    if path.is_symlink():
+        raise WorkflowParseError(f"Refusing to write through symlinked directory: {path}")
+    if path.exists() and not path.is_dir():
+        raise WorkflowParseError(f"Output path exists but is not a directory: {path}")
+
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def write_executable(output_path: Path, content: str) -> None:
+    temporary_path: Path | None = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(content)
+            temporary.write("\n")
+            temporary.flush()
+            os.fsync(temporary.fileno())
+
+        temporary_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        temporary_path.replace(output_path)
+        fsync_directory(output_path.parent)
+    except OSError:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def fsync_directory(path: Path) -> None:
+    try:
+        descriptor = os.open(path, os.O_RDONLY)
+    except OSError:
+        return
+
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)

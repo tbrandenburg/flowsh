@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility shim for direct execution of the flowsh CLI."""
+"""Direct script entrypoint for the flowsh CLI."""
 
 import sys
 from pathlib import Path

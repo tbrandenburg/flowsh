@@ -1,10 +1,12 @@
 workflows:
-- id: wf_mp8fbogh_azcga
-  name: New workflow
-  enabled: false
-  schedule: null
-  steps:
-  - type: agent
-    agent: build
-    prompt: Write an empty test.txt
-  shellScriptPath: .harness/new-workflow.sh
+  - id: wf_example
+    name: Example
+    steps:
+      - type: vars
+        name: Capture date
+        values:
+          TODAY: date -u +%F
+      - type: bash
+        name: Print date
+        run: |
+          printf 'today=%s\n' "$TODAY"
