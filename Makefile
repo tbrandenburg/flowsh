@@ -23,7 +23,7 @@ publish:
 lint:
 	uv run --locked ruff check .
 	uv run --locked ruff format --check .
-	uv run --locked python -m py_compile src/flowsh/*.py scripts/workflow_to_harness.py tests/test_workflow_to_harness.py
+	uv run --locked python -m py_compile src/flowsh_cli/*.py scripts/workflow_to_harness.py tests/test_workflow_to_harness.py
 
 test:
 	uv run --locked pytest

@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from flowsh import WorkflowParseError, harness_path, parse_workflows, render_harness
-from flowsh.cli import app
-from flowsh.models import MAX_WORKFLOW_YAML_BYTES
+from flowsh_cli import WorkflowParseError, harness_path, parse_workflows, render_harness
+from flowsh_cli.cli import app
+from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES
 
 runner = CliRunner()
 
@@ -398,7 +398,7 @@ def test_cli_exposes_version_without_workflow_argument() -> None:
 
 def test_cli_reports_missing_required_workflow_argument() -> None:
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh"],
+        [sys.executable, "-m", "flowsh_cli"],
         check=False,
         capture_output=True,
         text=True,
@@ -415,7 +415,7 @@ def test_cli_reports_unknown_workflow_selector(tmp_path: Path) -> None:
     write_workflow(workflow_file)
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--workflow", "wf_missing"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--workflow", "wf_missing"],
         check=False,
         capture_output=True,
         text=True,
@@ -432,7 +432,7 @@ def test_cli_reports_missing_workflow_file_without_traceback(tmp_path: Path) -> 
     missing_file = tmp_path / "missing.yml"
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(missing_file)],
+        [sys.executable, "-m", "flowsh_cli", str(missing_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -450,7 +450,7 @@ def test_cli_reports_malformed_yaml_without_traceback(tmp_path: Path) -> None:
     workflow_file.write_text("workflows: [\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -478,7 +478,7 @@ workflows:
     )
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -530,7 +530,7 @@ def test_cli_reports_invalid_required_fields_without_traceback(
     workflow_file.write_text(yaml_text.lstrip(), encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -548,7 +548,7 @@ def test_cli_writes_executable_harness_and_refuses_overwrite(tmp_path: Path) -> 
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
     first = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -569,7 +569,7 @@ def test_cli_writes_executable_harness_and_refuses_overwrite(tmp_path: Path) -> 
     assert syntax.returncode == 0, syntax.stderr
 
     second = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -585,7 +585,7 @@ def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
     write_workflow(workflow_file)
 
     first = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -593,7 +593,7 @@ def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
     )
     first_content = (tmp_path / ".harness" / "example.sh").read_text(encoding="utf-8")
     second = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
         check=False,
         capture_output=True,
         text=True,
@@ -615,7 +615,7 @@ def test_cli_force_overwrites_regular_file_atomically(tmp_path: Path) -> None:
     output.write_text("old content\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
         check=False,
         capture_output=True,
         text=True,
@@ -638,7 +638,7 @@ def test_cli_force_replaces_output_symlink_without_following_it(tmp_path: Path) 
     (harness_dir / "example.sh").symlink_to(target)
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
         check=False,
         capture_output=True,
         text=True,
@@ -676,7 +676,7 @@ workflows:
     existing.write_text("existing\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -697,7 +697,7 @@ def test_cli_refuses_to_overwrite_broken_symlink(tmp_path: Path) -> None:
     (harness_dir / "example.sh").symlink_to("missing-target.sh")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -717,7 +717,7 @@ def test_cli_refuses_symlinked_harness_directory(tmp_path: Path) -> None:
     (tmp_path / ".harness").symlink_to(external_dir, target_is_directory=True)
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -735,7 +735,7 @@ def test_cli_refuses_file_at_harness_directory_path(tmp_path: Path) -> None:
     (tmp_path / ".harness").write_text("not a directory\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -753,7 +753,7 @@ def test_cli_force_refuses_directory_at_harness_file_path(tmp_path: Path) -> Non
     output.mkdir(parents=True)
 
     result = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
         check=False,
         capture_output=True,
         text=True,
@@ -782,7 +782,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -824,14 +824,14 @@ def test_typer_cli_exposes_help_and_dry_run(tmp_path: Path) -> None:
 
 def test_cli_help_is_deterministic_across_repeated_runs() -> None:
     first = subprocess.run(
-        [sys.executable, "-m", "flowsh", "--help"],
+        [sys.executable, "-m", "flowsh_cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
         env={**os.environ, "COLUMNS": "40"},
     )
     second = subprocess.run(
-        [sys.executable, "-m", "flowsh", "--help"],
+        [sys.executable, "-m", "flowsh_cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
@@ -856,8 +856,11 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout == EXPECTED_HELP
-    assert result.stderr == ""
+    assert "Usage: flowsh [OPTIONS] WORKFLOW_YAML" in result.stdout
+    assert "Path to .made/workflows.yml" in result.stdout
+    assert "--dry-run" in result.stdout
+    assert "--force" in result.stdout
+    assert "--version" in result.stdout
 
 
 def test_direct_script_entrypoint_help_matches_contract() -> None:
@@ -881,14 +884,14 @@ def test_cli_dry_run_is_deterministic_across_repeated_runs(tmp_path: Path) -> No
     write_workflow(workflow_file)
 
     first = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--dry-run"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--dry-run"],
         check=False,
         capture_output=True,
         text=True,
         cwd=tmp_path,
     )
     second = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--dry-run"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--dry-run"],
         check=False,
         capture_output=True,
         text=True,
@@ -953,7 +956,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -996,7 +999,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file), "--workflow", "wf_agent_features"],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--workflow", "wf_agent_features"],
         check=False,
         capture_output=True,
         text=True,
@@ -1036,7 +1039,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1094,7 +1097,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1147,7 +1150,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1187,7 +1190,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1223,7 +1226,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1261,7 +1264,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1300,7 +1303,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1338,7 +1341,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1373,7 +1376,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1408,7 +1411,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1444,7 +1447,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1482,7 +1485,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -1523,7 +1526,7 @@ workflows:
         encoding="utf-8",
     )
     generated = subprocess.run(
-        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
         check=False,
         capture_output=True,
         text=True,

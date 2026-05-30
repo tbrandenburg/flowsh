@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from flowsh.models import AgentStep, BashStep, Step, VarsStep, Workflow
+from flowsh_cli.models import AgentStep, BashStep, Step, VarsStep, Workflow
 
 
 def harness_path(workflow: Workflow) -> Path:

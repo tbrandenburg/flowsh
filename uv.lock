@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "flowsh"
+name = "flowsh-cli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

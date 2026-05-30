@@ -10,9 +10,9 @@ from typing import Annotated
 
 import typer
 
-from flowsh import __version__
-from flowsh.models import Workflow, WorkflowParseError, parse_workflows
-from flowsh.render import harness_path, render_harness
+from flowsh_cli import __version__
+from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows
+from flowsh_cli.render import harness_path, render_harness
 
 app = typer.Typer(
     add_completion=False,

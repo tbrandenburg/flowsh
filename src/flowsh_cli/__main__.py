@@ -1,4 +1,4 @@
-from flowsh.cli import main
+from flowsh_cli.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main())
