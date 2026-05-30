@@ -190,7 +190,7 @@ def render_harness(workflow: Workflow) -> str:
         "    return 127",
         "  fi",
         "",
-        '  printf \'%s\' "$prompt" | "${cmd[@]}"',
+        '  "${cmd[@]}" -- "$prompt"',
         "}",
         "",
         section(f"Starting workflow: {workflow.name}"),

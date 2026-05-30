@@ -107,6 +107,11 @@ def write_harnesses(workflows: list[Workflow], *, dry_run: bool, force: bool) ->
             print(f"DRY-RUN would write {output_path} for workflow {workflow.name!r}")
         return
 
+    directory_conflicts = [path for _, path in output_paths if path.exists() and path.is_dir()]
+    if directory_conflicts:
+        conflict_list = ", ".join(str(path) for path in directory_conflicts)
+        raise WorkflowParseError(f"Output path exists but is a directory: {conflict_list}")
+
     if not force:
         conflicts = [path for _, path in output_paths if path.exists() or path.is_symlink()]
         if conflicts:

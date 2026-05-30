@@ -98,9 +98,9 @@ Exit codes:
 
 Generated harnesses are also non-interactive. `harness.sh --dry-run` exits `0` after logging planned steps to stderr and creating no log directory. A real harness run exits `0` only after every step succeeds. Failed `bash`, `vars`, or `agent` steps return the failing command status, log `Step failed: <step> (exit=<code>)` to stderr, and stop before later steps run. If an `agent` step runs without `opencode` on `PATH`, the harness exits `127` and prints `opencode CLI not found in PATH` to stderr.
 
-Generated harnesses are written with owner-only executable permissions and refuse to overwrite existing paths unless `--force` is passed. Multi-workflow generation preflights overwrite conflicts before writing any harness. The `.harness` output directory must be a real directory, not a symlink or file. Harness dry runs do not create log files or directories. Real harness logs go to `.flowsh/logs` by default with owner-private directory and file permissions. Set `FLOWSH_LOG_DIR` when running a harness to use another local relative log directory; absolute paths, `..` path segments, symlinked path components, and non-directory log paths are refused. Logging setup and write failures fail the harness instead of being silently ignored.
+Generated harnesses are written with owner-only executable permissions and refuse to overwrite existing paths unless `--force` is passed. Multi-workflow generation preflights overwrite conflicts before writing any harness. `--force` replaces regular harness files and harness-file symlinks, but never replaces a directory at a harness file path. The `.harness` output directory must be a real directory, not a symlink or file. Harness dry runs do not create log files or directories. Real harness logs go to `.flowsh/logs` by default with owner-private directory and file permissions. Set `FLOWSH_LOG_DIR` when running a harness to use another local relative log directory; absolute paths, `..` path segments, symlinked path components, and non-directory log paths are refused. Logging setup and write failures fail the harness instead of being silently ignored.
 
-Generated `bash` and `vars` bodies run with `bash -euo pipefail`, so command failures stop the workflow instead of being masked by later successful commands. Captured `vars` values are exported for later `bash` steps. `agent` steps invoke only `opencode run --format json` and fail with a clear error if `opencode` is not on `PATH`.
+Generated `bash` and `vars` bodies run with `bash -euo pipefail`, so command failures stop the workflow instead of being masked by later successful commands. Captured `vars` values are exported for later `bash` steps. `agent` steps invoke only `opencode run --format json -- <prompt>` with optional `--agent <agent>` before `--`, so dash-prefixed prompts are message content rather than OpenCode flags. Agent steps fail with a clear error if `opencode` is not on `PATH`.
 
 ## Development
 
@@ -116,7 +116,7 @@ make clean
 `make install` installs `flowsh` into the user PATH with `uv tool install --force .`.
 `make build` creates reproducible source and wheel distributions under ignored `dist/`.
 
-`make qa` runs Ruff, Python compile checks, pytest, and package builds locally and in CI.
+`make qa` runs Ruff, Python compile checks, and pytest with locked dependencies, then builds packages locally and in CI.
 The pytest suite also verifies `python -m flowsh`, `uv run flowsh`, and the direct
 `scripts/workflow_to_harness.py` entrypoint against the same help contract.
 `make hygiene` prints tracked, untracked, and ignored files with

@@ -352,6 +352,7 @@ def test_render_harness_uses_only_opencode_agent_invocation(tmp_path: Path) -> N
 
     assert "opencode run --format json" in script
     assert "--agent" in script
+    assert '"${cmd[@]}" -- "$prompt"' in script
     assert "Say hello from the harness." in script
     assert "curl" not in script
 
@@ -579,6 +580,32 @@ def test_cli_writes_executable_harness_and_refuses_overwrite(tmp_path: Path) -> 
     assert "Refusing to overwrite" in second.stderr
 
 
+def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+
+    first = subprocess.run(
+        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    first_content = (tmp_path / ".harness" / "example.sh").read_text(encoding="utf-8")
+    second = subprocess.run(
+        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    second_content = (tmp_path / ".harness" / "example.sh").read_text(encoding="utf-8")
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert first_content == second_content
+
+
 def test_cli_force_overwrites_regular_file_atomically(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
@@ -717,6 +744,64 @@ def test_cli_refuses_file_at_harness_directory_path(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "Output path exists but is not a directory" in result.stderr
+
+
+def test_cli_force_refuses_directory_at_harness_file_path(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    output = tmp_path / ".harness" / "example.sh"
+    output.mkdir(parents=True)
+
+    result = subprocess.run(
+        [sys.executable, "-m", "flowsh", str(workflow_file), "--force"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "ERROR: Output path exists but is a directory: .harness/example.sh" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert output.is_dir()
+
+
+def test_generated_harness_quotes_shell_relevant_labels(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_shell_labels
+    name: Workflow $(touch workflow-pwned)
+    steps:
+      - type: bash
+        name: Step $(touch step-pwned)
+        run: printf 'safe\\n'
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "shell_labels.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "safe" in executed.stdout
+    assert not (tmp_path / "workflow-pwned").exists()
+    assert not (tmp_path / "step-pwned").exists()
 
 
 def test_typer_cli_exposes_help_and_dry_run(tmp_path: Path) -> None:
@@ -962,8 +1047,8 @@ workflows:
     fake_opencode = bin_dir / "opencode"
     fake_opencode.write_text(
         """#!/usr/bin/env bash
-printf '%s\n' "$*" > "$OPENCODE_ARGS_CAPTURE"
-cat > "$OPENCODE_PROMPT_CAPTURE"
+printf '%s\n' "$@" > "$OPENCODE_ARGS_CAPTURE"
+printf '%s' "${@: -1}" > "$OPENCODE_PROMPT_CAPTURE"
 printf '{"ok":true}\n'
 """,
         encoding="utf-8",
@@ -988,9 +1073,64 @@ printf '{"ok":true}\n'
     )
 
     assert executed.returncode == 0, executed.stderr
-    assert args_capture.read_text(encoding="utf-8") == "run --format json --agent general\n"
+    assert args_capture.read_text(encoding="utf-8") == (
+        "run\n--format\njson\n--agent\ngeneral\n--\nInspect the current repository.\n"
+    )
     assert prompt_capture.read_text(encoding="utf-8") == "Inspect the current repository."
     assert '{"ok":true}' in executed.stdout
+
+
+def test_generated_harness_passes_dash_prefixed_agent_prompt_as_message(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_dash_prompt
+    name: Dash Prompt
+    steps:
+      - type: agent
+        prompt: --help is content, not a flag.
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$OPENCODE_ARGS_CAPTURE"
+printf '{"ok":true}\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    args_capture = tmp_path / "opencode-args.txt"
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "dash_prompt.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+            "OPENCODE_ARGS_CAPTURE": str(args_capture),
+        },
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert args_capture.read_text(encoding="utf-8") == (
+        "run\n--format\njson\n--\n--help is content, not a flag.\n"
+    )
 
 
 def test_generated_harness_rejects_unexpected_arguments(tmp_path: Path) -> None:
