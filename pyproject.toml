@@ -3,7 +3,7 @@ requires = ["uv_build>=0.9.9,<0.10.0"]
 build-backend = "uv_build"
 
 [project]
-name = "flowsh"
+name = "flowsh-cli"
 version = "0.1.0"
 description = "Generate Bash harness scripts from MADE workflow YAML files."
 readme = "README.md"
