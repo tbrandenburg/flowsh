@@ -24,6 +24,7 @@ Options:
   --dry-run        Print planned output paths without writing scripts.
   --force          Overwrite existing files. Without this, existing files cause a failure.
   --version        Show the flowsh-cli version and exit.
+  --schema         Show the workflow YAML schema and exit.
   --help           Show this message and exit.
 """
 
@@ -467,6 +468,17 @@ def test_cli_exposes_version_without_workflow_argument() -> None:
 
     assert result.exit_code == 0, result.output
     assert result.output.strip().startswith("flowsh-cli ")
+
+
+def test_cli_exposes_schema_without_workflow_argument() -> None:
+    result = runner.invoke(app, ["--schema"])
+
+    assert result.exit_code == 0, result.output
+    assert result.stderr == ""
+    assert "title: WorkflowFile" in result.output
+    assert "const: vars" in result.output
+    assert "const: bash" in result.output
+    assert "const: agent" in result.output
 
 
 def test_cli_reports_missing_required_workflow_argument() -> None:
@@ -934,6 +946,7 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
     assert "--dry-run" in result.stdout
     assert "--force" in result.stdout
     assert "--version" in result.stdout
+    assert "--schema" in result.stdout
 
 
 def test_direct_script_entrypoint_help_matches_contract() -> None:

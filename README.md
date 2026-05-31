@@ -62,6 +62,9 @@ uvx flowsh-cli .made/workflows.yml --force
 
 # Show version
 uvx flowsh-cli --version
+
+# Show the workflow YAML schema
+uvx flowsh-cli --schema
 ```
 
 You can also run it via `uv run flowsh-cli` if installed locally.
@@ -85,6 +88,7 @@ Options:
   --dry-run        Print planned output paths without writing scripts.
   --force          Overwrite existing files. Without this, existing files cause a failure.
   --version        Show the flowsh-cli version and exit.
+  --schema         Show the workflow YAML schema and exit.
   --help           Show this message and exit.
 ```
 
@@ -97,6 +101,7 @@ Exit codes:
 |---|---:|---|---|
 | `--help` | `0` | Help text | Empty |
 | `--version` | `0` | `flowsh-cli <version>` | Empty |
+| `--schema` | `0` | Workflow schema as YAML-formatted JSON Schema | Empty |
 | Valid generation | `0` | One `Wrote <path>` line per harness | Empty |
 | Valid `--dry-run` | `0` | One `DRY-RUN would write <path>` line per selected workflow | Empty |
 | Missing required CLI argument | `2` | Empty | Typer usage error |

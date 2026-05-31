@@ -11,7 +11,7 @@ from typing import Annotated
 import typer
 
 from flowsh_cli import __version__
-from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows
+from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
 
 app = typer.Typer(
@@ -62,10 +62,20 @@ def generate(
             is_eager=True,
         ),
     ] = False,
+    schema: Annotated[
+        bool,
+        typer.Option(
+            "--schema",
+            callback=lambda value: print_schema(value),
+            help="Show the workflow YAML schema and exit.",
+            is_eager=True,
+        ),
+    ] = False,
 ) -> None:
     """Generate Bash harnesses from workflow YAML."""
 
     _ = version
+    _ = schema
 
     try:
         workflows = parse_workflows(workflow_yaml)
@@ -96,6 +106,14 @@ def print_version(value: bool) -> None:
         return
 
     print(f"flowsh-cli {__version__}")
+    raise typer.Exit
+
+
+def print_schema(value: bool) -> None:
+    if not value:
+        return
+
+    print(workflow_schema_yaml(), end="")
     raise typer.Exit
 
 

@@ -176,6 +176,14 @@ def parse_workflows(path: Path) -> list[Workflow]:
         raise WorkflowParseError(format_validation_error(error)) from error
 
 
+def workflow_schema_yaml() -> str:
+    return yaml.safe_dump(
+        WorkflowFile.model_json_schema(),
+        sort_keys=False,
+        allow_unicode=False,
+    )
+
+
 def format_validation_error(error: ValidationError) -> str:
     messages: list[str] = []
     for item in error.errors(include_url=False, include_input=False, include_context=False):
