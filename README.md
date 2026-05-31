@@ -1,12 +1,6 @@
-# flowsh
+# flowsh-cli
 
-`flowsh` is a small `uv` Python CLI deliberately reduced to one tool:
-
-```bash
-uv run flowsh .made/workflows.yml
-```
-
-It reads MADE workflow YAML and writes executable Bash harness scripts for OpenCode.
+`flowsh-cli` is a small `uv` Python CLI that reads workflow YAML and writes executable Bash harness scripts for OpenCode.
 
 ## Supported YAML
 
@@ -42,29 +36,31 @@ Harness paths are derived from workflow ids. `wf_example` writes `.harness/examp
 
 ```bash
 # Generate every workflow harness
-uv run flowsh .made/workflows.yml
+uvx flowsh-cli .made/workflows.yml
 
 # Generate one workflow by id
-uv run flowsh .made/workflows.yml --workflow wf_example
+uvx flowsh-cli .made/workflows.yml --workflow wf_example
 
 # Show planned outputs without writing files
-uv run flowsh .made/workflows.yml --dry-run
+uvx flowsh-cli .made/workflows.yml --dry-run
 
 # Overwrite existing harness files
-uv run flowsh .made/workflows.yml --force
+uvx flowsh-cli .made/workflows.yml --force
 
 # Show version
-uv run flowsh --version
+uvx flowsh-cli --version
 ```
+
+You can also run it via `uv run flowsh-cli` if installed locally.
 
 ## CLI Contract
 
-`flowsh` is non-interactive. It never prompts for missing information.
+`flowsh-cli` is non-interactive. It never prompts for missing information.
 
 Current help output is plain text and deterministic across repeated runs:
 
 ```text
-Usage: flowsh [OPTIONS] WORKFLOW_YAML
+Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
 
   Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
 
@@ -75,7 +71,7 @@ Options:
   --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
   --dry-run        Print planned output paths without writing scripts.
   --force          Overwrite existing files. Without this, existing files cause a failure.
-  --version        Show the flowsh version and exit.
+  --version        Show the flowsh-cli version and exit.
   --help           Show this message and exit.
 ```
 
@@ -87,7 +83,7 @@ Exit codes:
 | Case | Exit | stdout | stderr |
 |---|---:|---|---|
 | `--help` | `0` | Help text | Empty |
-| `--version` | `0` | `flowsh <version>` | Empty |
+| `--version` | `0` | `flowsh-cli <version>` | Empty |
 | Valid generation | `0` | One `Wrote <path>` line per harness | Empty |
 | Valid `--dry-run` | `0` | One `DRY-RUN would write <path>` line per selected workflow | Empty |
 | Missing required CLI argument | `2` | Empty | Typer usage error |
@@ -113,11 +109,11 @@ make hygiene
 make clean
 ```
 
-`make install` installs `flowsh` into the user PATH with `uv tool install --force .`.
+`make install` installs `flowsh-cli` into the user PATH with `uv tool install --force .`.
 `make build` creates reproducible source and wheel distributions under ignored `dist/`.
 
 `make qa` runs Ruff, Python compile checks, and pytest with locked dependencies, then builds packages locally and in CI.
-The pytest suite also verifies `python -m flowsh`, `uv run flowsh`, and the direct
+The pytest suite also verifies `python -m flowsh_cli`, `uvx flowsh-cli`, and the direct
 `scripts/workflow_to_harness.py` entrypoint against the same help contract.
 `make hygiene` prints tracked, untracked, and ignored files with
 `git status --short --ignored`; review it before release to confirm only intended

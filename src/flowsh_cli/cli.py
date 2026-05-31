@@ -25,7 +25,7 @@ app = typer.Typer(
 
 def main(argv: Sequence[str] | None = None) -> int:
     try:
-        app(args=list(argv) if argv is not None else None, prog_name="flowsh")
+        app(args=list(argv) if argv is not None else None, prog_name="flowsh-cli")
     except SystemExit as error:
         return error.code if isinstance(error.code, int) else 1
 
@@ -58,7 +58,7 @@ def generate(
         typer.Option(
             "--version",
             callback=lambda value: print_version(value),
-            help="Show the flowsh version and exit.",
+            help="Show the flowsh-cli version and exit.",
             is_eager=True,
         ),
     ] = False,
@@ -95,7 +95,7 @@ def print_version(value: bool) -> None:
     if not value:
         return
 
-    print(f"flowsh {__version__}")
+    print(f"flowsh-cli {__version__}")
     raise typer.Exit
 
 

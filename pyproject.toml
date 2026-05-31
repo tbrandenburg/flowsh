@@ -4,8 +4,8 @@ build-backend = "uv_build"
 
 [project]
 name = "flowsh-cli"
-version = "0.1.0"
-description = "Generate Bash harness scripts from MADE workflow YAML files."
+version = "0.2.2"
+description = "Generate Bash harness scripts from workflow YAML files."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -25,7 +25,7 @@ Homepage = "https://github.com/tbrandenburg/flowsh"
 Source = "https://github.com/tbrandenburg/flowsh"
 
 [project.scripts]
-flowsh = "flowsh_cli.cli:main"
+flowsh-cli = "flowsh_cli.cli:main"
 
 [dependency-groups]
 dev = [

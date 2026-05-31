@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository has been intentionally reduced to `scripts/workflow_to_harness.py`.
+This repository has been intentionally reduced to the Python CLI blueprint.
 
 ## Scope
 
@@ -14,3 +14,8 @@ This repository has been intentionally reduced to `scripts/workflow_to_harness.p
 - Use `make qa` after code changes.
 - Keep tests focused on the current blueprint behavior.
 - Prefer deletion over compatibility layers when reducing legacy project remnants.
+
+## Publishing
+
+- Published on PyPI as `flowsh-cli`. Run with `uvx flowsh-cli` (no install needed).
+- Bump: `make bump-patch` (or `bump-minor`/`bump-major`) — runs qa then publishes.

@@ -12,7 +12,7 @@ from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES
 
 runner = CliRunner()
 
-EXPECTED_HELP = """Usage: flowsh [OPTIONS] WORKFLOW_YAML
+EXPECTED_HELP = """Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
 
   Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
 
@@ -23,7 +23,7 @@ Options:
   --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
   --dry-run        Print planned output paths without writing scripts.
   --force          Overwrite existing files. Without this, existing files cause a failure.
-  --version        Show the flowsh version and exit.
+  --version        Show the flowsh-cli version and exit.
   --help           Show this message and exit.
 """
 
@@ -393,7 +393,7 @@ def test_cli_exposes_version_without_workflow_argument() -> None:
     result = runner.invoke(app, ["--version"])
 
     assert result.exit_code == 0, result.output
-    assert result.output.strip().startswith("flowsh ")
+    assert result.output.strip().startswith("flowsh-cli ")
 
 
 def test_cli_reports_missing_required_workflow_argument() -> None:
@@ -848,7 +848,7 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
 
 def test_uv_console_entrypoint_help_matches_contract() -> None:
     result = subprocess.run(
-        ["uv", "run", "flowsh", "--help"],
+        ["uv", "run", "flowsh-cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
@@ -856,7 +856,7 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Usage: flowsh [OPTIONS] WORKFLOW_YAML" in result.stdout
+    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in result.stdout
     assert "Path to .made/workflows.yml" in result.stdout
     assert "--dry-run" in result.stdout
     assert "--force" in result.stdout
