@@ -67,6 +67,7 @@ class AgentStep(BaseStep):
     type: Literal["agent"]
     prompt: str
     agent: str | None = None
+    expandPrompt: bool = False
 
     @field_validator("prompt", "agent")
     @classmethod
