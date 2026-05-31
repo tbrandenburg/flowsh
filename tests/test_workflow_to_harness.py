@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 from flowsh_cli import WorkflowParseError, harness_path, parse_workflows, render_harness
 from flowsh_cli.cli import app
-from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES
+from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES, AgentStep, Workflow
 
 runner = CliRunner()
 
@@ -62,6 +62,47 @@ def test_parse_workflows_accepts_blueprint_shape(tmp_path: Path) -> None:
     assert len(workflows) == 1
     assert workflows[0].id == "wf_example"
     assert harness_path(workflows[0]) == Path(".harness/example.sh")
+
+
+def test_parse_workflows_accepts_agent_expand_prompt_boolean(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_expand_prompt
+    name: Expand Prompt
+    steps:
+      - type: agent
+        expandPrompt: true
+        prompt: Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    workflows = parse_workflows(workflow_file)
+
+    assert workflows[0].steps[0].expandPrompt is True
+
+
+def test_parse_workflows_rejects_agent_expand_prompt_string(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_expand_prompt
+    name: Expand Prompt
+    steps:
+      - type: agent
+        expandPrompt: "true"
+        prompt: Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError) as error:
+        parse_workflows(workflow_file)
+
+    assert "expandPrompt" in str(error.value)
 
 
 def test_parse_workflows_rejects_unknown_step_type(tmp_path: Path) -> None:
@@ -355,6 +396,38 @@ def test_render_harness_uses_only_opencode_agent_invocation(tmp_path: Path) -> N
     assert '"${cmd[@]}" -- "$prompt"' in script
     assert "Say hello from the harness." in script
     assert "curl" not in script
+
+
+def test_render_harness_quotes_agent_prompt_heredoc_by_default() -> None:
+    workflow = Workflow(
+        id="wf_prompt_default",
+        name="Prompt Default",
+        steps=[AgentStep(type="agent", prompt="Work on issue $ISSUE_NUMBER.")],
+    )
+
+    script = render_harness(workflow)
+
+    assert "prompt=$(cat <<'PROMPT_EOF'" in script
+    assert "prompt=$(cat <<PROMPT_EOF" not in script
+
+
+def test_render_harness_unquotes_agent_prompt_heredoc_when_expand_prompt_enabled() -> None:
+    workflow = Workflow(
+        id="wf_prompt_expand",
+        name="Prompt Expand",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt="Work on issue $ISSUE_NUMBER.",
+                expandPrompt=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert "prompt=$(cat <<PROMPT_EOF" in script
+    assert "prompt=$(cat <<'PROMPT_EOF'" not in script
 
 
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:
