@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 from flowsh_cli import WorkflowParseError, harness_path, parse_workflows, render_harness
 from flowsh_cli.cli import app
-from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES
+from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES, AgentStep, Workflow
 
 runner = CliRunner()
 
@@ -62,6 +62,47 @@ def test_parse_workflows_accepts_blueprint_shape(tmp_path: Path) -> None:
     assert len(workflows) == 1
     assert workflows[0].id == "wf_example"
     assert harness_path(workflows[0]) == Path(".harness/example.sh")
+
+
+def test_parse_workflows_accepts_agent_expand_prompt_boolean(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_expand_prompt
+    name: Expand Prompt
+    steps:
+      - type: agent
+        expandPrompt: true
+        prompt: Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    workflows = parse_workflows(workflow_file)
+
+    assert workflows[0].steps[0].expandPrompt is True
+
+
+def test_parse_workflows_rejects_agent_expand_prompt_string(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_expand_prompt
+    name: Expand Prompt
+    steps:
+      - type: agent
+        expandPrompt: "true"
+        prompt: Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError) as error:
+        parse_workflows(workflow_file)
+
+    assert "expandPrompt" in str(error.value)
 
 
 def test_parse_workflows_rejects_unknown_step_type(tmp_path: Path) -> None:
@@ -355,6 +396,38 @@ def test_render_harness_uses_only_opencode_agent_invocation(tmp_path: Path) -> N
     assert '"${cmd[@]}" -- "$prompt"' in script
     assert "Say hello from the harness." in script
     assert "curl" not in script
+
+
+def test_render_harness_quotes_agent_prompt_heredoc_by_default() -> None:
+    workflow = Workflow(
+        id="wf_prompt_default",
+        name="Prompt Default",
+        steps=[AgentStep(type="agent", prompt="Work on issue $ISSUE_NUMBER.")],
+    )
+
+    script = render_harness(workflow)
+
+    assert "prompt=$(cat <<'PROMPT_EOF'" in script
+    assert "prompt=$(cat <<PROMPT_EOF" not in script
+
+
+def test_render_harness_unquotes_agent_prompt_heredoc_when_expand_prompt_enabled() -> None:
+    workflow = Workflow(
+        id="wf_prompt_expand",
+        name="Prompt Expand",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt="Work on issue $ISSUE_NUMBER.",
+                expandPrompt=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert "prompt=$(cat <<PROMPT_EOF" in script
+    assert "prompt=$(cat <<'PROMPT_EOF'" not in script
 
 
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:
@@ -1080,6 +1153,129 @@ printf '{"ok":true}\n'
         "run\n--format\njson\n--agent\ngeneral\n--\nInspect the current repository.\n"
     )
     assert prompt_capture.read_text(encoding="utf-8") == "Inspect the current repository."
+    assert '{"ok":true}' in executed.stdout
+
+
+def test_generated_harness_expands_agent_prompt_when_expand_prompt_enabled(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_prompt_expand
+    name: Agent Prompt Expand
+    steps:
+      - type: vars
+        name: Capture issue
+        values:
+          ISSUE_NUMBER: printf '16'
+      - type: agent
+        name: Ask OpenCode
+        expandPrompt: true
+        prompt: |
+          Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$OPENCODE_ARGS_CAPTURE"
+printf '%s' "${@: -1}" > "$OPENCODE_PROMPT_CAPTURE"
+printf '{"ok":true}\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    args_capture = tmp_path / "opencode-args.txt"
+    prompt_capture = tmp_path / "opencode-prompt.txt"
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "agent_prompt_expand.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+            "OPENCODE_ARGS_CAPTURE": str(args_capture),
+            "OPENCODE_PROMPT_CAPTURE": str(prompt_capture),
+        },
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert prompt_capture.read_text(encoding="utf-8") == "Work on issue 16."
+    assert '{"ok":true}' in executed.stdout
+
+
+def test_generated_harness_keeps_agent_prompt_literal_by_default(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_prompt_literal
+    name: Agent Prompt Literal
+    steps:
+      - type: vars
+        name: Capture issue
+        values:
+          ISSUE_NUMBER: printf '16'
+      - type: agent
+        name: Ask OpenCode
+        prompt: |
+          Work on issue $ISSUE_NUMBER.
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$OPENCODE_ARGS_CAPTURE"
+printf '%s' "${@: -1}" > "$OPENCODE_PROMPT_CAPTURE"
+printf '{"ok":true}\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    args_capture = tmp_path / "opencode-args.txt"
+    prompt_capture = tmp_path / "opencode-prompt.txt"
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "agent_prompt_literal.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+            "OPENCODE_ARGS_CAPTURE": str(args_capture),
+            "OPENCODE_PROMPT_CAPTURE": str(prompt_capture),
+        },
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert prompt_capture.read_text(encoding="utf-8") == "Work on issue $ISSUE_NUMBER."
     assert '{"ok":true}' in executed.stdout
 
 

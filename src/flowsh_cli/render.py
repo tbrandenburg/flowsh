@@ -245,10 +245,11 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
         )
     elif isinstance(step, AgentStep):
         delimiter = heredoc_delimiter("PROMPT", step.prompt)
+        heredoc = f"<<{delimiter}" if step.expandPrompt else f"<<'{delimiter}'"
         lines.extend(
             [
                 "  local prompt",
-                f"  prompt=$(cat <<'{delimiter}'",
+                f"  prompt=$(cat {heredoc}",
                 *step.prompt.splitlines(),
                 delimiter,
                 "  )",
