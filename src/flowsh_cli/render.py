@@ -174,10 +174,22 @@ def render_harness(workflow: Workflow) -> str:
         "run_agent() {",
         '  local prompt="$1"',
         '  local agent="${2:-}"',
+        '  local model="${3:-}"',
+        '  local command="${4:-}"',
+        '  local dangerously_skip_permissions="${5:-false}"',
         "",
         "  local cmd=(opencode run --format json)",
         '  if [[ -n "$agent" ]]; then',
         '    cmd+=(--agent "$agent")',
+        "  fi",
+        '  if [[ -n "$model" ]]; then',
+        '    cmd+=(--model "$model")',
+        "  fi",
+        '  if [[ -n "$command" ]]; then',
+        '    cmd+=(--command "$command")',
+        "  fi",
+        '  if [[ "$dangerously_skip_permissions" == true ]]; then',
+        "    cmd+=(--dangerously-skip-permissions)",
         "  fi",
         "",
         '  if [[ "$DRY_RUN" == true ]]; then',
@@ -255,11 +267,14 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
                 "  )",
             ]
         )
-        if step.agent:
-            lines.append(f"  local agent={bash_quote(step.agent)}")
-            lines.append('  run_agent "$prompt" "$agent"')
-        else:
-            lines.append('  run_agent "$prompt"')
+        lines.append(f"  local agent={bash_quote(step.agent or '')}")
+        lines.append(f"  local model={bash_quote(step.model or '')}")
+        lines.append(f"  local command={bash_quote(step.command or '')}")
+        dangerous_skip_permissions = "true" if step.dangerouslySkipPermissions else "false"
+        lines.append(f"  local dangerously_skip_permissions={dangerous_skip_permissions}")
+        lines.append(
+            '  run_agent "$prompt" "$agent" "$model" "$command" "$dangerously_skip_permissions"'
+        )
     else:
         raise AssertionError(f"Unsupported step type: {step}")
 
