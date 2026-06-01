@@ -7,7 +7,15 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 MAX_WORKFLOW_YAML_BYTES = 1_048_576
 
@@ -67,9 +75,31 @@ class AgentStep(BaseStep):
     type: Literal["agent"]
     prompt: str
     agent: str | None = None
+    model: str | None = None
+    command: str | None = None
+    dangerouslySkipPermissions: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "dangerouslySkipPermissions",
+            "dangerously-skip-permissions",
+        ),
+    )
     expandPrompt: bool = False
 
-    @field_validator("prompt", "agent")
+    @model_validator(mode="before")
+    @classmethod
+    def reject_ambiguous_dangerous_aliases(cls, data: object) -> object:
+        if (
+            isinstance(data, Mapping)
+            and "dangerouslySkipPermissions" in data
+            and "dangerously-skip-permissions" in data
+        ):
+            raise ValueError(
+                "dangerouslySkipPermissions and dangerously-skip-permissions must not both be set"
+            )
+        return data
+
+    @field_validator("prompt", "agent", "model", "command")
     @classmethod
     def validate_strings(cls, value: str | None) -> str | None:
         if value is not None and value.strip() == "":

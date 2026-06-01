@@ -85,6 +85,76 @@ workflows:
     assert workflows[0].steps[0].expandPrompt is True
 
 
+def test_parse_workflows_accepts_agent_opencode_options(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_options
+    name: Agent Options
+    steps:
+      - type: agent
+        agent: general
+        model: openai/gpt-5
+        command: review
+        dangerouslySkipPermissions: true
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    step = parse_workflows(workflow_file)[0].steps[0]
+
+    assert isinstance(step, AgentStep)
+    assert step.agent == "general"
+    assert step.model == "openai/gpt-5"
+    assert step.command == "review"
+    assert step.dangerouslySkipPermissions is True
+
+
+def test_parse_workflows_accepts_dangerous_skip_flag_alias(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_dangerous_alias
+    name: Dangerous Alias
+    steps:
+      - type: agent
+        dangerously-skip-permissions: true
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    step = parse_workflows(workflow_file)[0].steps[0]
+
+    assert isinstance(step, AgentStep)
+    assert step.dangerouslySkipPermissions is True
+
+
+def test_parse_workflows_defaults_agent_opencode_options(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_defaults
+    name: Agent Defaults
+    steps:
+      - type: agent
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    step = parse_workflows(workflow_file)[0].steps[0]
+
+    assert isinstance(step, AgentStep)
+    assert step.model is None
+    assert step.command is None
+    assert step.dangerouslySkipPermissions is False
+
+
 def test_parse_workflows_rejects_agent_expand_prompt_string(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
@@ -104,6 +174,81 @@ workflows:
         parse_workflows(workflow_file)
 
     assert "expandPrompt" in str(error.value)
+
+
+def test_parse_workflows_rejects_dangerous_skip_string(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_dangerous_string
+    name: Dangerous String
+    steps:
+      - type: agent
+        dangerouslySkipPermissions: "true"
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError) as error:
+        parse_workflows(workflow_file)
+
+    assert "dangerouslySkipPermissions" in str(error.value)
+
+
+def test_parse_workflows_rejects_ambiguous_dangerous_skip_aliases(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_dangerous_ambiguous
+    name: Dangerous Ambiguous
+    steps:
+      - type: agent
+        dangerouslySkipPermissions: true
+        dangerously-skip-permissions: false
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="must not both be set"):
+        parse_workflows(workflow_file)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("model", '""'),
+        ("command", '""'),
+        ("model", '"openai/bad\\x01model"'),
+        ("command", '"bad\\x01command"'),
+    ],
+)
+def test_parse_workflows_rejects_invalid_agent_opencode_strings(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        f"""
+workflows:
+  - id: wf_invalid_agent_option
+    name: Invalid Agent Option
+    steps:
+      - type: agent
+        {field}: {value}
+        prompt: Review the repository.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError) as error:
+        parse_workflows(workflow_file)
+
+    assert field in str(error.value)
 
 
 def test_parse_workflows_rejects_unknown_step_type(tmp_path: Path) -> None:
@@ -479,6 +624,9 @@ def test_cli_exposes_schema_without_workflow_argument() -> None:
     assert "const: vars" in result.output
     assert "const: bash" in result.output
     assert "const: agent" in result.output
+    assert "model:" in result.output
+    assert "command:" in result.output
+    assert "dangerouslySkipPermissions:" in result.output
 
 
 def test_cli_reports_missing_required_workflow_argument() -> None:
@@ -1166,6 +1314,81 @@ printf '{"ok":true}\n'
         "run\n--format\njson\n--agent\ngeneral\n--\nInspect the current repository.\n"
     )
     assert prompt_capture.read_text(encoding="utf-8") == "Inspect the current repository."
+    assert '{"ok":true}' in executed.stdout
+
+
+def test_generated_harness_invokes_opencode_with_all_agent_options(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_options
+    name: Agent Options
+    steps:
+      - type: agent
+        name: Ask OpenCode
+        agent: general
+        model: provider/model
+        command: review
+        dangerouslySkipPermissions: true
+        prompt: |
+          --help
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$OPENCODE_ARGS_CAPTURE"
+printf '%s' "${@: -1}" > "$OPENCODE_PROMPT_CAPTURE"
+printf '{"ok":true}\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    args_capture = tmp_path / "opencode-args.txt"
+    prompt_capture = tmp_path / "opencode-prompt.txt"
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "agent_options.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+            "OPENCODE_ARGS_CAPTURE": str(args_capture),
+            "OPENCODE_PROMPT_CAPTURE": str(prompt_capture),
+        },
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert args_capture.read_text(encoding="utf-8") == (
+        "run\n"
+        "--format\n"
+        "json\n"
+        "--agent\n"
+        "general\n"
+        "--model\n"
+        "provider/model\n"
+        "--command\n"
+        "review\n"
+        "--dangerously-skip-permissions\n"
+        "--\n"
+        "--help\n"
+    )
+    assert prompt_capture.read_text(encoding="utf-8") == "--help"
     assert '{"ok":true}' in executed.stdout
 
 

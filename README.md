@@ -22,13 +22,15 @@ workflows:
       - type: agent
         name: Ask OpenCode
         agent: general
+        model: openai/gpt-5
+        command: review
         prompt: |
           Summarize the current repository state.
 ```
 
 Supported step types are only `vars`, `bash`, and `agent`.
 
-The input path must be a regular file no larger than 1 MiB. The input file must be valid UTF-8, non-empty YAML with a mapping root, no duplicate mapping keys, and no YAML aliases. Workflow and step names are single-line labels. Executable fields reject unsafe control bytes while allowing normal newlines and tabs. `vars` keys must be uppercase shell variable names, and `agent` names may contain only letters, digits, `_`, and `-`.
+The input path must be a regular file no larger than 1 MiB. The input file must be valid UTF-8, non-empty YAML with a mapping root, no duplicate mapping keys, and no YAML aliases. Workflow and step names are single-line labels. Executable fields reject unsafe control bytes while allowing normal newlines and tabs. `vars` keys must be uppercase shell variable names, and `agent` names may contain only letters, digits, `_`, and `-`. Agent `model` values are passed through to OpenCode, so provider/model IDs such as `openai/gpt-5` are valid. Agent `command` values map to OpenCode `--command`; the prompt remains the message/arguments after `--`.
 
 Agent prompts are literal by default. Set `expandPrompt: true` on an `agent` step only when the prompt should be expanded by Bash at harness runtime, for example to insert values exported by earlier `vars` steps:
 
@@ -42,6 +44,8 @@ Agent prompts are literal by default. Set `expandPrompt: true` on an `agent` ste
 ```
 
 `expandPrompt: true` is a security-sensitive opt-in: Bash also performs command substitution such as `$(...)` and backticks in the prompt body before OpenCode receives it. Keep it disabled for prompts that contain shell examples or untrusted content.
+
+Set `dangerouslySkipPermissions: true` on an `agent` step only when the generated harness should pass OpenCode `--dangerously-skip-permissions`. The flag is false by default, accepts the YAML alias `dangerously-skip-permissions`, and auto-approves permissions that are not explicitly denied. Treat it as security-sensitive and avoid it for untrusted workflows.
 
 Harness paths are derived from workflow ids. `wf_example` writes `.harness/example.sh`.
 
@@ -114,7 +118,7 @@ Generated harnesses are also non-interactive. `harness.sh --dry-run` exits `0` a
 
 Generated harnesses are written with owner-only executable permissions and refuse to overwrite existing paths unless `--force` is passed. Multi-workflow generation preflights overwrite conflicts before writing any harness. `--force` replaces regular harness files and harness-file symlinks, but never replaces a directory at a harness file path. The `.harness` output directory must be a real directory, not a symlink or file. Harness dry runs do not create log files or directories. Real harness logs go to `.flowsh/logs` by default with owner-private directory and file permissions. Set `FLOWSH_LOG_DIR` when running a harness to use another local relative log directory; absolute paths, `..` path segments, symlinked path components, and non-directory log paths are refused. Logging setup and write failures fail the harness instead of being silently ignored.
 
-Generated `bash` and `vars` bodies run with `bash -euo pipefail`, so command failures stop the workflow instead of being masked by later successful commands. Captured `vars` values are exported for later `bash` steps. `agent` prompt heredocs are quoted by default and unquoted only when `expandPrompt: true` is set. `agent` steps invoke only `opencode run --format json -- <prompt>` with optional `--agent <agent>` before `--`, so dash-prefixed prompts are message content rather than OpenCode flags. Agent steps fail with a clear error if `opencode` is not on `PATH`.
+Generated `bash` and `vars` bodies run with `bash -euo pipefail`, so command failures stop the workflow instead of being masked by later successful commands. Captured `vars` values are exported for later `bash` steps. `agent` prompt heredocs are quoted by default and unquoted only when `expandPrompt: true` is set. `agent` steps invoke only `opencode run --format json` with optional `--agent <agent>`, `--model <provider/model>`, `--command <command>`, and `--dangerously-skip-permissions` flags before `-- <prompt>`, so dash-prefixed prompts are message content rather than OpenCode flags. Agent steps fail with a clear error if `opencode` is not on `PATH`.
 
 ## Development
 
