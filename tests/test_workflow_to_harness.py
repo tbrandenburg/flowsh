@@ -8,7 +8,14 @@ from typer.testing import CliRunner
 
 from flowsh_cli import WorkflowParseError, harness_path, parse_workflows, render_harness
 from flowsh_cli.cli import app
-from flowsh_cli.models import MAX_WORKFLOW_YAML_BYTES, AgentStep, Workflow
+from flowsh_cli.models import (
+    MAX_WORKFLOW_YAML_BYTES,
+    AgentStep,
+    BashStep,
+    Workflow,
+    WorkflowFile,
+    WorkflowParam,
+)
 
 runner = CliRunner()
 
@@ -1982,3 +1989,139 @@ workflows:
     assert "Step failed: step_capture_variables" in executed.stderr
     assert not (tmp_path / "should-not-exist").exists()
     assert not (tmp_path / "should-not-exist-either").exists()
+
+
+# ---------------------------------------------------------------------------
+# WorkflowParam tests (issue #19)
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_param_name_must_be_uppercase_env_var_style():
+    """WorkflowParam rejects lowercase names."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        WorkflowParam(name="issue_number")
+
+
+def test_workflow_param_name_rejects_starting_digit():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        WorkflowParam(name="1BAD")
+
+
+def test_workflow_with_params_parses_from_yaml():
+    """params field is accepted in YAML workflow."""
+    data = {
+        "workflows": [
+            {
+                "id": "wf_example",
+                "name": "Example",
+                "params": [{"name": "ISSUE_NUMBER", "required": True}],
+                "steps": [{"type": "bash", "run": "echo $ISSUE_NUMBER"}],
+            }
+        ]
+    }
+    workflows = WorkflowFile.model_validate(data).workflows
+    assert len(workflows[0].params) == 1
+    assert workflows[0].params[0].name == "ISSUE_NUMBER"
+    assert workflows[0].params[0].required is True
+
+
+def test_workflow_without_params_field_still_valid():
+    """Existing YAML without params key is unchanged (default empty list)."""
+    data = {
+        "workflows": [
+            {
+                "id": "wf_example",
+                "name": "Example",
+                "steps": [{"type": "bash", "run": "echo hi"}],
+            }
+        ]
+    }
+    workflows = WorkflowFile.model_validate(data).workflows
+    assert workflows[0].params == []
+
+
+def test_generated_harness_binds_required_positional_param(tmp_path):
+    """Positional arg $1 is exported as the declared param name."""
+    workflow = Workflow(
+        id="wf_test_param",
+        name="test_param",
+        params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
+        steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
+    )
+    harness = tmp_path / ".harness" / "test_param.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+    result = subprocess.run(["bash", str(harness), "42"], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert result.stdout.strip() == "42"
+
+
+def test_generated_harness_accepts_env_var_override_for_required_param(tmp_path):
+    """Pre-set env var satisfies required check without positional arg."""
+    workflow = Workflow(
+        id="wf_test_env",
+        name="test_env",
+        params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
+        steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
+    )
+    harness = tmp_path / ".harness" / "test_env.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+    env = {**os.environ, "ISSUE_NUMBER": "99"}
+    result = subprocess.run(["bash", str(harness)], capture_output=True, text=True, env=env)
+    assert result.returncode == 0
+    assert result.stdout.strip() == "99"
+
+
+def test_generated_harness_exits_2_when_required_param_missing(tmp_path):
+    """Missing required param without env var prints usage and exits 2."""
+    workflow = Workflow(
+        id="wf_test_required",
+        name="test_required",
+        params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
+        steps=[BashStep(type="bash", run="true")],
+    )
+    harness = tmp_path / ".harness" / "test_required.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+    result = subprocess.run(["bash", str(harness)], capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "Usage:" in result.stderr
+    assert "ISSUE_NUMBER" in result.stderr
+
+
+def test_generated_harness_optional_param_unset_when_not_provided(tmp_path):
+    """Optional param without positional arg stays unset (no exit 2)."""
+    workflow = Workflow(
+        id="wf_test_optional",
+        name="test_optional",
+        params=[WorkflowParam(name="TAG", required=False)],
+        steps=[BashStep(type="bash", run="printf '%s\\n' \"${TAG:-default}\"")],
+    )
+    harness = tmp_path / ".harness" / "test_optional.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+    result = subprocess.run(["bash", str(harness)], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert result.stdout.strip() == "default"
+
+
+def test_generated_harness_param_with_dry_run_flag(tmp_path):
+    """--dry-run works alongside a positional param."""
+    workflow = Workflow(
+        id="wf_test_dryrun_param",
+        name="test_dryrun_param",
+        params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
+        steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
+    )
+    harness = tmp_path / ".harness" / "test_dryrun_param.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+    result = subprocess.run(
+        ["bash", str(harness), "42", "--dry-run"], capture_output=True, text=True
+    )
+    assert result.returncode == 0

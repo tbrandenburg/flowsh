@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from flowsh_cli.models import AgentStep, BashStep, Step, VarsStep, Workflow
+from flowsh_cli.models import AgentStep, BashStep, Step, VarsStep, Workflow, WorkflowParam
 
 
 def harness_path(workflow: Workflow) -> Path:
@@ -26,13 +26,7 @@ def render_harness(workflow: Workflow) -> str:
         'LOG_BASENAME="flowsh-${WORKFLOW_SLUG}-${LOG_TIMESTAMP}-$$.log"',
         "",
         section("Argument handling"),
-        "DRY_RUN=false",
-        'if [[ $# -eq 1 && "$1" == "--dry-run" ]]; then',
-        "  DRY_RUN=true",
-        "elif [[ $# -gt 0 ]]; then",
-        '  printf "Usage: %s [--dry-run]\\n" "$0" >&2',
-        "  exit 2",
-        "fi",
+        *_render_arg_block(workflow.params),
         "",
         section("refuse_symlink_path() - keep generated logs inside plain relative paths"),
         "refuse_symlink_path() {",
@@ -351,6 +345,69 @@ def script_lines(script: str) -> list[str]:
 
 def bash_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
+
+
+def _render_arg_block(params: list[WorkflowParam]) -> list[str]:
+    if not params:
+        return [
+            "DRY_RUN=false",
+            'if [[ $# -eq 1 && "$1" == "--dry-run" ]]; then',
+            "  DRY_RUN=true",
+            "elif [[ $# -gt 0 ]]; then",
+            '  printf "Usage: %s [--dry-run]\\n" "$0" >&2',
+            "  exit 2",
+            "fi",
+        ]
+
+    usage_parts: list[str] = ["[--dry-run]"]
+    for p in params:
+        usage_parts.append(f"<{p.name}>" if p.required else f"[{p.name}]")
+    usage_str = " ".join(usage_parts)
+
+    lines: list[str] = [
+        "DRY_RUN=false",
+        "POSITIONAL_ARGS=()",
+        "",
+        "while [[ $# -gt 0 ]]; do",
+        '  case "$1" in',
+        "    --dry-run)",
+        "      DRY_RUN=true",
+        "      shift",
+        "      ;;",
+        "    --*)",
+        '      printf "Unknown option: %s\\n" "$1" >&2',
+        "      exit 2",
+        "      ;;",
+        "    *)",
+        '      POSITIONAL_ARGS+=("$1")',
+        "      shift",
+        "      ;;",
+        "  esac",
+        "done",
+        "",
+    ]
+
+    for idx, param in enumerate(params):
+        lines += [
+            f"if [[ ${{#POSITIONAL_ARGS[@]}} -gt {idx} ]]; then",
+            f'  {param.name}="${{POSITIONAL_ARGS[{idx}]}}"',
+            f"  export {param.name}",
+            "fi",
+        ]
+
+    lines.append("")
+
+    required = [p for p in params if p.required]
+    if required:
+        for param in required:
+            lines += [
+                f'if [[ -z "${{{param.name}:-}}" ]]; then',
+                f'  printf "Usage: %s {usage_str}\\n" "$0" >&2',
+                "  exit 2",
+                "fi",
+            ]
+
+    return lines
 
 
 def section(title: str) -> str:
