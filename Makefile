@@ -19,6 +19,11 @@ install:
 	uv tool install --force .
 
 publish:
+	@branch="$$(git rev-parse --abbrev-ref HEAD)"; \
+	if [ "$$branch" != "main" ]; then \
+		printf '%s\n' "ERROR: publish requires branch main (current: $$branch)" >&2; \
+		exit 1; \
+	fi
 	rm -rf dist
 	uv build && uv publish
 
