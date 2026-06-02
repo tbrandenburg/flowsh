@@ -557,14 +557,14 @@ def test_render_harness_quotes_agent_prompt_heredoc_by_default() -> None:
     assert "prompt=$(cat <<PROMPT_EOF" not in script
 
 
-def test_render_harness_unquotes_agent_prompt_heredoc_when_expand_prompt_enabled() -> None:
+def test_render_harness_safe_variable_substitution_when_expand_prompt_enabled() -> None:
     workflow = Workflow(
         id="wf_prompt_expand",
         name="Prompt Expand",
         steps=[
             AgentStep(
                 type="agent",
-                prompt="Work on issue $ISSUE_NUMBER.",
+                prompt="Work on issue ${ISSUE_NUMBER}.",
                 expandPrompt=True,
             )
         ],
@@ -572,8 +572,12 @@ def test_render_harness_unquotes_agent_prompt_heredoc_when_expand_prompt_enabled
 
     script = render_harness(workflow)
 
-    assert "prompt=$(cat <<PROMPT_EOF" in script
-    assert "prompt=$(cat <<'PROMPT_EOF'" not in script
+    # Always uses quoted heredoc - no shell expansion of the raw prompt
+    assert "prompt=$(cat <<'PROMPT_EOF'" in script
+    assert "prompt=$(cat <<PROMPT_EOF" not in script
+    # Safe substitution lines emitted for the declared variable
+    assert '_p=\'${ISSUE_NUMBER}\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
+    assert '_p=\'$ISSUE_NUMBER\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
 
 
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:

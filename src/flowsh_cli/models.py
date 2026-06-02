@@ -73,7 +73,14 @@ class BashStep(BaseStep):
 
 class AgentStep(BaseStep):
     type: Literal["agent"]
-    prompt: str
+    prompt: str = Field(
+        description=(
+            "The prompt text sent to the agent. "
+            "May contain markdown, code fences, backticks, $(...), and other shell syntax freely — "
+            "the prompt is never passed through a shell. "
+            "Use expandPrompt: true to substitute ${VAR} / $VAR tokens from vars steps."
+        )
+    )
     agent: str | None = None
     model: str | None = None
     command: str | None = None
@@ -84,7 +91,17 @@ class AgentStep(BaseStep):
             "dangerously-skip-permissions",
         ),
     )
-    expandPrompt: bool = False
+    expandPrompt: bool = Field(
+        default=False,
+        description=(
+            "When true, substitutes ${VAR} and $VAR tokens from vars steps into the prompt "
+            "at runtime using safe plain-text replacement. "
+            "Shell expressions such as $(cmd), `cmd`, $((expr)), and globs are NOT evaluated — "
+            "they pass through to the agent literally. "
+            "Only uppercase variable names matching [A-Z_][A-Z0-9_]* found in the prompt text "
+            "are replaced. All other shell syntax in the prompt is safe to use."
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod

@@ -257,16 +257,25 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
         )
     elif isinstance(step, AgentStep):
         delimiter = heredoc_delimiter("PROMPT", step.prompt)
-        heredoc = f"<<{delimiter}" if step.expandPrompt else f"<<'{delimiter}'"
         lines.extend(
             [
                 "  local prompt",
-                f"  prompt=$(cat {heredoc}",
+                f"  prompt=$(cat <<'{delimiter}'",
                 *step.prompt.splitlines(),
                 delimiter,
                 "  )",
             ]
         )
+        if step.expandPrompt:
+            braced = re.findall(r"\$\{([A-Z_][A-Z0-9_]*)\}", step.prompt)
+            bare = re.findall(r"\$([A-Z_][A-Z0-9_]*)(?!\w)", step.prompt)
+            seen: dict[str, None] = {}
+            for var in braced + bare:
+                seen[var] = None
+            for var in seen:
+                lines.append(f'  _p=\'${{{var}}}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
+                lines.append(f'  _p=\'${var}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
+
         lines.append(f"  local agent={bash_quote(step.agent or '')}")
         lines.append(f"  local model={bash_quote(step.model or '')}")
         lines.append(f"  local command={bash_quote(step.command or '')}")
