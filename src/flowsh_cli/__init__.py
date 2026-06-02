@@ -3,7 +3,7 @@
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows
 from flowsh_cli.render import harness_path, render_harness
 
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 __all__ = [
     "Workflow",

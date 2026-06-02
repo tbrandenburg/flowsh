@@ -157,9 +157,23 @@ class VarsStep(BaseStep):
 Step = Annotated[VarsStep | BashStep | AgentStep, Field(discriminator="type")]
 
 
+class WorkflowParam(StrictModel):
+    name: str
+    description: str | None = None
+    required: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", value):
+            raise ValueError("must match ^[A-Z_][A-Z0-9_]*$")
+        return value
+
+
 class Workflow(StrictModel):
     id: str
     name: str
+    params: list[WorkflowParam] = []
     steps: list[Step]
 
     @field_validator("id")
