@@ -19,3 +19,6 @@ venv/
 .flowsh/
 .goal/
 dev/
+
+.agents
+.claude
