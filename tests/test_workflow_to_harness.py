@@ -2088,7 +2088,9 @@ def test_generated_harness_exits_2_when_required_param_missing(tmp_path):
     harness = tmp_path / ".harness" / "test_required.sh"
     harness.parent.mkdir()
     harness.write_text(render_harness(workflow))
-    result = subprocess.run(["bash", str(harness)], capture_output=True, text=True)
+    result = subprocess.run(
+        ["bash", str(harness)], capture_output=True, text=True, env={"PATH": os.environ["PATH"]}
+    )
     assert result.returncode == 2
     assert "Usage:" in result.stderr
     assert "ISSUE_NUMBER" in result.stderr
@@ -2125,3 +2127,219 @@ def test_generated_harness_param_with_dry_run_flag(tmp_path):
         ["bash", str(harness), "42", "--dry-run"], capture_output=True, text=True
     )
     assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# ForStep model parsing
+# ---------------------------------------------------------------------------
+
+
+def test_parse_workflows_accepts_for_step(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_for_basic
+    name: For Basic
+    steps:
+      - type: vars
+        name: Collect items
+        values:
+          ITEMS: printf 'file-a\\nfile-b'
+      - type: for
+        name: Process each item
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: bash
+            name: Process
+            run: |
+              echo "Processing $ITEM"
+""".lstrip(),
+        encoding="utf-8",
+    )
+    from flowsh_cli.models import ForStep
+
+    workflows = parse_workflows(workflow_file)
+    for_step = workflows[0].steps[1]
+
+    assert isinstance(for_step, ForStep)
+    assert for_step.in_ == "ITEMS"
+    assert for_step.item == "ITEM"
+    assert len(for_step.steps) == 1
+    assert isinstance(for_step.steps[0], BashStep)
+
+
+def test_parse_workflows_rejects_for_step_with_invalid_item_name(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_for_bad_item
+    name: For Bad Item
+    steps:
+      - type: for
+        in: ITEMS
+        item: bad-item
+        steps:
+          - type: bash
+            run: echo "$bad_item"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="item"):
+        parse_workflows(workflow_file)
+
+
+def test_parse_workflows_rejects_for_step_with_empty_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_for_empty
+    name: For Empty
+    steps:
+      - type: for
+        in: ITEMS
+        item: ITEM
+        steps: []
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError):
+        parse_workflows(workflow_file)
+
+
+# ---------------------------------------------------------------------------
+# ForStep render
+# ---------------------------------------------------------------------------
+
+
+def test_render_harness_for_step_emits_inner_functions_and_loop() -> None:
+    from flowsh_cli.models import ForStep
+
+    workflow = Workflow(
+        id="wf_for_render",
+        name="For Render",
+        steps=[
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                steps=[BashStep(type="bash", name="Process", run='echo "$ITEM"')],
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert "for_1_process() {" in script
+    assert "while IFS= read -r ITEM; do" in script
+    assert "export ITEM" in script
+    assert "run_step for_1_process" in script
+    assert 'done <<< "${ITEMS}"' in script
+    assert "run_stateful_step step_process_items" in script
+
+
+# ---------------------------------------------------------------------------
+# ForStep end-to-end execution
+# ---------------------------------------------------------------------------
+
+
+def test_generated_harness_runs_for_step_over_vars_items(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_for_e2e
+    name: For E2E
+    steps:
+      - type: vars
+        name: Collect items
+        values:
+          ITEMS: printf 'alpha\\nbeta\\ngamma'
+      - type: for
+        name: Process each item
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: bash
+            name: Emit item
+            run: |
+              printf 'item:%s\\n' "$ITEM"
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    harness = tmp_path / ".harness" / "for_e2e.sh"
+    assert harness.exists()
+
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "item:alpha" in executed.stdout
+    assert "item:beta" in executed.stdout
+    assert "item:gamma" in executed.stdout
+
+
+def test_generated_harness_for_step_dry_run_skips_inner_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_for_dry
+    name: For Dry
+    steps:
+      - type: vars
+        name: Collect items
+        values:
+          ITEMS: printf 'x\\ny'
+      - type: for
+        name: Process each item
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: bash
+            name: Emit
+            run: printf 'should-not-appear\\n'
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / ".harness" / "for_dry.sh"), "--dry-run"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "should-not-appear" not in executed.stdout
+    assert "[DRY-RUN]" in executed.stderr

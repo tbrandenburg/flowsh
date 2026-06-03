@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from flowsh_cli.models import AgentStep, BashStep, Step, VarsStep, Workflow, WorkflowParam
+from flowsh_cli.models import AgentStep, BashStep, ForStep, Step, VarsStep, Workflow, WorkflowParam
 
 
 def harness_path(workflow: Workflow) -> Path:
@@ -221,8 +221,45 @@ def render_harness(workflow: Workflow) -> str:
 def render_step(index: int, step: Step, used_function_names: set[str] | None = None) -> list[str]:
     function_name = step_function_name(index, step.name, used_function_names)
     title = step.name or default_step_title(index, step)
-    lines = [section(f"Step {index} ({step.type}): {title}"), f"{function_name}() {{"]
 
+    prefix_lines: list[str] = []
+
+    if isinstance(step, ForStep):
+        inner_fns: list[str] = []
+        for i, inner_step in enumerate(step.steps, start=1):
+            inner_fn = _for_inner_function_name(index, i, inner_step, used_function_names)
+            inner_fns.append(inner_fn)
+            inner_title = inner_step.name or default_step_title(i, inner_step)
+            prefix_lines.append(section(f"For-inner step ({inner_step.type}): {inner_title}"))
+            prefix_lines.append(f"{inner_fn}() {{")
+            prefix_lines.extend(_render_step_body(inner_step))
+            prefix_lines.append("}")
+            prefix_lines.append("")
+
+        body_lines = [
+            f"  while IFS= read -r {step.item}; do",
+            f"    export {step.item}",
+            *[f"    run_step {fn}" for fn in inner_fns],
+            f'  done <<< "${{{step.in_}}}"',
+        ]
+    else:
+        body_lines = _render_step_body(step)
+
+    runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep)) else "run_step"
+    outer_lines = [
+        section(f"Step {index} ({step.type}): {title}"),
+        f"{function_name}() {{",
+        *body_lines,
+        "}",
+        f"{runner} {function_name}",
+        "",
+    ]
+    return prefix_lines + outer_lines
+
+
+def _render_step_body(step: Step) -> list[str]:
+    """Return indented body lines for a step function (no wrapper, no run_step call)."""
+    lines: list[str] = []
     if isinstance(step, VarsStep):
         lines.append("  local status=0")
         for name, command in step.values.items():
@@ -269,7 +306,6 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             for var in seen:
                 lines.append(f'  _p=\'${{{var}}}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
                 lines.append(f'  _p=\'${var}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
-
         lines.append(f"  local agent={bash_quote(step.agent or '')}")
         lines.append(f"  local model={bash_quote(step.model or '')}")
         lines.append(f"  local command={bash_quote(step.command or '')}")
@@ -278,12 +314,32 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
         lines.append(
             '  run_agent "$prompt" "$agent" "$model" "$command" "$dangerously_skip_permissions"'
         )
+    elif isinstance(step, ForStep):
+        raise AssertionError("nested for steps are not supported")
     else:
         raise AssertionError(f"Unsupported step type: {step}")
-
-    runner = "run_stateful_step" if isinstance(step, VarsStep) else "run_step"
-    lines.extend(["}", f"{runner} {function_name}", ""])
     return lines
+
+
+def _for_inner_function_name(
+    outer_index: int,
+    inner_index: int,
+    step: Step,
+    used_function_names: set[str] | None,
+) -> str:
+    source = step.name or f"step_{inner_index}"
+    slug = re.sub(r"[^A-Za-z0-9_]+", "_", source).strip("_").lower()
+    if not slug or slug[0].isdigit():
+        slug = f"step_{slug}" if slug else f"step_{inner_index}"
+    base = f"for_{outer_index}_{slug}"
+    fn = base
+    suffix = 2
+    while used_function_names is not None and fn in used_function_names:
+        fn = f"{base}_{suffix}"
+        suffix += 1
+    if used_function_names is not None:
+        used_function_names.add(fn)
+    return fn
 
 
 def default_step_title(index: int, step: Step) -> str:
@@ -293,6 +349,8 @@ def default_step_title(index: int, step: Step) -> str:
         return truncate_one_line(step.run)
     if isinstance(step, AgentStep):
         return truncate_one_line(step.prompt)
+    if isinstance(step, ForStep):
+        return f"for {step.item} in {step.in_}"
     return f"step {index}"
 
 
