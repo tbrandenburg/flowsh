@@ -34,6 +34,8 @@ Options:
   --force          Overwrite existing files. Without this, existing files cause a failure.
   --version        Show the flowsh-cli version and exit.
   --schema         Show the workflow YAML schema and exit.
+  --examples       List available workflow examples and exit.
+  --example NAME   Print a named example workflow YAML to stdout and exit.
   --help           Show this message and exit.
 """
 
@@ -2615,3 +2617,59 @@ def test_render_harness_parallel_coexists_with_sequential_steps() -> None:
     # Children not individually called at top level
     assert "run_step step_build" not in script
     assert "run_step step_test" not in script
+
+
+# ---------------------------------------------------------------------------
+# --examples / --example tests (issue #23)
+# ---------------------------------------------------------------------------
+
+
+def test_cli_lists_examples_without_workflow_argument() -> None:
+    result = runner.invoke(app, ["--examples"])
+
+    assert result.exit_code == 0, result.output
+    assert "simple" in result.output
+    assert "medium" in result.output
+    assert "sophisticated" in result.output
+    assert "vars, bash" in result.output
+
+
+def test_cli_prints_named_example_yaml_simple() -> None:
+    result = runner.invoke(app, ["--example", "simple"])
+
+    assert result.exit_code == 0, result.output
+    assert "wf_simple" in result.output
+    assert result.output.startswith("workflows:")
+
+
+def test_cli_named_example_is_valid_workflow(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["--example", "simple"])
+    assert result.exit_code == 0
+
+    workflow_file = tmp_path / "simple.yml"
+    workflow_file.write_text(result.output, encoding="utf-8")
+
+    workflows = parse_workflows(workflow_file)
+    assert len(workflows) == 1
+    assert workflows[0].id == "wf_simple"
+
+
+def test_cli_named_example_dry_run(tmp_path: Path) -> None:
+    for name in ("simple", "medium", "sophisticated"):
+        result = runner.invoke(app, ["--example", name])
+        assert result.exit_code == 0, f"--example {name} failed: {result.output}"
+
+        workflow_file = tmp_path / f"{name}.yml"
+        workflow_file.write_text(result.output, encoding="utf-8")
+
+        dry = runner.invoke(app, [str(workflow_file), "--dry-run"])
+        assert dry.exit_code == 0, f"dry-run for {name} failed: {dry.output}"
+
+
+def test_cli_rejects_unknown_example_name() -> None:
+    result = runner.invoke(app, ["--example", "typo"])
+
+    assert result.exit_code == 1
+    combined = result.output + (result.stderr or "")
+    assert "unknown example" in combined
+    assert "simple" in combined
