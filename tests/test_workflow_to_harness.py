@@ -2088,7 +2088,9 @@ def test_generated_harness_exits_2_when_required_param_missing(tmp_path):
     harness = tmp_path / ".harness" / "test_required.sh"
     harness.parent.mkdir()
     harness.write_text(render_harness(workflow))
-    result = subprocess.run(["bash", str(harness)], capture_output=True, text=True)
+    result = subprocess.run(
+        ["bash", str(harness)], capture_output=True, text=True, env={"PATH": os.environ["PATH"]}
+    )
     assert result.returncode == 2
     assert "Usage:" in result.stderr
     assert "ISSUE_NUMBER" in result.stderr
