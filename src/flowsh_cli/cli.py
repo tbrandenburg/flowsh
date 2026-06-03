@@ -11,6 +11,7 @@ from typing import Annotated
 import typer
 
 from flowsh_cli import __version__
+from flowsh_cli.examples import example_yaml, examples_index
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
 
@@ -71,11 +72,32 @@ def generate(
             is_eager=True,
         ),
     ] = False,
+    examples: Annotated[
+        bool,
+        typer.Option(
+            "--examples",
+            callback=lambda value: print_examples_index(value),
+            help="List available workflow examples and exit.",
+            is_eager=True,
+        ),
+    ] = False,
+    example: Annotated[
+        str | None,
+        typer.Option(
+            "--example",
+            metavar="NAME",
+            callback=lambda value: print_example(value),
+            help="Print a named example workflow YAML to stdout and exit.",
+            is_eager=True,
+        ),
+    ] = None,
 ) -> None:
     """Generate Bash harnesses from workflow YAML."""
 
     _ = version
     _ = schema
+    _ = examples
+    _ = example
 
     try:
         workflows = parse_workflows(workflow_yaml)
@@ -114,6 +136,26 @@ def print_schema(value: bool) -> None:
         return
 
     print(workflow_schema_yaml(), end="")
+    raise typer.Exit
+
+
+def print_examples_index(value: bool) -> None:
+    if not value:
+        return
+
+    print(examples_index())
+    raise typer.Exit
+
+
+def print_example(value: str | None) -> None:
+    if value is None:
+        return
+
+    try:
+        print(example_yaml(value), end="")
+    except ValueError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        raise typer.Exit(1) from error
     raise typer.Exit
 
 
