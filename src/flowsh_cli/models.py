@@ -168,10 +168,19 @@ class ForStep(BaseStep):
         return value
 
 
-Step = Annotated[VarsStep | BashStep | AgentStep | ForStep, Field(discriminator="type")]
+class ParallelStep(BaseStep):
+    type: Literal["parallel"]
+    steps: list[Step] = Field(min_length=1)
+
+
+Step = Annotated[
+    VarsStep | BashStep | AgentStep | ForStep | ParallelStep,
+    Field(discriminator="type"),
+]
 
 
 ForStep.model_rebuild()
+ParallelStep.model_rebuild()
 
 
 class WorkflowParam(StrictModel):

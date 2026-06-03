@@ -3,7 +3,16 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from flowsh_cli.models import AgentStep, BashStep, ForStep, Step, VarsStep, Workflow, WorkflowParam
+from flowsh_cli.models import (
+    AgentStep,
+    BashStep,
+    ForStep,
+    ParallelStep,
+    Step,
+    VarsStep,
+    Workflow,
+    WorkflowParam,
+)
 
 
 def harness_path(workflow: Workflow) -> Path:
@@ -242,6 +251,25 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             *[f"    run_step {fn}" for fn in inner_fns],
             f'  done <<< "${{{step.in_}}}"',
         ]
+    elif isinstance(step, ParallelStep):
+        child_fns: list[str] = []
+        for i, child in enumerate(step.steps, start=1):
+            child_title = child.name or default_step_title(i, child)
+            child_fn = step_function_name(i, child.name, used_function_names)
+            child_fns.append(child_fn)
+            prefix_lines.append(section(f"Parallel child {i} ({child.type}): {child_title}"))
+            prefix_lines.append(f"{child_fn}() {{")
+            prefix_lines.extend(_render_step_body(child))
+            prefix_lines.append("}")
+            prefix_lines.append("")
+
+        body_lines = ["  local status=0"]
+        for child_fn in child_fns:
+            body_lines.append(f'  "{child_fn}" &')
+            body_lines.append(f"  local pid_{child_fn}=$!")
+        for child_fn in child_fns:
+            body_lines.append(f'  wait "$pid_{child_fn}" || status=$?')
+        body_lines.append('  return "$status"')
     else:
         body_lines = _render_step_body(step)
 
@@ -351,6 +379,8 @@ def default_step_title(index: int, step: Step) -> str:
         return truncate_one_line(step.prompt)
     if isinstance(step, ForStep):
         return f"for {step.item} in {step.in_}"
+    if isinstance(step, ParallelStep):
+        return f"parallel ({len(step.steps)} steps)"
     return f"step {index}"
 
 
