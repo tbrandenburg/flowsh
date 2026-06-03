@@ -154,7 +154,24 @@ class VarsStep(BaseStep):
         return value
 
 
-Step = Annotated[VarsStep | BashStep | AgentStep, Field(discriminator="type")]
+class ForStep(BaseStep):
+    type: Literal["for"]
+    in_: str = Field(..., validation_alias="in")
+    item: str = Field(...)
+    steps: list[Step] = Field(min_length=1)
+
+    @field_validator("in_", "item")
+    @classmethod
+    def validate_var_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", value):
+            raise ValueError("must match ^[A-Z_][A-Z0-9_]*$")
+        return value
+
+
+Step = Annotated[VarsStep | BashStep | AgentStep | ForStep, Field(discriminator="type")]
+
+
+ForStep.model_rebuild()
 
 
 class WorkflowParam(StrictModel):
