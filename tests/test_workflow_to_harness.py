@@ -12,6 +12,8 @@ from flowsh_cli.models import (
     MAX_WORKFLOW_YAML_BYTES,
     AgentStep,
     BashStep,
+    ParallelStep,
+    VarsStep,
     Workflow,
     WorkflowFile,
     WorkflowParam,
@@ -2343,3 +2345,273 @@ workflows:
     assert executed.returncode == 0, executed.stderr
     assert "should-not-appear" not in executed.stdout
     assert "[DRY-RUN]" in executed.stderr
+
+
+# ---------------------------------------------------------------------------
+# ParallelStep tests (issue #25)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_workflows_accepts_parallel_step(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_parallel
+    name: Parallel Workflow
+    steps:
+      - type: parallel
+        name: Fan out
+        steps:
+          - type: bash
+            name: Build
+            run: printf 'build\\n'
+          - type: bash
+            name: Test
+            run: printf 'test\\n'
+""",
+        encoding="utf-8",
+    )
+
+    workflows = parse_workflows(workflow_file)
+
+    assert len(workflows) == 1
+    assert len(workflows[0].steps) == 1
+    step = workflows[0].steps[0]
+    assert isinstance(step, ParallelStep)
+    assert step.name == "Fan out"
+    assert len(step.steps) == 2
+    assert isinstance(step.steps[0], BashStep)
+    assert isinstance(step.steps[1], BashStep)
+
+
+def test_parse_workflows_rejects_empty_parallel_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_empty_parallel
+    name: Empty Parallel
+    steps:
+      - type: parallel
+        name: Empty
+        steps: []
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError):
+        parse_workflows(workflow_file)
+
+
+def test_parse_workflows_accepts_parallel_step_with_vars_and_agent(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_parallel_mixed
+    name: Parallel Mixed
+    steps:
+      - type: parallel
+        name: Mixed
+        steps:
+          - type: vars
+            name: Capture value
+            values:
+              VALUE: printf 'hello'
+          - type: agent
+            name: Ask
+            prompt: Say hello.
+""",
+        encoding="utf-8",
+    )
+
+    workflows = parse_workflows(workflow_file)
+    step = workflows[0].steps[0]
+    assert isinstance(step, ParallelStep)
+    assert isinstance(step.steps[0], VarsStep)
+    assert isinstance(step.steps[1], AgentStep)
+
+
+def test_render_harness_parallel_step_generates_fork_join_bash() -> None:
+    workflow = Workflow(
+        id="wf_parallel_render",
+        name="Parallel Render",
+        steps=[
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                steps=[
+                    BashStep(type="bash", name="Build", run="printf 'build\\n'"),
+                    BashStep(type="bash", name="Test", run="printf 'test\\n'"),
+                ],
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    # Child functions are emitted
+    assert "step_build()" in script
+    assert "step_test()" in script
+    # Fork-join pattern present
+    assert '"step_build" &' in script
+    assert '"step_test" &' in script
+    assert "pid_step_build=$!" in script
+    assert "pid_step_test=$!" in script
+    assert 'wait "$pid_step_build"' in script
+    assert 'wait "$pid_step_test"' in script
+    # Wrapper function emitted
+    assert "step_fan_out()" in script
+    # Wrapper is called via run_step
+    assert "run_step step_fan_out" in script
+    # Children are NOT directly called via run_step at top level
+    assert "run_step step_build" not in script
+    assert "run_step step_test" not in script
+
+
+def test_render_harness_parallel_step_section_comment() -> None:
+    workflow = Workflow(
+        id="wf_par_comment",
+        name="Par Comment",
+        steps=[
+            ParallelStep(
+                type="parallel",
+                steps=[
+                    BashStep(type="bash", run="echo a"),
+                    BashStep(type="bash", run="echo b"),
+                ],
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert "Parallel child 1" in script
+    assert "Parallel child 2" in script
+    assert "parallel (2 steps)" in script
+
+
+def test_generated_harness_runs_parallel_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_parallel_exec
+    name: Parallel Exec
+    steps:
+      - type: parallel
+        name: Fan out
+        steps:
+          - type: bash
+            name: Write A
+            run: printf 'output_a\\n'
+          - type: bash
+            name: Write B
+            run: printf 'output_b\\n'
+""",
+        encoding="utf-8",
+    )
+
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert generated.returncode == 0, generated.stderr
+
+    harness = tmp_path / ".harness" / "parallel_exec.sh"
+    assert harness.exists()
+
+    syntax = subprocess.run(
+        ["bash", "-n", str(harness)], check=False, capture_output=True, text=True
+    )
+    assert syntax.returncode == 0, syntax.stderr
+
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert "output_a" in executed.stdout
+    assert "output_b" in executed.stdout
+
+
+def test_generated_harness_parallel_step_propagates_child_failure(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_parallel_fail
+    name: Parallel Fail
+    steps:
+      - type: parallel
+        name: Fan out
+        steps:
+          - type: bash
+            name: Success
+            run: printf 'ok\\n'
+          - type: bash
+            name: Failure
+            run: "false"
+""",
+        encoding="utf-8",
+    )
+
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert generated.returncode == 0, generated.stderr
+
+    harness = tmp_path / ".harness" / "parallel_fail.sh"
+
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+    assert executed.returncode != 0
+    assert "Step failed: step_fan_out" in executed.stderr
+
+
+def test_render_harness_parallel_coexists_with_sequential_steps() -> None:
+    workflow = Workflow(
+        id="wf_mixed_seq_par",
+        name="Mixed Seq Par",
+        steps=[
+            BashStep(type="bash", name="Setup", run="echo setup"),
+            ParallelStep(
+                type="parallel",
+                steps=[
+                    BashStep(type="bash", name="Build", run="echo build"),
+                    BashStep(type="bash", name="Test", run="echo test"),
+                ],
+            ),
+            BashStep(type="bash", name="Teardown", run="echo done"),
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    # Sequential steps called at top level
+    assert "run_step step_setup" in script
+    assert "run_step step_teardown" in script
+    # Children backgrounded inside wrapper, not at top level
+    assert '"step_build" &' in script
+    assert '"step_test" &' in script
+    # Children not individually called at top level
+    assert "run_step step_build" not in script
+    assert "run_step step_test" not in script

@@ -6,7 +6,7 @@ This repository has been intentionally reduced to the Python CLI blueprint.
 
 - Keep the product surface limited to the existing Python blueprint.
 - Do not reintroduce the TypeScript implementation, workflow templates, DSL explorer, plugin registry, or extra workflow node types.
-- Supported step types are `vars`, `bash`, `agent`, and `for` (flat, non-nested iteration over newline-delimited variables).
+- Supported step types are `vars`, `bash`, `agent`, `for` (flat, non-nested iteration over newline-delimited variables), and `parallel` (concurrent fork-join wrapper over child steps).
 - Generated agent steps must continue to target the OpenCode CLI only.
 
 ## Development
