@@ -35,7 +35,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 @app.command(help="Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.")
 def generate(
-    workflow_yaml: Annotated[Path, typer.Argument(help="Path to .made/workflows.yml")],
+    workflow_yaml: Annotated[Path, typer.Argument(help="Path to workflow YAML")],
     workflow: Annotated[
         str | None,
         typer.Option(

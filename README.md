@@ -7,18 +7,20 @@ Use it when you want a small, reproducible way to encode a workflow once and rer
 ## Quick Start
 
 ```bash
-uvx flowsh-cli .made/workflows.yml
+uvx flowsh-cli path/to/workflows.yml
 ```
 
-That reads `.made/workflows.yml` and writes harnesses under `.harness/`.
+That reads the workflow YAML at the path you provide and writes harnesses under `.harness/`.
+
+In this repository, the example workflow file lives at `.made/workflows.yml`.
 
 Useful flags:
 
 ```bash
-uvx flowsh-cli .made/workflows.yml --dry-run
-uvx flowsh-cli .made/workflows.yml --workflow wf_example
-uvx flowsh-cli .made/workflows.yml --force
-uvx flowsh-cli .made/workflows.yml --schema
+uvx flowsh-cli path/to/workflows.yml --dry-run
+uvx flowsh-cli path/to/workflows.yml --workflow wf_example
+uvx flowsh-cli path/to/workflows.yml --force
+uvx flowsh-cli path/to/workflows.yml --schema
 uvx flowsh-cli --examples
 uvx flowsh-cli --example simple
 ```

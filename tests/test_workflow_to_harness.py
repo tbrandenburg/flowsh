@@ -26,7 +26,7 @@ EXPECTED_HELP = """Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
   Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
 
 Arguments:
-  WORKFLOW_YAML  Path to .made/workflows.yml  \\[required]
+  WORKFLOW_YAML  Path to workflow YAML  \\[required]
 
 Options:
   --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
@@ -1105,7 +1105,7 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in result.stdout
-    assert "Path to .made/workflows.yml" in result.stdout
+    assert "Path to workflow YAML" in result.stdout
     assert "--dry-run" in result.stdout
     assert "--force" in result.stdout
     assert "--version" in result.stdout
