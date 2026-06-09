@@ -1,146 +1,124 @@
 # flowsh-cli
 
-`flowsh-cli` is a small `uv` Python CLI that reads workflow YAML and writes executable Bash harness scripts for OpenCode.
+`flowsh-cli` turns workflow YAML into executable Bash harnesses for OpenCode.
 
-## Supported YAML
+Use it when you want a small, reproducible way to encode a workflow once and rerun it locally or in CI.
 
-Only this top-level shape is supported:
+## Quick Start
+
+```bash
+uvx flowsh-cli .made/workflows.yml
+```
+
+That reads `.made/workflows.yml` and writes harnesses under `.harness/`.
+
+Useful flags:
+
+```bash
+uvx flowsh-cli .made/workflows.yml --dry-run
+uvx flowsh-cli .made/workflows.yml --workflow wf_example
+uvx flowsh-cli .made/workflows.yml --force
+uvx flowsh-cli .made/workflows.yml --schema
+uvx flowsh-cli --examples
+uvx flowsh-cli --example simple
+```
+
+You can also run it locally with `uv run flowsh-cli`.
+
+## Workflow Shape
+
+The input file is a single mapping with a `workflows` list:
 
 ```yaml
 workflows:
   - id: wf_example
     name: Example
+    params:
+      - name: ISSUE_NUMBER
+        description: Issue to inspect
+        required: true
     steps:
       - type: vars
-        name: Capture date
         values:
           TODAY: date -u +%F
       - type: bash
-        name: Print date
-        run: |
-          printf 'today=%s\n' "$TODAY"
+        run: printf 'today=%s\n' "$TODAY"
       - type: agent
-        name: Ask OpenCode
         agent: general
         model: openai/gpt-5
         command: review
+        expandPrompt: true
         prompt: |
-          Summarize the current repository state.
+          Review issue ${ISSUE_NUMBER} and summarize the repository state.
+      - type: parallel
+        steps:
+          - type: bash
+            run: echo "worker A"
+          - type: bash
+            run: echo "worker B"
+      - type: for
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: bash
+            run: echo "$ITEM"
 ```
 
-Supported step types are only `vars`, `bash`, and `agent`.
+Harness paths are derived from workflow ids. `wf_example` becomes `.harness/example.sh`.
 
-The input path must be a regular file no larger than 1 MiB. The input file must be valid UTF-8, non-empty YAML with a mapping root, no duplicate mapping keys, and no YAML aliases. Workflow and step names are single-line labels. Executable fields reject unsafe control bytes while allowing normal newlines and tabs. `vars` keys must be uppercase shell variable names, and `agent` names may contain only letters, digits, `_`, and `-`. Agent `model` values are passed through to OpenCode, so provider/model IDs such as `openai/gpt-5` are valid. Agent `command` values map to OpenCode `--command`; the prompt remains the message/arguments after `--`.
+## Step Types
 
-Agent prompts are literal by default. Set `expandPrompt: true` on an `agent` step only when the prompt should be expanded by Bash at harness runtime, for example to insert values exported by earlier `vars` steps:
+| Type | Purpose | Notes |
+|---|---|---|
+| `vars` | Capture command output into exported shell variables | Variable names must be uppercase shell identifiers. |
+| `bash` | Run shell commands | Runs with `bash -euo pipefail`. |
+| `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
+| `for` | Iterate over newline-delimited input | Flat iteration only; nested `for` steps are not supported. |
+| `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
 
-```yaml
-- type: agent
-  name: Fix captured issue
-  agent: general
-  expandPrompt: true
-  prompt: |
-    Follow issue #$ISSUE_NUMBER.
-```
+## Agent Behavior
 
-`expandPrompt: true` is a security-sensitive opt-in: Bash also performs command substitution such as `$(...)` and backticks in the prompt body before OpenCode receives it. Keep it disabled for prompts that contain shell examples or untrusted content.
+`agent` prompts are literal by default. Use `expandPrompt: true` only when you want `$VAR` or `${VAR}` tokens from earlier `vars` steps substituted at runtime.
 
-Set `dangerouslySkipPermissions: true` on an `agent` step only when the generated harness should pass OpenCode `--dangerously-skip-permissions`. The flag is false by default, accepts the YAML alias `dangerously-skip-permissions`, and auto-approves permissions that are not explicitly denied. Treat it as security-sensitive and avoid it for untrusted workflows.
+`expandPrompt: true` does plain text replacement only. It does not evaluate shell expressions like `$(...)`, backticks, or globs.
 
-Harness paths are derived from workflow ids. `wf_example` writes `.harness/example.sh`.
+Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to OpenCode. The YAML alias `dangerously-skip-permissions` is also accepted.
 
-## Commands
+## Validation And Safety
 
-```bash
-# Generate every workflow harness
-uvx flowsh-cli .made/workflows.yml
+The parser is strict:
 
-# Generate one workflow by id
-uvx flowsh-cli .made/workflows.yml --workflow wf_example
+- workflow YAML must be UTF-8, non-empty, and under 1 MiB
+- the root must be a mapping with a `workflows` key
+- duplicate mapping keys and YAML aliases are rejected
+- workflow ids must match `wf_[A-Za-z0-9_-]+`
+- workflow and step names must be non-empty single-line labels
+- unsafe control characters are rejected in executable fields
+- `agent` names may contain only letters, digits, `_`, and `-`
 
-# Show planned outputs without writing files
-uvx flowsh-cli .made/workflows.yml --dry-run
+Generated harnesses are non-interactive, owner-executable, and refuse to overwrite existing outputs unless `--force` is set.
 
-# Overwrite existing harness files
-uvx flowsh-cli .made/workflows.yml --force
-
-# Show version
-uvx flowsh-cli --version
-
-# Show the workflow YAML schema
-uvx flowsh-cli --schema
-```
-
-You can also run it via `uv run flowsh-cli` if installed locally.
-
-## CLI Contract
-
-`flowsh-cli` is non-interactive. It never prompts for missing information.
-
-Current help output is plain text and deterministic across repeated runs:
-
-```text
-Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
-
-  Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
-
-Arguments:
-  WORKFLOW_YAML  Path to .made/workflows.yml  \[required]
-
-Options:
-  --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
-  --dry-run        Print planned output paths without writing scripts.
-  --force          Overwrite existing files. Without this, existing files cause a failure.
-  --version        Show the flowsh-cli version and exit.
-  --schema         Show the workflow YAML schema and exit.
-  --help           Show this message and exit.
-```
-
-The CLI pins its help formatter width so this contract does not vary with the
-caller terminal size or `COLUMNS` environment value.
-
-Exit codes:
-
-| Case | Exit | stdout | stderr |
-|---|---:|---|---|
-| `--help` | `0` | Help text | Empty |
-| `--version` | `0` | `flowsh-cli <version>` | Empty |
-| `--schema` | `0` | Workflow schema as YAML-formatted JSON Schema | Empty |
-| Valid generation | `0` | One `Wrote <path>` line per harness | Empty |
-| Valid `--dry-run` | `0` | One `DRY-RUN would write <path>` line per selected workflow | Empty |
-| Missing required CLI argument | `2` | Empty | Typer usage error |
-| Malformed or unsupported workflow YAML | `1` | Empty | `ERROR: <reason>` |
-| Unknown `--workflow` id | `1` | Empty | `ERROR: No workflow id matched ...` with known workflow ids |
-| Existing harness without `--force` | `1` | Empty | `ERROR: Refusing to overwrite ...` |
-| Output directory/path safety failure | `1` | Empty | `ERROR: <path safety reason>` |
-
-Generated harnesses are also non-interactive. `harness.sh --dry-run` exits `0` after logging planned steps to stderr and creating no log directory. A real harness run exits `0` only after every step succeeds. Failed `bash`, `vars`, or `agent` steps return the failing command status, log `Step failed: <step> (exit=<code>)` to stderr, and stop before later steps run. If an `agent` step runs without `opencode` on `PATH`, the harness exits `127` and prints `opencode CLI not found in PATH` to stderr.
-
-Generated harnesses are written with owner-only executable permissions and refuse to overwrite existing paths unless `--force` is passed. Multi-workflow generation preflights overwrite conflicts before writing any harness. `--force` replaces regular harness files and harness-file symlinks, but never replaces a directory at a harness file path. The `.harness` output directory must be a real directory, not a symlink or file. Harness dry runs do not create log files or directories. Real harness logs go to `.flowsh/logs` by default with owner-private directory and file permissions. Set `FLOWSH_LOG_DIR` when running a harness to use another local relative log directory; absolute paths, `..` path segments, symlinked path components, and non-directory log paths are refused. Logging setup and write failures fail the harness instead of being silently ignored.
-
-Generated `bash` and `vars` bodies run with `bash -euo pipefail`, so command failures stop the workflow instead of being masked by later successful commands. Captured `vars` values are exported for later `bash` steps. `agent` prompt heredocs are quoted by default and unquoted only when `expandPrompt: true` is set. `agent` steps invoke only `opencode run --format json` with optional `--agent <agent>`, `--model <provider/model>`, `--command <command>`, and `--dangerously-skip-permissions` flags before `-- <prompt>`, so dash-prefixed prompts are message content rather than OpenCode flags. Agent steps fail with a clear error if `opencode` is not on `PATH`.
+Logs go to `.flowsh/logs` by default. Set `FLOWSH_LOG_DIR` to use another relative log directory.
 
 ## Development
 
 ```bash
 uv sync
 make install
-make build
 make qa
-make hygiene
 make clean
 ```
 
-`make install` installs `flowsh-cli` into the user PATH with `uv tool install --force .`.
-`make build` creates reproducible source and wheel distributions under ignored `dist/`.
+`make qa` runs linting, tests, and a local build.
 
-`make qa` runs Ruff, Python compile checks, and pytest with locked dependencies, then builds packages locally and in CI.
-The pytest suite also verifies `python -m flowsh_cli`, `uvx flowsh-cli`, and the direct
-`scripts/workflow_to_harness.py` entrypoint against the same help contract.
-`make hygiene` prints tracked, untracked, and ignored files with
-`git status --short --ignored`; review it before release to confirm only intended
-source changes are present and generated artifacts remain ignored. `make clean`
-removes local caches, build outputs, generated harnesses, and generated logs.
+## Release
 
-There is no TypeScript compiler, template system, DSL explorer, legacy node
-registry, or archived legacy workflow spec in this repository.
+```bash
+make bump-patch
+```
+
+That bumps the patch version, runs QA, and publishes the package.
+
+## Limits
+
+This repository intentionally stays focused on the Python CLI blueprint. It does not include the old TypeScript implementation, workflow templates, DSL explorer, plugin registry, or extra workflow node types.
