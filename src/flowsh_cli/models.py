@@ -199,6 +199,7 @@ class WorkflowParam(StrictModel):
 class Workflow(StrictModel):
     id: str
     name: str
+    description: str | None = None
     params: list[WorkflowParam] = []
     enabled: bool = True
     schedule: str | None = None
@@ -230,6 +231,7 @@ class Workflow(StrictModel):
 
 
 class WorkflowFile(StrictModel):
+    description: str | None = None
     workflows: list[Workflow]
 
     @field_validator("workflows")

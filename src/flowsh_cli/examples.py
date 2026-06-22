@@ -6,9 +6,12 @@ EXAMPLES: dict[str, tuple[str, str, str]] = {
         "Vars + sequential bash steps",
         "vars, bash",
         """\
+description: Simple workflow examples for demonstration purposes
+
 workflows:
   - id: wf_simple
     name: Simple example — vars and bash
+    description: Captures today's date and prints a greeting via sequential bash steps.
 
     steps:
       - type: vars
