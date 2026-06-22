@@ -32,6 +32,7 @@ Options:
   --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
   --dry-run        Print planned output paths without writing scripts.
   --force          Overwrite existing files. Without this, existing files cause a failure.
+  --output PATH    Output path for the generated script. Requires exactly one workflow.
   --version        Show the flowsh-cli version and exit.
   --schema         Show the workflow YAML schema and exit.
   --examples       List available workflow examples and exit.
@@ -587,8 +588,9 @@ def test_render_harness_safe_variable_substitution_when_expand_prompt_enabled() 
     assert "prompt=$(cat <<'PROMPT_EOF'" in script
     assert "prompt=$(cat <<PROMPT_EOF" not in script
     # Safe substitution lines emitted for the declared variable
-    assert '_p=\'${ISSUE_NUMBER}\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
-    assert '_p=\'$ISSUE_NUMBER\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
+    assert '  _v="${ISSUE_NUMBER}"' in script
+    assert "_p='${ISSUE_NUMBER}'; prompt=\"${prompt//$_p/$_v}\"" in script
+    assert "_p='$ISSUE_NUMBER'; prompt=\"${prompt//$_p/$_v}\"" in script
 
 
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:
@@ -901,6 +903,170 @@ def test_cli_force_replaces_output_symlink_without_following_it(tmp_path: Path) 
     assert not output.is_symlink()
     assert output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
     assert target.read_text(encoding="utf-8") == "external\n"
+
+
+def test_cli_output_flag_writes_to_custom_path(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "scripts" / "run.sh"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"Wrote {custom_output}\n"
+    assert custom_output.exists()
+    assert custom_output.stat().st_mode & 0o777 == 0o700
+    assert custom_output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
+
+
+def test_cli_output_flag_with_dry_run_prints_custom_path(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "scripts" / "run.sh"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+            "--dry-run",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"DRY-RUN would write {custom_output} for workflow 'Example Harness'\n"
+    assert not custom_output.exists()
+
+
+def test_cli_output_flag_refuses_multiple_workflows(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_first
+    name: First
+    steps:
+      - type: bash
+        run: printf 'first\\n'
+  - id: wf_second
+    name: Second
+    steps:
+      - type: bash
+        run: printf 'second\\n'
+""".lstrip(),
+        encoding="utf-8",
+    )
+    custom_output = tmp_path / "combined.sh"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--output", str(custom_output)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "--output requires exactly one workflow" in result.stderr
+    assert not custom_output.exists()
+
+
+def test_cli_output_flag_allows_single_workflow_file_without_selector(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "one.sh"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--output", str(custom_output)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert custom_output.exists()
+
+
+def test_cli_output_flag_refuses_overwrite_without_force(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "existing.sh"
+    custom_output.write_text("old\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 1
+    assert "Refusing to overwrite existing file(s)" in result.stderr
+    assert custom_output.read_text(encoding="utf-8") == "old\n"
+
+
+def test_cli_output_flag_with_force_overwrites(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "existing.sh"
+    custom_output.write_text("old\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+            "--force",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert custom_output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
 
 
 def test_cli_preflights_overwrite_conflicts_before_writing_any_harness(tmp_path: Path) -> None:

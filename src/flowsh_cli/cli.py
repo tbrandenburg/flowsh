@@ -54,6 +54,13 @@ def generate(
             help="Overwrite existing files. Without this, existing files cause a failure.",
         ),
     ] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            help="Output path for the generated script. Requires exactly one workflow.",
+        ),
+    ] = None,
     version: Annotated[
         bool,
         typer.Option(
@@ -102,7 +109,7 @@ def generate(
     try:
         workflows = parse_workflows(workflow_yaml)
         selected = select_workflows(workflows, workflow)
-        write_harnesses(selected, dry_run=dry_run, force=force)
+        write_harnesses(selected, dry_run=dry_run, force=force, output=output)
     except WorkflowParseError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
@@ -159,8 +166,25 @@ def print_example(value: str | None) -> None:
     raise typer.Exit
 
 
-def write_harnesses(workflows: list[Workflow], *, dry_run: bool, force: bool) -> None:
-    output_paths = [(workflow, harness_path(workflow)) for workflow in workflows]
+def write_harnesses(
+    workflows: list[Workflow],
+    *,
+    dry_run: bool,
+    force: bool,
+    output: Path | None = None,
+) -> None:
+    if output is not None and len(workflows) != 1:
+        message = (
+            "--output requires exactly one workflow to be selected "
+            "(use --workflow to select a single workflow)"
+        )
+        raise WorkflowParseError(message)
+
+    output_paths = (
+        [(workflows[0], output)]
+        if output is not None
+        else [(workflow, harness_path(workflow)) for workflow in workflows]
+    )
 
     if dry_run:
         for workflow, output_path in output_paths:

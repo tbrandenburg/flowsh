@@ -332,8 +332,9 @@ def _render_step_body(step: Step) -> list[str]:
             for var in braced + bare:
                 seen[var] = None
             for var in seen:
-                lines.append(f'  _p=\'${{{var}}}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
-                lines.append(f'  _p=\'${var}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
+                lines.append(f'  _v="${{{var}}}"')
+                lines.append(f"  _p='${{{var}}}'; prompt=\"${{prompt//$_p/$_v}}\"")
+                lines.append(f"  _p='${var}'; prompt=\"${{prompt//$_p/$_v}}\"")
         lines.append(f"  local agent={bash_quote(step.agent or '')}")
         lines.append(f"  local model={bash_quote(step.model or '')}")
         lines.append(f"  local command={bash_quote(step.command or '')}")
