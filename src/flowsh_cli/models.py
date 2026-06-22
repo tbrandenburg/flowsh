@@ -200,6 +200,9 @@ class Workflow(StrictModel):
     id: str
     name: str
     params: list[WorkflowParam] = []
+    enabled: bool = True
+    schedule: str | None = None
+    shellScriptPath: str | None = None
     steps: list[Step]
 
     @field_validator("id")

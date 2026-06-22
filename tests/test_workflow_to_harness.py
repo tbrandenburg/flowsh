@@ -642,6 +642,9 @@ def test_cli_exposes_schema_without_workflow_argument() -> None:
     assert "model:" in result.output
     assert "command:" in result.output
     assert "dangerouslySkipPermissions:" in result.output
+    assert "enabled:" in result.output
+    assert "schedule:" in result.output
+    assert "shellScriptPath:" in result.output
 
 
 def test_cli_reports_missing_required_workflow_argument() -> None:
@@ -1158,7 +1161,7 @@ def test_cli_dry_run_is_deterministic_across_repeated_runs(tmp_path: Path) -> No
     assert not (tmp_path / ".harness").exists()
 
 
-def test_cli_rejects_removed_metadata_and_path_fields(tmp_path: Path) -> None:
+def test_parse_workflows_accepts_all_optional_metadata_fields(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
         """
@@ -1175,8 +1178,93 @@ workflows:
         encoding="utf-8",
     )
 
-    with pytest.raises(WorkflowParseError):
-        parse_workflows(workflow_file)
+    workflows = parse_workflows(workflow_file)
+    assert len(workflows) == 1
+    wf = workflows[0]
+    assert wf.enabled is True
+    assert wf.schedule == "manual"
+    assert wf.shellScriptPath == ".harness/legacy.sh"
+
+
+def test_parse_workflows_accepts_partial_metadata_fields(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_partial
+    name: Partial Metadata
+    enabled: false
+    steps:
+      - type: bash
+        run: echo partial
+""".lstrip(),
+        encoding="utf-8",
+    )
+    workflows = parse_workflows(workflow_file)
+    assert len(workflows) == 1
+    wf = workflows[0]
+    assert wf.enabled is False
+    assert wf.schedule is None
+    assert wf.shellScriptPath is None
+
+
+def test_parse_workflows_applies_default_metadata_when_fields_absent(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_no_meta
+    name: No Metadata
+    steps:
+      - type: bash
+        run: echo no-meta
+""".lstrip(),
+        encoding="utf-8",
+    )
+    workflows = parse_workflows(workflow_file)
+    assert len(workflows) == 1
+    wf = workflows[0]
+    assert wf.enabled is True
+    assert wf.schedule is None
+    assert wf.shellScriptPath is None
+
+
+def test_generated_harness_is_identical_with_and_without_metadata_fields(tmp_path: Path) -> None:
+    base_file = tmp_path / "base.yml"
+    base_file.write_text(
+        """
+workflows:
+  - id: wf_meta_test
+    name: Meta Test
+    steps:
+      - type: bash
+        run: echo hello
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    meta_file = tmp_path / "meta.yml"
+    meta_file.write_text(
+        """
+workflows:
+  - id: wf_meta_test
+    name: Meta Test
+    enabled: true
+    schedule: "0 * * * *"
+    shellScriptPath: .harness/wf_meta_test.sh
+    steps:
+      - type: bash
+        run: echo hello
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    base_workflows = parse_workflows(base_file)
+    meta_workflows = parse_workflows(meta_file)
+
+    from flowsh_cli.render import render_harness
+
+    assert render_harness(base_workflows[0]) == render_harness(meta_workflows[0])
 
 
 def test_generated_harness_runs_vars_and_bash_steps_for_real(tmp_path: Path) -> None:
