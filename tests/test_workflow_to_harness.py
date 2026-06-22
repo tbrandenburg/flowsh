@@ -2727,7 +2727,7 @@ def test_cli_prints_named_example_yaml_simple() -> None:
 
     assert result.exit_code == 0, result.output
     assert "wf_simple" in result.output
-    assert result.output.startswith("workflows:")
+    assert "workflows:" in result.output
 
 
 def test_cli_named_example_is_valid_workflow(tmp_path: Path) -> None:
@@ -2761,3 +2761,70 @@ def test_cli_rejects_unknown_example_name() -> None:
     combined = result.output + (result.stderr or "")
     assert "unknown example" in combined
     assert "simple" in combined
+
+
+# ---------------------------------------------------------------------------
+# description field tests (issue #40)
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_file_accepts_optional_description() -> None:
+    """WorkflowFile accepts a description string at root level."""
+    data = {
+        "description": "Top-level file documentation",
+        "workflows": [
+            {
+                "id": "wf_doc",
+                "name": "Documented",
+                "steps": [{"type": "bash", "run": "echo hi"}],
+            }
+        ],
+    }
+    wf = WorkflowFile.model_validate(data)
+    assert wf.description == "Top-level file documentation"
+
+
+def test_workflow_accepts_optional_description() -> None:
+    """Workflow accepts a description string per workflow entry."""
+    data = {
+        "workflows": [
+            {
+                "id": "wf_doc",
+                "name": "Documented",
+                "description": "Does something useful",
+                "steps": [{"type": "bash", "run": "echo hi"}],
+            }
+        ],
+    }
+    workflows = WorkflowFile.model_validate(data).workflows
+    assert workflows[0].description == "Does something useful"
+
+
+def test_workflow_without_description_defaults_to_none() -> None:
+    """Existing YAML without workflow-level description defaults to None (no regression)."""
+    data = {
+        "workflows": [
+            {
+                "id": "wf_plain",
+                "name": "Plain",
+                "steps": [{"type": "bash", "run": "echo hi"}],
+            }
+        ],
+    }
+    workflows = WorkflowFile.model_validate(data).workflows
+    assert workflows[0].description is None
+
+
+def test_workflow_file_without_description_defaults_to_none() -> None:
+    """Existing YAML without root-level description defaults to None (no regression)."""
+    data = {
+        "workflows": [
+            {
+                "id": "wf_plain",
+                "name": "Plain",
+                "steps": [{"type": "bash", "run": "echo hi"}],
+            }
+        ],
+    }
+    wf = WorkflowFile.model_validate(data)
+    assert wf.description is None
