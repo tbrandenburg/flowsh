@@ -591,6 +591,65 @@ def test_render_harness_safe_variable_substitution_when_expand_prompt_enabled() 
     assert '_p=\'$ISSUE_NUMBER\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
 
 
+def test_render_harness_expand_prompt_ignores_braced_vars_inside_fenced_code_blocks() -> None:
+    workflow = Workflow(
+        id="wf_prompt_expand_code_fence",
+        name="Prompt Expand Code Fence",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt=(
+                    "Work on issue ${ISSUE_NUMBER}.\n"
+                    "\n"
+                    "Check for an existing PR:\n"
+                    "\n"
+                    "```bash\n"
+                    "CURRENT_BRANCH=$(git branch --show-current)\n"
+                    'EXISTING_PR=$(gh pr list --head "$CURRENT_BRANCH")\n'
+                    "```\n"
+                    "\n"
+                    "If [EXISTING_PR] is set, skip PR creation."
+                ),
+                expandPrompt=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    # ISSUE_NUMBER appears outside the code block — must still be expanded
+    assert '_p=\'${ISSUE_NUMBER}\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
+    assert '_p=\'$ISSUE_NUMBER\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
+    # CURRENT_BRANCH and EXISTING_PR are inside the code block — must NOT be expanded
+    assert "_p='${CURRENT_BRANCH}'" not in script
+    assert "_p='$CURRENT_BRANCH'" not in script
+    assert "_p='${EXISTING_PR}'" not in script
+    assert "_p='$EXISTING_PR'" not in script
+
+
+def test_render_harness_expand_prompt_ignores_bare_vars_inside_fenced_code_blocks() -> None:
+    workflow = Workflow(
+        id="wf_prompt_expand_bare_code_fence",
+        name="Prompt Expand Bare Code Fence",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt=("Run the build for $TARGET_ENV.\n\n```bash\n./build.sh $BUILD_FLAGS\n```"),
+                expandPrompt=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    # TARGET_ENV is outside the code block — must be expanded
+    assert '_p=\'${TARGET_ENV}\'; prompt="${prompt//"$_p"/"$TARGET_ENV"}"' in script
+    assert '_p=\'$TARGET_ENV\'; prompt="${prompt//"$_p"/"$TARGET_ENV"}"' in script
+    # BUILD_FLAGS is inside the code block — must NOT be expanded
+    assert "_p='${BUILD_FLAGS}'" not in script
+    assert "_p='$BUILD_FLAGS'" not in script
+
+
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
