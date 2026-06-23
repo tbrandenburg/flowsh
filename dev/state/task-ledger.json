@@ -1,0 +1,56 @@
+{
+  "T01_GUARD_CHECK": {
+    "status": "done",
+    "evidence": [
+      "gh pr view 46 --json state,mergedAt -q '.state' => OPEN",
+      "PR is OPEN — proceeding with analysis"
+    ],
+    "last_verified": "2026-06-23T00:00:00Z"
+  },
+  "T02_RCA_5WHY": {
+    "status": "done",
+    "evidence": [
+      "WHY1: Harness crashes with 'unbound variable' because render.py emits set -euo pipefail (line 26) and references a var that is never defined in harness scope.",
+      "WHY2: CURRENT_BRANCH is referenced in the harness because re.findall over step.prompt collected it from inside the fenced code block.",
+      "WHY3: Scanner picked up fenced-block vars because re.findall treated prompt as flat text with no markdown awareness.",
+      "WHY4: No markdown awareness because expandPrompt was designed only for harness-level params (${ISSUE_NUMBER}) and did not anticipate prompts embedding shell snippets as LLM instructions.",
+      "WHY5: Edge case not anticipated because original design assumed every $VAR in a prompt was a harness parameter; no test coverage for mixed prompts with code fences.",
+      "ROOT CAUSE: _render_step_body expandPrompt scanner was context-free — no distinction between text regions and fenced code regions."
+    ],
+    "last_verified": "2026-06-23T00:01:00Z"
+  },
+  "T03_PLAN_FIX": {
+    "status": "done",
+    "evidence": [
+      "Plan: Strip fenced code blocks from step.prompt before scanning for variables.",
+      "Use re.sub(r'```.*?```', '', step.prompt, flags=re.DOTALL) to produce _prompt_no_code.",
+      "Run both braced and bare re.findall against _prompt_no_code.",
+      "Add tests: braced vars in fences NOT expanded, bare vars in fences NOT expanded, vars outside fences still expanded.",
+      "PR #46 implementation matches plan exactly per diff: render.py +3/-2, tests +59/-0.",
+      "gh pr view 46 --json mergeable,mergeStateStatus => {mergeable:MERGEABLE, mergeStateStatus:CLEAN}"
+    ],
+    "last_verified": "2026-06-23T00:02:00Z"
+  },
+  "T04_IMPLEMENT": {
+    "status": "done",
+    "evidence": [
+      "Implementation already present at HEAD commit 4840ee1 on branch fix/issue-45-expand-prompt-fenced-code-blocks",
+      "render.py:329: _prompt_no_code = re.sub(r'```.*?```', '', step.prompt, flags=re.DOTALL)",
+      "render.py:330-331: braced and bare findall run against _prompt_no_code",
+      "tests/test_workflow_to_harness.py: 2 new tests added — test_render_harness_expand_prompt_ignores_braced_vars_inside_fenced_code_blocks and test_render_harness_expand_prompt_ignores_bare_vars_inside_fenced_code_blocks",
+      "uv run --locked pytest => 111 passed in 21.51s",
+      "make qa => QA passed (ruff check, ruff format, py_compile, pytest, uv build all green)"
+    ],
+    "last_verified": "2026-06-23T00:03:00Z"
+  },
+  "T05_COMMIT_PUSH": {
+    "status": "in_progress",
+    "evidence": [],
+    "last_verified": ""
+  },
+  "T06_CI_OBSERVE": {
+    "status": "pending",
+    "evidence": [],
+    "last_verified": ""
+  }
+}
