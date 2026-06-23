@@ -36,6 +36,7 @@ Options:
   --schema         Show the workflow YAML schema and exit.
   --examples       List available workflow examples and exit.
   --example NAME   Print a named example workflow YAML to stdout and exit.
+  --output PATH    Write generated script to PATH. Only valid when generating a single workflow.
   --help           Show this message and exit.
 """
 
@@ -2837,3 +2838,165 @@ def test_workflow_file_without_description_defaults_to_none() -> None:
     }
     wf = WorkflowFile.model_validate(data)
     assert wf.description is None
+
+
+# ---------------------------------------------------------------------------
+# --output tests (issue #35)
+# ---------------------------------------------------------------------------
+
+
+def test_cli_output_writes_harness_to_explicit_path(tmp_path: Path) -> None:
+    """--output writes the script to the given path, not the default harness_path."""
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "scripts" / "run.sh"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert custom_output.exists()
+    assert custom_output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
+    assert custom_output.stat().st_mode & 0o777 == 0o700
+    # Default path must NOT have been created
+    assert not (tmp_path / "example.sh").exists()
+
+
+def test_cli_output_creates_parent_directories(tmp_path: Path) -> None:
+    """--output creates intermediate parent directories when they do not exist."""
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    nested_output = tmp_path / "a" / "b" / "c" / "run.sh"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(nested_output),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert nested_output.exists()
+
+
+def test_cli_output_rejects_multi_workflow_without_selector(tmp_path: Path) -> None:
+    """--output aborts with an error when multiple workflows would be generated."""
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_first
+    name: First
+    steps:
+      - type: bash
+        run: printf 'first\\n'
+  - id: wf_second
+    name: Second
+    steps:
+      - type: bash
+        run: printf 'second\\n'
+""",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--output",
+            str(tmp_path / "out.sh"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "--output requires exactly one workflow" in result.stderr
+    assert not (tmp_path / "out.sh").exists()
+    assert not (tmp_path / "first.sh").exists()
+
+
+def test_cli_output_dry_run_prints_resolved_path(tmp_path: Path) -> None:
+    """--dry-run with --output prints the --output path, not the default path."""
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+    custom_output = tmp_path / "scripts" / "run.sh"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            str(custom_output),
+            "--dry-run",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert str(custom_output) in result.stdout
+    assert "DRY-RUN" in result.stdout
+    assert not custom_output.exists()
+
+
+def test_cli_output_with_workflow_selector_for_single_workflow_file(tmp_path: Path) -> None:
+    """--output combined with --workflow works when file has a single workflow."""
+    workflow_file = tmp_path / "workflows.yml"
+    write_workflow(workflow_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flowsh_cli",
+            str(workflow_file),
+            "--workflow",
+            "wf_example",
+            "--output",
+            "out.sh",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "out.sh").exists()
+    assert not (tmp_path / "example.sh").exists()

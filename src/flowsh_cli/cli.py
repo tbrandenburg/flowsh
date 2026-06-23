@@ -91,6 +91,14 @@ def generate(
             is_eager=True,
         ),
     ] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            metavar="PATH",
+            help="Write generated script to PATH. Only valid when generating a single workflow.",
+        ),
+    ] = None,
 ) -> None:
     """Generate Bash harnesses from workflow YAML."""
 
@@ -102,7 +110,14 @@ def generate(
     try:
         workflows = parse_workflows(workflow_yaml)
         selected = select_workflows(workflows, workflow)
-        write_harnesses(selected, dry_run=dry_run, force=force)
+        if output is not None and len(selected) != 1:
+            print(
+                "ERROR: --output requires exactly one workflow "
+                "(use --workflow or ensure the file contains only one workflow)",
+                file=sys.stderr,
+            )
+            raise typer.Exit(1)
+        write_harnesses(selected, dry_run=dry_run, force=force, output_path=output)
     except WorkflowParseError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
@@ -159,8 +174,13 @@ def print_example(value: str | None) -> None:
     raise typer.Exit
 
 
-def write_harnesses(workflows: list[Workflow], *, dry_run: bool, force: bool) -> None:
-    output_paths = [(workflow, harness_path(workflow)) for workflow in workflows]
+def write_harnesses(
+    workflows: list[Workflow], *, dry_run: bool, force: bool, output_path: Path | None = None
+) -> None:
+    output_paths = [
+        (workflow, output_path if output_path is not None else harness_path(workflow))
+        for workflow in workflows
+    ]
 
     if dry_run:
         for workflow, output_path in output_paths:
