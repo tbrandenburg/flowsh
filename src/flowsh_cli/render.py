@@ -326,8 +326,9 @@ def _render_step_body(step: Step) -> list[str]:
             ]
         )
         if step.expandPrompt:
-            braced = re.findall(r"\$\{([A-Z_][A-Z0-9_]*)\}", step.prompt)
-            bare = re.findall(r"\$([A-Z_][A-Z0-9_]*)(?!\w)", step.prompt)
+            _prompt_no_code = re.sub(r"```.*?```", "", step.prompt, flags=re.DOTALL)
+            braced = re.findall(r"\$\{([A-Z_][A-Z0-9_]*)\}", _prompt_no_code)
+            bare = re.findall(r"\$([A-Z_][A-Z0-9_]*)(?!\w)", _prompt_no_code)
             seen: dict[str, None] = {}
             for var in braced + bare:
                 seen[var] = None
