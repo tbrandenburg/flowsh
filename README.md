@@ -10,7 +10,7 @@ Use it when you want a small, reproducible way to encode a workflow once and rer
 uvx flowsh-cli path/to/workflows.yml
 ```
 
-That reads the workflow YAML at the path you provide and writes harnesses under `.harness/`.
+That reads the workflow YAML at the path you provide and writes harness scripts to the current working directory.
 
 In this repository, the example workflow file lives at `.made/workflows.yml`.
 
@@ -66,7 +66,7 @@ workflows:
             run: echo "$ITEM"
 ```
 
-Harness paths are derived from workflow ids. `wf_example` becomes `.harness/example.sh`.
+Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` in the current working directory.
 
 ## Step Types
 
