@@ -53,8 +53,10 @@ jobs:
       
       - name: Parse comment for commands
         id: parse-comment
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          comment="${{ github.event.comment.body }}"
+          comment="$COMMENT_BODY"
           echo "Original comment: $comment"
           
           # Check if comment contains a command or agent command

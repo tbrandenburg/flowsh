@@ -1,0 +1,35 @@
+{
+  "T01": {
+    "status": "done",
+    "evidence": [
+      "gh run view 28003844987 --log | grep 'unexpected EOF' => 'line 21: unexpected EOF while looking for matching backtick'",
+      "gh run view 28003806590 --log => 'command substitution: line 38: syntax error: unexpected end of file' + 'Path(\".harness\") / ...' commands executed from comment body",
+      "ghar-issue-command-executor.yml:57 => comment=\"${{ github.event.comment.body }}\" injects raw comment text into shell — backticks in Markdown code spans break shell parsing",
+      "5xWhy: raw ${{ }} substitution → no shell escaping → comment backticks unmatched → shell EOF → CI exit code 2"
+    ],
+    "last_verified": "2026-06-23T06:00:00Z"
+  },
+  "T02": {
+    "status": "done",
+    "evidence": [
+      "Fix: move comment body from inline ${{ github.event.comment.body }} to env: COMMENT_BODY so GitHub Actions safely marshals the value before shell execution",
+      "Change: add env: block with COMMENT_BODY: ${{ github.event.comment.body }} and replace line 57 with comment=\"$COMMENT_BODY\""
+    ],
+    "last_verified": "2026-06-23T06:01:00Z"
+  },
+  "T03": {
+    "status": "in_progress",
+    "evidence": [],
+    "last_verified": "2026-06-23T06:01:00Z"
+  },
+  "T04": {
+    "status": "pending",
+    "evidence": [],
+    "last_verified": "2026-06-23T06:01:00Z"
+  },
+  "T05": {
+    "status": "pending",
+    "evidence": [],
+    "last_verified": "2026-06-23T06:01:00Z"
+  }
+}
