@@ -52,4 +52,4 @@ hygiene:
 	git status --short --ignored
 
 clean:
-	rm -rf .pytest_cache .ruff_cache .harness .flowsh src/flowsh_cli/__pycache__ scripts/__pycache__ tests/__pycache__ dist build
+	rm -rf .pytest_cache .ruff_cache .flowsh src/flowsh_cli/__pycache__ scripts/__pycache__ tests/__pycache__ dist build

@@ -73,7 +73,7 @@ def test_parse_workflows_accepts_blueprint_shape(tmp_path: Path) -> None:
 
     assert len(workflows) == 1
     assert workflows[0].id == "wf_example"
-    assert harness_path(workflows[0]) == Path(".harness/example.sh")
+    assert harness_path(workflows[0]) == Path("example.sh")
 
 
 def test_parse_workflows_accepts_agent_expand_prompt_boolean(tmp_path: Path) -> None:
@@ -807,7 +807,7 @@ def test_cli_writes_executable_harness_and_refuses_overwrite(tmp_path: Path) -> 
     )
 
     assert first.returncode == 0, first.stderr
-    output = tmp_path / ".harness" / "example.sh"
+    output = tmp_path / "example.sh"
     assert output.exists()
     assert output.stat().st_mode & 0o777 == 0o700
 
@@ -842,7 +842,7 @@ def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
         text=True,
         cwd=tmp_path,
     )
-    first_content = (tmp_path / ".harness" / "example.sh").read_text(encoding="utf-8")
+    first_content = (tmp_path / "example.sh").read_text(encoding="utf-8")
     second = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
         check=False,
@@ -850,7 +850,7 @@ def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
         text=True,
         cwd=tmp_path,
     )
-    second_content = (tmp_path / ".harness" / "example.sh").read_text(encoding="utf-8")
+    second_content = (tmp_path / "example.sh").read_text(encoding="utf-8")
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
@@ -860,9 +860,7 @@ def test_cli_generates_deterministic_harness_content(tmp_path: Path) -> None:
 def test_cli_force_overwrites_regular_file_atomically(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
-    harness_dir = tmp_path / ".harness"
-    harness_dir.mkdir()
-    output = harness_dir / "example.sh"
+    output = tmp_path / "example.sh"
     output.write_text("old content\n", encoding="utf-8")
 
     result = subprocess.run(
@@ -874,7 +872,7 @@ def test_cli_force_overwrites_regular_file_atomically(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout == "Wrote .harness/example.sh\n"
+    assert result.stdout == "Wrote example.sh\n"
     assert output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
     assert output.stat().st_mode & 0o777 == 0o700
 
@@ -882,11 +880,9 @@ def test_cli_force_overwrites_regular_file_atomically(tmp_path: Path) -> None:
 def test_cli_force_replaces_output_symlink_without_following_it(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
-    harness_dir = tmp_path / ".harness"
-    harness_dir.mkdir()
     target = tmp_path / "external-target.sh"
     target.write_text("external\n", encoding="utf-8")
-    (harness_dir / "example.sh").symlink_to(target)
+    (tmp_path / "example.sh").symlink_to(target)
 
     result = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
@@ -896,7 +892,7 @@ def test_cli_force_replaces_output_symlink_without_following_it(tmp_path: Path) 
         cwd=tmp_path,
     )
 
-    output = harness_dir / "example.sh"
+    output = tmp_path / "example.sh"
     assert result.returncode == 0, result.stderr
     assert not output.is_symlink()
     assert output.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
@@ -921,9 +917,7 @@ workflows:
 """.lstrip(),
         encoding="utf-8",
     )
-    harness_dir = tmp_path / ".harness"
-    harness_dir.mkdir()
-    existing = harness_dir / "second.sh"
+    existing = tmp_path / "second.sh"
     existing.write_text("existing\n", encoding="utf-8")
 
     result = subprocess.run(
@@ -935,17 +929,15 @@ workflows:
     )
 
     assert result.returncode != 0
-    assert "Refusing to overwrite existing file(s): .harness/second.sh" in result.stderr
-    assert not (harness_dir / "first.sh").exists()
+    assert "Refusing to overwrite existing file(s): second.sh" in result.stderr
+    assert not (tmp_path / "first.sh").exists()
     assert existing.read_text(encoding="utf-8") == "existing\n"
 
 
 def test_cli_refuses_to_overwrite_broken_symlink(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
-    harness_dir = tmp_path / ".harness"
-    harness_dir.mkdir()
-    (harness_dir / "example.sh").symlink_to("missing-target.sh")
+    (tmp_path / "example.sh").symlink_to("missing-target.sh")
 
     result = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
@@ -957,51 +949,14 @@ def test_cli_refuses_to_overwrite_broken_symlink(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "Refusing to overwrite" in result.stderr
-    assert (harness_dir / "example.sh").is_symlink()
-
-
-def test_cli_refuses_symlinked_harness_directory(tmp_path: Path) -> None:
-    workflow_file = tmp_path / "workflows.yml"
-    write_workflow(workflow_file)
-    external_dir = tmp_path / "external"
-    external_dir.mkdir()
-    (tmp_path / ".harness").symlink_to(external_dir, target_is_directory=True)
-
-    result = subprocess.run(
-        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
-        check=False,
-        capture_output=True,
-        text=True,
-        cwd=tmp_path,
-    )
-
-    assert result.returncode != 0
-    assert "Refusing to write through symlinked directory" in result.stderr
-    assert not (external_dir / "example.sh").exists()
-
-
-def test_cli_refuses_file_at_harness_directory_path(tmp_path: Path) -> None:
-    workflow_file = tmp_path / "workflows.yml"
-    write_workflow(workflow_file)
-    (tmp_path / ".harness").write_text("not a directory\n", encoding="utf-8")
-
-    result = subprocess.run(
-        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
-        check=False,
-        capture_output=True,
-        text=True,
-        cwd=tmp_path,
-    )
-
-    assert result.returncode != 0
-    assert "Output path exists but is not a directory" in result.stderr
+    assert (tmp_path / "example.sh").is_symlink()
 
 
 def test_cli_force_refuses_directory_at_harness_file_path(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     write_workflow(workflow_file)
-    output = tmp_path / ".harness" / "example.sh"
-    output.mkdir(parents=True)
+    output = tmp_path / "example.sh"
+    output.mkdir()
 
     result = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", str(workflow_file), "--force"],
@@ -1013,7 +968,7 @@ def test_cli_force_refuses_directory_at_harness_file_path(tmp_path: Path) -> Non
 
     assert result.returncode == 1
     assert result.stdout == ""
-    assert "ERROR: Output path exists but is a directory: .harness/example.sh" in result.stderr
+    assert "ERROR: Output path exists but is a directory: example.sh" in result.stderr
     assert "Traceback" not in result.stderr
     assert output.is_dir()
 
@@ -1042,7 +997,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "shell_labels.sh")],
+        ["bash", str(tmp_path / "shell_labels.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1069,8 +1024,8 @@ def test_typer_cli_exposes_help_and_dry_run(tmp_path: Path) -> None:
     dry_run = runner.invoke(app, [str(workflow_file), "--dry-run"])
 
     assert dry_run.exit_code == 0, dry_run.output
-    assert "DRY-RUN would write .harness/example.sh" in dry_run.output
-    assert not (tmp_path / ".harness" / "example.sh").exists()
+    assert "DRY-RUN would write example.sh" in dry_run.output
+    assert not (tmp_path / "example.sh").exists()
 
 
 def test_cli_help_is_deterministic_across_repeated_runs() -> None:
@@ -1155,10 +1110,10 @@ def test_cli_dry_run_is_deterministic_across_repeated_runs(tmp_path: Path) -> No
     assert (
         first.stdout
         == second.stdout
-        == ("DRY-RUN would write .harness/example.sh for workflow 'Example Harness'\n")
+        == ("DRY-RUN would write example.sh for workflow 'Example Harness'\n")
     )
     assert first.stderr == second.stderr == ""
-    assert not (tmp_path / ".harness").exists()
+    assert not (tmp_path / "example.sh").exists()
 
 
 def test_parse_workflows_accepts_all_optional_metadata_fields(tmp_path: Path) -> None:
@@ -1301,7 +1256,7 @@ workflows:
     )
 
     assert generated.returncode == 0, generated.stderr
-    harness = tmp_path / ".harness" / "bash_features.sh"
+    harness = tmp_path / "bash_features.sh"
     assert harness.exists()
 
     executed = subprocess.run(
@@ -1344,7 +1299,7 @@ workflows:
     )
 
     assert generated.returncode == 0, generated.stderr
-    harness = tmp_path / ".harness" / "agent_features.sh"
+    harness = tmp_path / "agent_features.sh"
     executed = subprocess.run(
         ["bash", str(harness), "--dry-run"],
         check=False,
@@ -1399,7 +1354,7 @@ printf '{"ok":true}\n'
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "agent_invocation.sh")],
+        ["bash", str(tmp_path / "agent_invocation.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1463,7 +1418,7 @@ printf '{"ok":true}\n'
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "agent_options.sh")],
+        ["bash", str(tmp_path / "agent_options.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1539,7 +1494,7 @@ printf '{"ok":true}\n'
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "agent_prompt_expand.sh")],
+        ["bash", str(tmp_path / "agent_prompt_expand.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1600,7 +1555,7 @@ printf '{"ok":true}\n'
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "agent_prompt_literal.sh")],
+        ["bash", str(tmp_path / "agent_prompt_literal.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1653,7 +1608,7 @@ printf '{"ok":true}\n'
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "dash_prompt.sh")],
+        ["bash", str(tmp_path / "dash_prompt.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1694,7 +1649,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "args.sh"), "--unknown"],
+        ["bash", str(tmp_path / "args.sh"), "--unknown"],
         check=False,
         capture_output=True,
         text=True,
@@ -1734,7 +1689,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["/bin/bash", str(tmp_path / ".harness" / "agent_missing.sh")],
+        ["/bin/bash", str(tmp_path / "agent_missing.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1769,7 +1724,7 @@ workflows:
     )
 
     assert generated.returncode == 0, generated.stderr
-    harness = tmp_path / ".harness" / "private_logs.sh"
+    harness = tmp_path / "private_logs.sh"
     executed = subprocess.run(
         ["bash", str(harness)],
         check=False,
@@ -1811,7 +1766,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "log_symlink.sh")],
+        ["bash", str(tmp_path / "log_symlink.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1850,7 +1805,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "log_parent_symlink.sh")],
+        ["bash", str(tmp_path / "log_parent_symlink.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1885,7 +1840,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "absolute_log.sh")],
+        ["bash", str(tmp_path / "absolute_log.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1920,7 +1875,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "parent_log.sh")],
+        ["bash", str(tmp_path / "parent_log.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1956,7 +1911,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "log_create_failure.sh")],
+        ["bash", str(tmp_path / "log_create_failure.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -1991,7 +1946,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "log_write_failure.sh")],
+        ["bash", str(tmp_path / "log_write_failure.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -2029,7 +1984,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "fail_fast.sh")],
+        ["bash", str(tmp_path / "fail_fast.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -2070,7 +2025,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "vars_fail_fast.sh")],
+        ["bash", str(tmp_path / "vars_fail_fast.sh")],
         check=False,
         capture_output=True,
         text=True,
@@ -2144,8 +2099,7 @@ def test_generated_harness_binds_required_positional_param(tmp_path):
         params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
         steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
     )
-    harness = tmp_path / ".harness" / "test_param.sh"
-    harness.parent.mkdir()
+    harness = tmp_path / "test_param.sh"
     harness.write_text(render_harness(workflow))
     result = subprocess.run(["bash", str(harness), "42"], capture_output=True, text=True)
     assert result.returncode == 0
@@ -2160,8 +2114,7 @@ def test_generated_harness_accepts_env_var_override_for_required_param(tmp_path)
         params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
         steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
     )
-    harness = tmp_path / ".harness" / "test_env.sh"
-    harness.parent.mkdir()
+    harness = tmp_path / "test_env.sh"
     harness.write_text(render_harness(workflow))
     env = {**os.environ, "ISSUE_NUMBER": "99"}
     result = subprocess.run(["bash", str(harness)], capture_output=True, text=True, env=env)
@@ -2177,8 +2130,7 @@ def test_generated_harness_exits_2_when_required_param_missing(tmp_path):
         params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
         steps=[BashStep(type="bash", run="true")],
     )
-    harness = tmp_path / ".harness" / "test_required.sh"
-    harness.parent.mkdir()
+    harness = tmp_path / "test_required.sh"
     harness.write_text(render_harness(workflow))
     result = subprocess.run(
         ["bash", str(harness)], capture_output=True, text=True, env={"PATH": os.environ["PATH"]}
@@ -2196,8 +2148,7 @@ def test_generated_harness_optional_param_unset_when_not_provided(tmp_path):
         params=[WorkflowParam(name="TAG", required=False)],
         steps=[BashStep(type="bash", run="printf '%s\\n' \"${TAG:-default}\"")],
     )
-    harness = tmp_path / ".harness" / "test_optional.sh"
-    harness.parent.mkdir()
+    harness = tmp_path / "test_optional.sh"
     harness.write_text(render_harness(workflow))
     result = subprocess.run(["bash", str(harness)], capture_output=True, text=True)
     assert result.returncode == 0
@@ -2212,8 +2163,7 @@ def test_generated_harness_param_with_dry_run_flag(tmp_path):
         params=[WorkflowParam(name="ISSUE_NUMBER", required=True)],
         steps=[BashStep(type="bash", run="printf '%s\\n' \"$ISSUE_NUMBER\"")],
     )
-    harness = tmp_path / ".harness" / "test_dryrun_param.sh"
-    harness.parent.mkdir()
+    harness = tmp_path / "test_dryrun_param.sh"
     harness.write_text(render_harness(workflow))
     result = subprocess.run(
         ["bash", str(harness), "42", "--dry-run"], capture_output=True, text=True
@@ -2374,7 +2324,7 @@ workflows:
     )
 
     assert generated.returncode == 0, generated.stderr
-    harness = tmp_path / ".harness" / "for_e2e.sh"
+    harness = tmp_path / "for_e2e.sh"
     assert harness.exists()
 
     executed = subprocess.run(
@@ -2425,7 +2375,7 @@ workflows:
 
     assert generated.returncode == 0, generated.stderr
     executed = subprocess.run(
-        ["bash", str(tmp_path / ".harness" / "for_dry.sh"), "--dry-run"],
+        ["bash", str(tmp_path / "for_dry.sh"), "--dry-run"],
         check=False,
         capture_output=True,
         text=True,
@@ -2612,7 +2562,7 @@ workflows:
     )
     assert generated.returncode == 0, generated.stderr
 
-    harness = tmp_path / ".harness" / "parallel_exec.sh"
+    harness = tmp_path / "parallel_exec.sh"
     assert harness.exists()
 
     syntax = subprocess.run(
@@ -2663,7 +2613,7 @@ workflows:
     )
     assert generated.returncode == 0, generated.stderr
 
-    harness = tmp_path / ".harness" / "parallel_fail.sh"
+    harness = tmp_path / "parallel_fail.sh"
 
     executed = subprocess.run(
         ["bash", str(harness)],
