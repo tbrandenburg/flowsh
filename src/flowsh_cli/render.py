@@ -16,7 +16,7 @@ from flowsh_cli.models import (
 
 
 def harness_path(workflow: Workflow) -> Path:
-    return Path(".harness") / f"{workflow.id.removeprefix('wf_')}.sh"
+    return Path(f"{workflow.id.removeprefix('wf_')}.sh")
 
 
 def render_harness(workflow: Workflow) -> str:
