@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -21,23 +22,44 @@ from flowsh_cli.models import (
 
 runner = CliRunner()
 
-EXPECTED_HELP = """Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
+# Strip FORCE_COLOR so that subprocess help output is plain text (no ANSI codes)
+# regardless of what the CI environment sets.  GitHub Actions sets FORCE_COLOR=1
+# which causes Rich to emit ANSI escape sequences even in non-TTY subprocesses,
+# making the output differ from the no-color EXPECTED_HELP literal.
+_BASE_ENV = {k: v for k, v in os.environ.items() if k != "FORCE_COLOR"}
 
-  Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
 
-Arguments:
-  WORKFLOW_YAML  Path to workflow YAML  \\[required]
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences for environment-agnostic output comparison.
 
-Options:
-  --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
-  --dry-run        Print planned output paths without writing scripts.
-  --force          Overwrite existing files. Without this, existing files cause a failure.
-  --version        Show the flowsh-cli version and exit.
-  --schema         Show the workflow YAML schema and exit.
-  --examples       List available workflow examples and exit.
-  --example NAME   Print a named example workflow YAML to stdout and exit.
-  --output PATH    Write generated script to PATH. Only valid when generating a single workflow.
-  --help           Show this message and exit.
+    GitHub Actions and some CI systems set FORCE_COLOR=1 or GITHUB_ACTIONS=true,
+    causing Rich to emit ANSI codes even in non-TTY subprocesses.  Stripping
+    sequences here keeps assertions deterministic regardless of the host env.
+    """
+    return re.sub(r"\x1b\[[0-9;]*[mGKHFJ]", "", text)
+
+
+EXPECTED_HELP = """\
+                                                                                                                        
+ Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML                                                                              
+                                                                                                                        
+ Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.                                           
+                                                                                                                        
+╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    workflow_yaml      PATH  Path to workflow YAML [required]                                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --workflow        TEXT  Optional workflow id to generate. Defaults to all workflows.                                 │
+│ --dry-run               Print planned output paths without writing scripts.                                          │
+│ --force                 Overwrite existing files. Without this, existing files cause a failure.                      │
+│ --version               Show the flowsh-cli version and exit.                                                        │
+│ --schema                Show the workflow YAML schema and exit.                                                      │
+│ --examples              List available workflow examples and exit.                                                   │
+│ --example         NAME  Print a named example workflow YAML to stdout and exit.                                      │
+│ --output          PATH  Write generated script to PATH. Only valid when generating a single workflow.                │
+│ --help                  Show this message and exit.                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
 """
 
 
@@ -1094,22 +1116,21 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "40"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
     second = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "200"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
     assert first.stdout == second.stdout
     assert first.stderr == second.stderr == ""
-    assert first.stdout == EXPECTED_HELP
-    assert "╭" not in first.stdout
+    assert _strip_ansi(first.stdout) == EXPECTED_HELP
 
 
 def test_uv_console_entrypoint_help_matches_contract() -> None:
@@ -1118,16 +1139,17 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "200"},
+        env={**_BASE_ENV, "COLUMNS": "200"},
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in result.stdout
-    assert "Path to workflow YAML" in result.stdout
-    assert "--dry-run" in result.stdout
-    assert "--force" in result.stdout
-    assert "--version" in result.stdout
-    assert "--schema" in result.stdout
+    plain = _strip_ansi(result.stdout)
+    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in plain
+    assert "Path to workflow YAML" in plain
+    assert "--dry-run" in plain
+    assert "--force" in plain
+    assert "--version" in plain
+    assert "--schema" in plain
 
 
 def test_direct_script_entrypoint_help_matches_contract() -> None:
@@ -1138,11 +1160,11 @@ def test_direct_script_entrypoint_help_matches_contract() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "40"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout == EXPECTED_HELP
+    assert _strip_ansi(result.stdout) == EXPECTED_HELP
     assert result.stderr == ""
 
 
