@@ -21,6 +21,12 @@ from flowsh_cli.models import (
 
 runner = CliRunner()
 
+# Strip FORCE_COLOR so that subprocess help output is plain text (no ANSI codes)
+# regardless of what the CI environment sets.  GitHub Actions sets FORCE_COLOR=1
+# which causes Rich to emit ANSI escape sequences even in non-TTY subprocesses,
+# making the output differ from the no-color EXPECTED_HELP literal.
+_BASE_ENV = {k: v for k, v in os.environ.items() if k != "FORCE_COLOR"}
+
 EXPECTED_HELP = """\
                                                                                                                         
  Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML                                                                              
@@ -1098,14 +1104,14 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "120"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
     second = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "120"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
 
     assert first.returncode == 0, first.stderr
@@ -1121,7 +1127,7 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "200"},
+        env={**_BASE_ENV, "COLUMNS": "200"},
     )
 
     assert result.returncode == 0, result.stderr
@@ -1141,7 +1147,7 @@ def test_direct_script_entrypoint_help_matches_contract() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "120"},
+        env={**_BASE_ENV, "COLUMNS": "120"},
     )
 
     assert result.returncode == 0, result.stderr
