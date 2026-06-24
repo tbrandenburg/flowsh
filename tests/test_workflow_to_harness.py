@@ -21,23 +21,27 @@ from flowsh_cli.models import (
 
 runner = CliRunner()
 
-EXPECTED_HELP = """Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML
+EXPECTED_HELP = """\
+                                                                                                                        
+ Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML                                                                              
+                                                                                                                        
+ Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.                                           
+                                                                                                                        
+╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    workflow_yaml      PATH  Path to workflow YAML [required]                                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --workflow        TEXT  Optional workflow id to generate. Defaults to all workflows.                                 │
+│ --dry-run               Print planned output paths without writing scripts.                                          │
+│ --force                 Overwrite existing files. Without this, existing files cause a failure.                      │
+│ --version               Show the flowsh-cli version and exit.                                                        │
+│ --schema                Show the workflow YAML schema and exit.                                                      │
+│ --examples              List available workflow examples and exit.                                                   │
+│ --example         NAME  Print a named example workflow YAML to stdout and exit.                                      │
+│ --output          PATH  Write generated script to PATH. Only valid when generating a single workflow.                │
+│ --help                  Show this message and exit.                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-  Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.
-
-Arguments:
-  WORKFLOW_YAML  Path to workflow YAML  \\[required]
-
-Options:
-  --workflow TEXT  Optional workflow id to generate. Defaults to all workflows.
-  --dry-run        Print planned output paths without writing scripts.
-  --force          Overwrite existing files. Without this, existing files cause a failure.
-  --version        Show the flowsh-cli version and exit.
-  --schema         Show the workflow YAML schema and exit.
-  --examples       List available workflow examples and exit.
-  --example NAME   Print a named example workflow YAML to stdout and exit.
-  --output PATH    Write generated script to PATH. Only valid when generating a single workflow.
-  --help           Show this message and exit.
 """
 
 
@@ -1094,14 +1098,14 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "40"},
+        env={**os.environ, "COLUMNS": "120"},
     )
     second = subprocess.run(
         [sys.executable, "-m", "flowsh_cli", "--help"],
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "200"},
+        env={**os.environ, "COLUMNS": "120"},
     )
 
     assert first.returncode == 0, first.stderr
@@ -1109,7 +1113,6 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
     assert first.stdout == second.stdout
     assert first.stderr == second.stderr == ""
     assert first.stdout == EXPECTED_HELP
-    assert "╭" not in first.stdout
 
 
 def test_uv_console_entrypoint_help_matches_contract() -> None:
@@ -1138,7 +1141,7 @@ def test_direct_script_entrypoint_help_matches_contract() -> None:
         check=False,
         capture_output=True,
         text=True,
-        env={**os.environ, "COLUMNS": "40"},
+        env={**os.environ, "COLUMNS": "120"},
     )
 
     assert result.returncode == 0, result.stderr

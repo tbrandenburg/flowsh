@@ -20,7 +20,6 @@ app = typer.Typer(
     context_settings={"terminal_width": 120, "max_content_width": 120},
     help="Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.",
     pretty_exceptions_enable=False,
-    rich_markup_mode=None,
 )
 
 
