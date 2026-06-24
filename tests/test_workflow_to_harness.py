@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,17 @@ runner = CliRunner()
 # which causes Rich to emit ANSI escape sequences even in non-TTY subprocesses,
 # making the output differ from the no-color EXPECTED_HELP literal.
 _BASE_ENV = {k: v for k, v in os.environ.items() if k != "FORCE_COLOR"}
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences for environment-agnostic output comparison.
+
+    GitHub Actions and some CI systems set FORCE_COLOR=1 or GITHUB_ACTIONS=true,
+    causing Rich to emit ANSI codes even in non-TTY subprocesses.  Stripping
+    sequences here keeps assertions deterministic regardless of the host env.
+    """
+    return re.sub(r"\x1b\[[0-9;]*[mGKHFJ]", "", text)
+
 
 EXPECTED_HELP = """\
                                                                                                                         
@@ -1118,7 +1130,7 @@ def test_cli_help_is_deterministic_across_repeated_runs() -> None:
     assert second.returncode == 0, second.stderr
     assert first.stdout == second.stdout
     assert first.stderr == second.stderr == ""
-    assert first.stdout == EXPECTED_HELP
+    assert _strip_ansi(first.stdout) == EXPECTED_HELP
 
 
 def test_uv_console_entrypoint_help_matches_contract() -> None:
@@ -1131,12 +1143,13 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in result.stdout
-    assert "Path to workflow YAML" in result.stdout
-    assert "--dry-run" in result.stdout
-    assert "--force" in result.stdout
-    assert "--version" in result.stdout
-    assert "--schema" in result.stdout
+    plain = _strip_ansi(result.stdout)
+    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in plain
+    assert "Path to workflow YAML" in plain
+    assert "--dry-run" in plain
+    assert "--force" in plain
+    assert "--version" in plain
+    assert "--schema" in plain
 
 
 def test_direct_script_entrypoint_help_matches_contract() -> None:
@@ -1151,7 +1164,7 @@ def test_direct_script_entrypoint_help_matches_contract() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout == EXPECTED_HELP
+    assert _strip_ansi(result.stdout) == EXPECTED_HELP
     assert result.stderr == ""
 
 
