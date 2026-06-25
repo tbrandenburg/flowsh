@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "flowsh-cli"
-version = "0.8.0"
+version = "0.8.1"
 description = "Generate Bash harness scripts from workflow YAML files."
 readme = "README.md"
 requires-python = ">=3.11"
