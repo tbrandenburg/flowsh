@@ -148,6 +148,47 @@ workflows:
     assert step.dangerouslySkipPermissions is True
 
 
+def test_parse_workflows_accepts_agent_capture(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_capture
+    name: Agent Capture
+    steps:
+      - type: agent
+        capture: IMPLEMENT_OUTPUT
+        prompt: Save the output.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    step = parse_workflows(workflow_file)[0].steps[0]
+
+    assert isinstance(step, AgentStep)
+    assert step.capture == "IMPLEMENT_OUTPUT"
+
+
+@pytest.mark.parametrize("value", ["implement_output", "1OUTPUT", "OUTPUT-NAME"])
+def test_parse_workflows_rejects_invalid_agent_capture(tmp_path: Path, value: str) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        f"""
+workflows:
+  - id: wf_agent_capture_invalid
+    name: Agent Capture Invalid
+    steps:
+      - type: agent
+        capture: {value}
+        prompt: Save the output.
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="capture"):
+        parse_workflows(workflow_file)
+
+
 def test_parse_workflows_accepts_dangerous_skip_flag_alias(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
@@ -1086,6 +1127,7 @@ def test_cli_exposes_schema_without_workflow_argument() -> None:
     assert "model:" in result.output
     assert "command:" in result.output
     assert "dangerouslySkipPermissions:" in result.output
+    assert "capture:" in result.output
     assert "Each value is a shell command." in result.output
     assert "Name of a variable (defined by a preceding vars step)" in result.output
     assert "Name of the shell variable exported into each iteration body." in result.output
@@ -1895,6 +1937,104 @@ printf '{"ok":true}\n'
     )
     assert prompt_capture.read_text(encoding="utf-8") == "--help"
     assert '{"ok":true}' in executed.stdout
+
+
+def test_generated_harness_captures_agent_output_for_later_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_capture
+    name: Agent Capture
+    steps:
+      - type: agent
+        capture: IMPLEMENT_OUTPUT
+        prompt: |
+          Print a sentinel.
+      - type: bash
+        run: |
+          if echo "$IMPLEMENT_OUTPUT" | grep -qF '<implement-status>blocked</implement-status>'; then
+            printf 'blocked\\n'
+          fi
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '<implement-status>blocked</implement-status>\\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "agent_capture.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "blocked" in executed.stdout
+
+
+def test_generated_harness_agent_without_capture_still_streams_output(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_stream
+    name: Agent Stream
+    steps:
+      - type: agent
+        prompt: |
+          Stream the output.
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '<streamed-output>\\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "agent_stream.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "<streamed-output>" in executed.stdout
 
 
 def test_generated_harness_expands_agent_prompt_when_expand_prompt_enabled(tmp_path: Path) -> None:
