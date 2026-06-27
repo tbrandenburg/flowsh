@@ -2748,6 +2748,30 @@ workflows:
         parse_workflows(workflow_file)
 
 
+def test_parse_workflows_rejects_nested_while_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_nested_while
+    name: Nested While
+    steps:
+      - type: while
+        condition: '[ -n "$(ls queue 2>/dev/null)" ]'
+        steps:
+          - type: while
+            condition: '[ -n "$(ls nested 2>/dev/null)" ]'
+            steps:
+              - type: bash
+                run: echo ok
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="nested while steps"):
+        parse_workflows(workflow_file)
+
+
 def test_parse_workflows_rejects_while_step_with_unsafe_control_chars(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
@@ -2999,6 +3023,54 @@ workflows:
     assert "item:alpha" in executed.stdout
     assert "item:beta" in executed.stdout
     assert not (tmp_path / "queue").exists() or not any((tmp_path / "queue").iterdir())
+
+
+def test_generated_harness_fails_while_step_on_child_error(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_while_fail
+    name: While Fail
+    steps:
+      - type: bash
+        name: Seed queue
+        run: |
+          mkdir -p queue
+          printf 'alpha\\n' > queue/alpha
+      - type: while
+        name: Drain queue
+        condition: '[ -n "$(ls queue 2>/dev/null)" ]'
+        steps:
+          - type: bash
+            name: Process one item
+            run: |
+              item=$(ls queue | sort | head -1)
+              rm "queue/$item"
+              exit 1
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    harness = tmp_path / "while_fail.sh"
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+
+    assert executed.returncode != 0
 
 
 # ---------------------------------------------------------------------------

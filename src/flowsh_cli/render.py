@@ -273,7 +273,8 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             body_lines.append("")
 
         body_lines.append(f"  while ({step.condition}); do")
-        body_lines.extend(f"    run_step {child_fn}" for child_fn in child_fns)
+        for child_fn in child_fns:
+            body_lines.append(f"    run_step {child_fn} || return $?")
         body_lines.append("  done")
     elif isinstance(step, ParallelStep):
         child_fns: list[str] = []
@@ -382,8 +383,6 @@ def _render_step_body(step: Step, title: str) -> list[str]:
         )
     elif isinstance(step, ForStep):
         raise AssertionError("nested for steps are not supported")
-    elif isinstance(step, WhileStep):
-        raise AssertionError("nested while steps are not supported")
     else:
         raise AssertionError(f"Unsupported step type: {step}")
     return lines

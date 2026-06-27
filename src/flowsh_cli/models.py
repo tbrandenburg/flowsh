@@ -210,6 +210,14 @@ class WhileStep(BaseStep):
             raise ValueError("must not contain unsafe control characters")
         return value
 
+    @field_validator("steps")
+    @classmethod
+    def reject_nested_while_steps(cls, value: list[Step]) -> list[Step]:
+        for step in value:
+            if isinstance(step, WhileStep):
+                raise ValueError("nested while steps are not supported")
+        return value
+
 
 class ParallelStep(BaseStep):
     type: Literal["parallel"]
