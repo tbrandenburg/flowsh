@@ -38,7 +38,12 @@ def _strip_ansi(text: str) -> str:
     causing Rich to emit ANSI codes even in non-TTY subprocesses.  Stripping
     sequences here keeps assertions deterministic regardless of the host env.
     """
-    return re.sub(r"\x1b\[[0-9;]*[mGKHFJ]", "", text)
+    return re.sub(r"\x1b\[[0-9;]*[ -/]*[@-~]", "", text)
+
+
+def test_strip_ansi_removes_common_csi_sequences() -> None:
+    assert _strip_ansi("before\x1b[2Cafter") == "beforeafter"
+    assert _strip_ansi("before\x1b[1Aafter") == "beforeafter"
 
 
 EXPECTED_HELP = """\
