@@ -72,10 +72,10 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 
 | Type | Purpose | Notes |
 |---|---|---|
-| `vars` | Capture command output into exported shell variables | Variable names must be uppercase shell identifiers. |
+| `vars` | Execute shell commands and export their stdout into shell variables | Variable names must be uppercase shell identifiers. |
 | `bash` | Run shell commands | Runs with `bash -euo pipefail`. |
 | `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
-| `for` | Iterate over newline-delimited input | Flat iteration only; nested `for` steps are not supported. |
+| `for` | Iterate over newline-delimited values from a previous `vars` step | Flat iteration only; nested `for` steps are not supported. |
 | `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
 
 ## Agent Behavior

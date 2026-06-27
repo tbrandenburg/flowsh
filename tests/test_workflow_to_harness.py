@@ -1085,6 +1085,9 @@ def test_cli_exposes_schema_without_workflow_argument() -> None:
     assert "model:" in result.output
     assert "command:" in result.output
     assert "dangerouslySkipPermissions:" in result.output
+    assert "Each value is a shell command." in result.output
+    assert "Name of a variable (defined by a preceding vars step)" in result.output
+    assert "Name of the shell variable exported into each iteration body." in result.output
     assert "enabled:" in result.output
     assert "schedule:" in result.output
     assert "shellScriptPath:" in result.output

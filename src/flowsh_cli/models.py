@@ -145,7 +145,14 @@ class AgentStep(BaseStep):
 
 class VarsStep(BaseStep):
     type: Literal["vars"]
-    values: dict[str, str]
+    values: dict[str, str] = Field(
+        description=(
+            "Each value is a shell command. "
+            "The command is executed and its stdout (stripped of trailing newline) "
+            "becomes the variable value. "
+            "It is NOT a literal string."
+        )
+    )
 
     @field_validator("values")
     @classmethod
@@ -166,8 +173,19 @@ class VarsStep(BaseStep):
 
 class ForStep(BaseStep):
     type: Literal["for"]
-    in_: str = Field(..., validation_alias="in")
-    item: str = Field(...)
+    in_: str = Field(
+        ...,
+        validation_alias="in",
+        description=(
+            "Name of a variable (defined by a preceding vars step) whose value is "
+            "a newline-delimited list. "
+            "Each line becomes one iteration."
+        ),
+    )
+    item: str = Field(
+        ...,
+        description="Name of the shell variable exported into each iteration body.",
+    )
     steps: list[Step] = Field(min_length=1)
 
     @field_validator("in_", "item")
