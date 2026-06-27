@@ -241,7 +241,7 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             inner_title = inner_step.name or default_step_title(i, inner_step)
             prefix_lines.append(section(f"For-inner step ({inner_step.type}): {inner_title}"))
             prefix_lines.append(f"{inner_fn}() {{")
-            prefix_lines.extend(_render_step_body(inner_step))
+            prefix_lines.extend(_render_step_body(inner_step, inner_title))
             prefix_lines.append("}")
             prefix_lines.append("")
 
@@ -259,7 +259,7 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             child_fns.append(child_fn)
             prefix_lines.append(section(f"Parallel child {i} ({child.type}): {child_title}"))
             prefix_lines.append(f"{child_fn}() {{")
-            prefix_lines.extend(_render_step_body(child))
+            prefix_lines.extend(_render_step_body(child, child_title))
             prefix_lines.append("}")
             prefix_lines.append("")
 
@@ -271,20 +271,13 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             body_lines.append(f'  wait "$pid_{child_fn}" || status=$?')
         body_lines.append('  return "$status"')
     else:
-        body_lines = _render_step_body(step)
+        body_lines = _render_step_body(step, title)
 
     runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep)) else "run_step"
     outer_lines = [
         section(f"Step {index} ({step.type}): {title}"),
         f"{function_name}() {{",
     ]
-
-    if step.when is not None:
-        outer_lines.append(f"  if ! ({step.when}); then")
-        outer_lines.append(f"    log INFO {bash_quote(f'Step skipped (when): {title}')}")
-        outer_lines.append("    return 0")
-        outer_lines.append("  fi")
-        outer_lines.append("")
 
     outer_lines.extend(body_lines)
     outer_lines.extend(
@@ -297,9 +290,17 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     return prefix_lines + outer_lines
 
 
-def _render_step_body(step: Step) -> list[str]:
+def _render_step_body(step: Step, title: str) -> list[str]:
     """Return indented body lines for a step function (no wrapper, no run_step call)."""
     lines: list[str] = []
+
+    if step.when is not None:
+        lines.append(f"  if ! ({step.when}); then")
+        lines.append(f"    log INFO {bash_quote(f'Step skipped (when): {title}')}")
+        lines.append("    return 0")
+        lines.append("  fi")
+        lines.append("")
+
     if isinstance(step, VarsStep):
         lines.append("  local status=0")
         for name, command in step.values.items():

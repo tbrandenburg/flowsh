@@ -712,12 +712,50 @@ def test_render_harness_emits_when_guard_for_supported_steps() -> None:
     assert "log INFO 'Step skipped (when): conditional-bash'" in script
     assert 'if ! ([ -z "${RESUME:-}" ]); then' in script
     assert "log INFO 'Step skipped (when): plan-feature'" in script
-    assert 'if ! ([ -n "${ITEMS:-}" ]); then' in script
-    assert "log INFO 'Step skipped (when): Process items'" in script
-    assert 'if ! ([ "${ENABLE_PARALLEL:-false}" = true ]); then' in script
-    assert "log INFO 'Step skipped (when): Fan out'" in script
     assert "return 0" in script
     assert "echo goal is set" in script
+
+
+def test_render_harness_emits_when_guard_for_nested_steps() -> None:
+    workflow = Workflow(
+        id="wf_nested_when",
+        name="Nested When",
+        steps=[
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-bash",
+                        when='[ -n "${ITEM:-}" ]',
+                        run='echo "$ITEM"',
+                    )
+                ],
+            ),
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-parallel",
+                        when='[ -n "${GOAL:-}" ]',
+                        run="echo child",
+                    )
+                ],
+            ),
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert 'if ! ([ -n "${ITEM:-}" ]); then' in script
+    assert "Step skipped (when): child-bash" in script
+    assert 'if ! ([ -n "${GOAL:-}" ]); then' in script
+    assert "Step skipped (when): child-parallel" in script
 
 
 def test_render_harness_does_not_emit_when_guard_for_unconditional_step() -> None:
@@ -795,6 +833,60 @@ def test_generated_harness_runs_step_when_when_condition_true(tmp_path: Path) ->
     assert result.returncode == 0, result.stderr
     assert "ran-when-true" in result.stdout
     assert "Step skipped (when)" not in result.stderr
+
+
+def test_generated_harness_skips_nested_child_steps_when_conditions_fail(tmp_path: Path) -> None:
+    workflow = Workflow(
+        id="wf_nested_skip_when",
+        name="Nested Skip When",
+        steps=[
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-bash",
+                        when="false",
+                        run='printf "child:%s\n" "$ITEM"',
+                    )
+                ],
+            ),
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-parallel",
+                        when="false",
+                        run="echo child-parallel",
+                    )
+                ],
+            ),
+        ],
+    )
+    harness = tmp_path / ".harness" / "nested_skip_when.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+
+    result = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs", "ITEMS": "alpha\nbeta"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "child:alpha" not in result.stdout
+    assert "child:beta" not in result.stdout
+    assert "child-parallel" not in result.stdout
+    assert "Step skipped (when): child-bash" in result.stderr
+    assert "Step skipped (when): child-parallel" in result.stderr
 
 
 @pytest.mark.parametrize(
