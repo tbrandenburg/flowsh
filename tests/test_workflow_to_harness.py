@@ -13,6 +13,7 @@ from flowsh_cli.models import (
     MAX_WORKFLOW_YAML_BYTES,
     AgentStep,
     BashStep,
+    ForStep,
     ParallelStep,
     VarsStep,
     Workflow,
@@ -576,6 +577,366 @@ def test_render_harness_uses_only_opencode_agent_invocation(tmp_path: Path) -> N
     assert '"${cmd[@]}" -- "$prompt"' in script
     assert "Say hello from the harness." in script
     assert "curl" not in script
+
+
+def test_parse_workflows_accepts_when_on_supported_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_when_steps
+    name: When Steps
+    steps:
+      - type: vars
+        when: '[ "${SKIP:-false}" = false ]'
+        values:
+          GREETING: printf 'hello'
+      - type: bash
+        when: '[ -n "${GOAL:-}" ]'
+        run: echo goal
+      - type: agent
+        when: '[ -z "${RESUME:-}" ]'
+        prompt: Split the plan
+      - type: for
+        when: '[ -n "${ITEMS:-}" ]'
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: bash
+            run: echo "$ITEM"
+      - type: parallel
+        when: '[ "${ENABLE_PARALLEL:-false}" = true ]'
+        steps:
+          - type: bash
+            run: echo child1
+          - type: bash
+            run: echo child2
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    workflow = parse_workflows(workflow_file)[0]
+
+    assert [step.when for step in workflow.steps] == [
+        '[ "${SKIP:-false}" = false ]',
+        '[ -n "${GOAL:-}" ]',
+        '[ -z "${RESUME:-}" ]',
+        '[ -n "${ITEMS:-}" ]',
+        '[ "${ENABLE_PARALLEL:-false}" = true ]',
+    ]
+
+
+def test_parse_workflows_rejects_empty_when(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_empty_when
+    name: Empty When
+    steps:
+      - type: bash
+        when: ""
+        run: echo nope
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="when"):
+        parse_workflows(workflow_file)
+
+
+def test_parse_workflows_rejects_when_with_unsafe_control_chars(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_bad_when
+    name: Bad When
+    steps:
+      - type: bash
+        when: "echo \\x1f"
+        run: echo ok
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="when"):
+        parse_workflows(workflow_file)
+
+
+def test_render_harness_emits_when_guard_for_supported_steps() -> None:
+    workflow = Workflow(
+        id="wf_conditional_render",
+        name="Conditional Render",
+        steps=[
+            VarsStep(
+                type="vars",
+                name="conditional-vars",
+                when='[ "${SKIP:-false}" = false ]',
+                values={"GREETING": "printf hi"},
+            ),
+            BashStep(
+                type="bash",
+                name="conditional-bash",
+                when='[ -n "${GOAL:-}" ]',
+                run="echo goal is set",
+            ),
+            AgentStep(
+                type="agent",
+                name="plan-feature",
+                when='[ -z "${RESUME:-}" ]',
+                prompt="Plan the feature.",
+            ),
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                when='[ -n "${ITEMS:-}" ]',
+                steps=[BashStep(type="bash", run='echo "$ITEM"')],
+            ),
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                when='[ "${ENABLE_PARALLEL:-false}" = true ]',
+                steps=[BashStep(type="bash", run="echo child")],
+            ),
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert 'if ! ([ "${SKIP:-false}" = false ]); then' in script
+    assert "log INFO 'Step skipped (when): conditional-vars'" in script
+    assert 'if ! ([ -n "${GOAL:-}" ]); then' in script
+    assert "log INFO 'Step skipped (when): conditional-bash'" in script
+    assert 'if ! ([ -z "${RESUME:-}" ]); then' in script
+    assert "log INFO 'Step skipped (when): plan-feature'" in script
+    assert "return 0" in script
+    assert "echo goal is set" in script
+
+
+def test_render_harness_emits_when_guard_for_nested_steps() -> None:
+    workflow = Workflow(
+        id="wf_nested_when",
+        name="Nested When",
+        steps=[
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-bash",
+                        when='[ -n "${ITEM:-}" ]',
+                        run='echo "$ITEM"',
+                    )
+                ],
+            ),
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-parallel",
+                        when='[ -n "${GOAL:-}" ]',
+                        run="echo child",
+                    )
+                ],
+            ),
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert 'if ! ([ -n "${ITEM:-}" ]); then' in script
+    assert "Step skipped (when): child-bash" in script
+    assert 'if ! ([ -n "${GOAL:-}" ]); then' in script
+    assert "Step skipped (when): child-parallel" in script
+
+
+def test_render_harness_does_not_emit_when_guard_for_unconditional_step() -> None:
+    workflow = Workflow(
+        id="wf_no_when",
+        name="No When",
+        steps=[BashStep(type="bash", run="echo unconditional")],
+    )
+
+    script = render_harness(workflow)
+
+    assert "Step skipped (when)" not in script
+    assert "if ! (" not in script
+
+
+def test_generated_harness_skips_step_when_when_condition_false(tmp_path: Path) -> None:
+    workflow = Workflow(
+        id="wf_skip_when",
+        name="Skip When",
+        steps=[
+            BashStep(
+                type="bash",
+                name="should-skip",
+                when="false",
+                run="echo should-not-run",
+            ),
+            BashStep(type="bash", name="should-run", run="echo ran-after-skip"),
+        ],
+    )
+    harness = tmp_path / ".harness" / "skip_when.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+
+    result = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "should-not-run" not in result.stdout
+    assert "ran-after-skip" in result.stdout
+    assert "Step skipped (when): should-skip" in result.stderr
+
+
+def test_generated_harness_runs_step_when_when_condition_true(tmp_path: Path) -> None:
+    workflow = Workflow(
+        id="wf_run_when",
+        name="Run When",
+        steps=[
+            BashStep(
+                type="bash",
+                name="conditional-run",
+                when="true",
+                run="echo ran-when-true",
+            ),
+        ],
+    )
+    harness = tmp_path / ".harness" / "run_when.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+
+    result = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "ran-when-true" in result.stdout
+    assert "Step skipped (when)" not in result.stderr
+
+
+def test_generated_harness_skips_nested_child_steps_when_conditions_fail(tmp_path: Path) -> None:
+    workflow = Workflow(
+        id="wf_nested_skip_when",
+        name="Nested Skip When",
+        steps=[
+            ForStep(
+                type="for",
+                name="Process items",
+                **{"in": "ITEMS"},
+                item="ITEM",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-bash",
+                        when="false",
+                        run='printf "child:%s\n" "$ITEM"',
+                    )
+                ],
+            ),
+            ParallelStep(
+                type="parallel",
+                name="Fan out",
+                steps=[
+                    BashStep(
+                        type="bash",
+                        name="child-parallel",
+                        when="false",
+                        run="echo child-parallel",
+                    )
+                ],
+            ),
+        ],
+    )
+    harness = tmp_path / ".harness" / "nested_skip_when.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+
+    result = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs", "ITEMS": "alpha\nbeta"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "child:alpha" not in result.stdout
+    assert "child:beta" not in result.stdout
+    assert "child-parallel" not in result.stdout
+    assert "Step skipped (when): child-bash" in result.stderr
+    assert "Step skipped (when): child-parallel" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("expr", "goal", "expect_ran"),
+    [
+        ('[ -n "${GOAL:-}" ]', "my-goal", True),
+        ('[ -z "${GOAL:-}" ]', "my-goal", False),
+        ('[ -n "${GOAL:-}" ]', "", False),
+        ('[ -z "${GOAL:-}" ]', "", True),
+    ],
+)
+def test_generated_harness_when_with_workflow_param(
+    tmp_path: Path,
+    expr: str,
+    goal: str,
+    expect_ran: bool,
+) -> None:
+    workflow = Workflow(
+        id="wf_when_param",
+        name="When Param",
+        params=[WorkflowParam(name="GOAL")],
+        steps=[
+            BashStep(
+                type="bash",
+                name="conditional",
+                when=expr,
+                run="echo RAN",
+            ),
+        ],
+    )
+    harness = tmp_path / ".harness" / "when_param.sh"
+    harness.parent.mkdir()
+    harness.write_text(render_harness(workflow))
+
+    env = {**os.environ, "FLOWSH_LOG_DIR": "logs"}
+    args = [goal] if goal else []
+    result = subprocess.run(
+        ["bash", str(harness)] + args,
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    if expect_ran:
+        assert "RAN" in result.stdout
+    else:
+        assert "RAN" not in result.stdout
 
 
 def test_render_harness_quotes_agent_prompt_heredoc_by_default() -> None:
