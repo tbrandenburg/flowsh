@@ -16,6 +16,7 @@ from flowsh_cli.models import (
     ForStep,
     ParallelStep,
     VarsStep,
+    WhileStep,
     Workflow,
     WorkflowFile,
     WorkflowParam,
@@ -2700,6 +2701,85 @@ workflows:
         parse_workflows(workflow_file)
 
 
+def test_parse_workflows_accepts_while_step(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_while_basic
+    name: While Basic
+    steps:
+      - type: while
+        name: Process queue
+        condition: '[ -n "$(ls queue 2>/dev/null)" ]'
+        steps:
+          - type: bash
+            name: Consume
+            run: echo "working"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    workflow = parse_workflows(workflow_file)[0]
+    step = workflow.steps[0]
+
+    assert isinstance(step, WhileStep)
+    assert step.condition == '[ -n "$(ls queue 2>/dev/null)" ]'
+    assert len(step.steps) == 1
+    assert isinstance(step.steps[0], BashStep)
+
+
+def test_parse_workflows_rejects_empty_while_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_while_empty
+    name: While Empty
+    steps:
+      - type: while
+        condition: '[ -n "$(ls queue 2>/dev/null)" ]'
+        steps: []
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError):
+        parse_workflows(workflow_file)
+
+
+def test_parse_workflows_rejects_while_step_with_unsafe_control_chars(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_while_unsafe
+    name: While Unsafe
+    steps:
+      - type: while
+        condition: ""
+        steps:
+          - type: bash
+            run: echo ok
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="condition"):
+        parse_workflows(workflow_file)
+
+
+def test_while_step_validator_rejects_unsafe_control_chars() -> None:
+    with pytest.raises(ValueError, match="unsafe control characters"):
+        WhileStep.model_validate(
+            {
+                "type": "while",
+                "condition": "echo \x1f",
+                "steps": [{"type": "bash", "run": "echo ok"}],
+            }
+        )
+
+
 # ---------------------------------------------------------------------------
 # ForStep render
 # ---------------------------------------------------------------------------
@@ -2831,6 +2911,94 @@ workflows:
     assert executed.returncode == 0, executed.stderr
     assert "should-not-appear" not in executed.stdout
     assert "[DRY-RUN]" in executed.stderr
+
+
+# ---------------------------------------------------------------------------
+# WhileStep render
+# ---------------------------------------------------------------------------
+
+
+def test_render_harness_while_step_emits_re_evaluated_loop() -> None:
+    workflow = Workflow(
+        id="wf_while_render",
+        name="While Render",
+        steps=[
+            WhileStep(
+                type="while",
+                name="Process queue",
+                condition='[ -n "$(ls queue 2>/dev/null)" ]',
+                steps=[BashStep(type="bash", name="Consume", run='echo "working"')],
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert 'while ([ -n "$(ls queue 2>/dev/null)" ]); do' in script
+    assert "while IFS= read -r" not in script
+    assert "run_step step_consume" in script
+    assert "run_stateful_step step_process_queue" in script
+
+
+# ---------------------------------------------------------------------------
+# WhileStep end-to-end execution
+# ---------------------------------------------------------------------------
+
+
+def test_generated_harness_runs_while_step_until_queue_is_empty(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_while_e2e
+    name: While E2E
+    steps:
+      - type: bash
+        name: Seed queue
+        run: |
+          mkdir -p queue
+          printf 'alpha\\n' > queue/alpha
+      - type: while
+        name: Drain queue
+        condition: '[ -n "$(ls queue 2>/dev/null)" ]'
+        steps:
+          - type: bash
+            name: Process one item
+            run: |
+              item=$(ls queue | sort | head -1)
+              printf 'item:%s\\n' "$item"
+              rm "queue/$item"
+              if [ "$item" = alpha ]; then
+                printf 'beta\\n' > queue/beta
+              fi
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    harness = tmp_path / "while_e2e.sh"
+    assert harness.exists()
+
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "item:alpha" in executed.stdout
+    assert "item:beta" in executed.stdout
+    assert not (tmp_path / "queue").exists() or not any((tmp_path / "queue").iterdir())
 
 
 # ---------------------------------------------------------------------------

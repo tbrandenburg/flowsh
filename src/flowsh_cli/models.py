@@ -196,18 +196,34 @@ class ForStep(BaseStep):
         return value
 
 
+class WhileStep(BaseStep):
+    type: Literal["while"]
+    condition: str
+    steps: list[Step] = Field(min_length=1)
+
+    @field_validator("condition")
+    @classmethod
+    def validate_condition(cls, value: str) -> str:
+        if value.strip() == "":
+            raise ValueError("must not be empty")
+        if has_unsafe_control_characters(value):
+            raise ValueError("must not contain unsafe control characters")
+        return value
+
+
 class ParallelStep(BaseStep):
     type: Literal["parallel"]
     steps: list[Step] = Field(min_length=1)
 
 
 Step = Annotated[
-    VarsStep | BashStep | AgentStep | ForStep | ParallelStep,
+    VarsStep | BashStep | AgentStep | ForStep | WhileStep | ParallelStep,
     Field(discriminator="type"),
 ]
 
 
 ForStep.model_rebuild()
+WhileStep.model_rebuild()
 ParallelStep.model_rebuild()
 
 

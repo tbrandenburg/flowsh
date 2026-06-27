@@ -10,6 +10,7 @@ from flowsh_cli.models import (
     ParallelStep,
     Step,
     VarsStep,
+    WhileStep,
     Workflow,
     WorkflowParam,
 )
@@ -251,6 +252,29 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
             *[f"    run_step {fn}" for fn in inner_fns],
             f'  done <<< "${{{step.in_}}}"',
         ]
+    elif isinstance(step, WhileStep):
+        child_fns: list[str] = []
+        for i, child in enumerate(step.steps, start=1):
+            child_title = child.name or default_step_title(i, child)
+            child_fn = step_function_name(i, child.name, used_function_names)
+            child_fns.append(child_fn)
+            prefix_lines.append(section(f"While child {i} ({child.type}): {child_title}"))
+            prefix_lines.append(f"{child_fn}() {{")
+            prefix_lines.extend(_render_step_body(child, child_title))
+            prefix_lines.append("}")
+            prefix_lines.append("")
+
+        body_lines = []
+        if step.when is not None:
+            body_lines.append(f"  if ! ({step.when}); then")
+            body_lines.append(f"    log INFO {bash_quote(f'Step skipped (when): {title}')}")
+            body_lines.append("    return 0")
+            body_lines.append("  fi")
+            body_lines.append("")
+
+        body_lines.append(f"  while ({step.condition}); do")
+        body_lines.extend(f"    run_step {child_fn}" for child_fn in child_fns)
+        body_lines.append("  done")
     elif isinstance(step, ParallelStep):
         child_fns: list[str] = []
         for i, child in enumerate(step.steps, start=1):
@@ -273,7 +297,7 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     else:
         body_lines = _render_step_body(step, title)
 
-    runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep)) else "run_step"
+    runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep, WhileStep)) else "run_step"
     outer_lines = [
         section(f"Step {index} ({step.type}): {title}"),
         f"{function_name}() {{",
@@ -358,6 +382,8 @@ def _render_step_body(step: Step, title: str) -> list[str]:
         )
     elif isinstance(step, ForStep):
         raise AssertionError("nested for steps are not supported")
+    elif isinstance(step, WhileStep):
+        raise AssertionError("nested while steps are not supported")
     else:
         raise AssertionError(f"Unsupported step type: {step}")
     return lines
@@ -393,6 +419,8 @@ def default_step_title(index: int, step: Step) -> str:
         return truncate_one_line(step.prompt)
     if isinstance(step, ForStep):
         return f"for {step.item} in {step.in_}"
+    if isinstance(step, WhileStep):
+        return f"while {truncate_one_line(step.condition)}"
     if isinstance(step, ParallelStep):
         return f"parallel ({len(step.steps)} steps)"
     return f"step {index}"

@@ -52,18 +52,23 @@ workflows:
         expandPrompt: true
         prompt: |
           Review issue ${ISSUE_NUMBER} and summarize the repository state.
-      - type: parallel
-        steps:
-          - type: bash
-            run: echo "worker A"
-          - type: bash
-            run: echo "worker B"
-      - type: for
-        in: ITEMS
-        item: ITEM
-        steps:
-          - type: bash
-            run: echo "$ITEM"
+       - type: parallel
+         steps:
+           - type: bash
+             run: echo "worker A"
+           - type: bash
+             run: echo "worker B"
+       - type: for
+         in: ITEMS
+         item: ITEM
+         steps:
+           - type: bash
+             run: echo "$ITEM"
+       - type: while
+         condition: '[ -n "$(ls doc/plan/steps/planned/ 2>/dev/null)" ]'
+         steps:
+           - type: bash
+             run: echo "keep looping until the queue is empty"
 ```
 
 Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` in the current working directory.
@@ -76,6 +81,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 | `bash` | Run shell commands | Runs with `bash -euo pipefail`. |
 | `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
 | `for` | Iterate over newline-delimited values from a previous `vars` step | Flat iteration only; nested `for` steps are not supported. |
+| `while` | Re-evaluate a Bash condition before each iteration | Use for dynamic queues or other stateful loops that must keep discovering new work. |
 | `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
 
 ## Agent Behavior
