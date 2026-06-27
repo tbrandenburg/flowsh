@@ -1991,6 +1991,55 @@ printf '<implement-status>blocked</implement-status>\\n'
     assert "blocked" in executed.stdout
 
 
+def test_generated_harness_preserves_agent_capture_failure_status(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_capture_failure
+    name: Agent Capture Failure
+    steps:
+      - type: agent
+        name: Ask OpenCode
+        capture: IMPLEMENT_OUTPUT
+        prompt: |
+          Print a sentinel and fail.
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '<implement-status>blocked</implement-status>\n'
+exit 17
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "agent_capture_failure.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert executed.returncode == 17, executed.stderr
+    assert "blocked" in executed.stdout
+
+
 def test_generated_harness_agent_without_capture_still_streams_output(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
