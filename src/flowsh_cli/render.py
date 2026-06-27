@@ -277,11 +277,23 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     outer_lines = [
         section(f"Step {index} ({step.type}): {title}"),
         f"{function_name}() {{",
-        *body_lines,
-        "}",
-        f"{runner} {function_name}",
-        "",
     ]
+
+    if step.when is not None:
+        outer_lines.append(f"  if ! ({step.when}); then")
+        outer_lines.append(f"    log INFO {bash_quote(f'Step skipped (when): {title}')}")
+        outer_lines.append("    return 0")
+        outer_lines.append("  fi")
+        outer_lines.append("")
+
+    outer_lines.extend(body_lines)
+    outer_lines.extend(
+        [
+            "}",
+            f"{runner} {function_name}",
+            "",
+        ]
+    )
     return prefix_lines + outer_lines
 
 

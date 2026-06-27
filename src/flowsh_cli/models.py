@@ -46,6 +46,7 @@ class StrictModel(BaseModel):
 
 class BaseStep(StrictModel):
     name: str | None = None
+    when: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -54,6 +55,15 @@ class BaseStep(StrictModel):
             raise ValueError("must not be empty")
         if value is not None and has_control_characters(value):
             raise ValueError("must not contain control characters")
+        return value
+
+    @field_validator("when")
+    @classmethod
+    def validate_when(cls, value: str | None) -> str | None:
+        if value is not None and value.strip() == "":
+            raise ValueError("must not be empty")
+        if value is not None and has_unsafe_control_characters(value):
+            raise ValueError("must not contain unsafe control characters")
         return value
 
 
