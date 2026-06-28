@@ -1,6 +1,6 @@
 # flowsh-cli
 
-`flowsh-cli` turns workflow YAML into executable Bash harnesses for OpenCode.
+`flowsh-cli` turns workflow YAML into executable shell scripts.
 
 Use it when you want a small, reproducible way to encode a workflow once and rerun it locally or in CI.
 
@@ -12,7 +12,7 @@ uvx flowsh-cli path/to/workflows.yml
 
 That reads the workflow YAML at the path you provide and writes harness scripts to the current working directory.
 
-In this repository, the example workflow file lives at `.made/workflows.yml`.
+In this repository, the example workflow file lives at `workflows.yml`.
 
 Useful flags:
 
@@ -79,7 +79,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 |---|---|---|
 | `vars` | Execute shell commands and export their stdout into shell variables | Variable names must be uppercase shell identifiers. |
 | `bash` | Run shell commands | Runs with `bash -euo pipefail`. |
-| `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
+| `agent` | Call the agent runtime | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
 | `for` | Iterate over newline-delimited values from a previous `vars` step | Flat iteration only; nested `for` steps are not supported. |
 | `while` | Re-evaluate a Bash condition before each iteration | Use for dynamic queues or other stateful loops that must keep discovering new work. |
 | `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
@@ -90,7 +90,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 
 `expandPrompt: true` does plain text replacement only. It does not evaluate shell expressions like `$(...)`, backticks, or globs.
 
-Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to OpenCode. The YAML alias `dangerously-skip-permissions` is also accepted.
+Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to the agent runtime. The YAML alias `dangerously-skip-permissions` is also accepted.
 
 ## Validation And Safety
 

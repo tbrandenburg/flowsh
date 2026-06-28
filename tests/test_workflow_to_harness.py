@@ -49,12 +49,12 @@ def test_strip_ansi_removes_common_csi_sequences() -> None:
 
 EXPECTED_HELP = """\
                                                                                                                         
- Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML                                                                              
+ Usage: flowsh-cli [OPTIONS] [WORKFLOW_YAML]                                                                            
                                                                                                                         
- Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.                                           
+ Generate reproducible shell scripts from workflow YAML files.                                                          
                                                                                                                         
 ╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    workflow_yaml      PATH  Path to workflow YAML [required]                                                       │
+│   workflow_yaml      [WORKFLOW_YAML]  Path to workflow.yml [default: workflows.yml]                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ --workflow        TEXT  Optional workflow id to generate. Defaults to all workflows.                                 │
@@ -1100,7 +1100,7 @@ def test_cli_exposes_schema_without_workflow_argument() -> None:
     assert "shellScriptPath:" in result.output
 
 
-def test_cli_reports_missing_required_workflow_argument() -> None:
+def test_cli_uses_default_workflow_path_when_argument_is_omitted() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "flowsh_cli"],
         check=False,
@@ -1108,10 +1108,10 @@ def test_cli_reports_missing_required_workflow_argument() -> None:
         text=True,
     )
 
-    assert result.returncode == 2
+    assert result.returncode == 1
     assert result.stdout == ""
-    assert "Missing argument" in result.stderr
-    assert "'WORKFLOW_YAML'" in result.stderr
+    assert "Cannot stat workflow YAML" in result.stderr
+    assert "workflows.yml" in result.stderr
 
 
 def test_cli_reports_unknown_workflow_selector(tmp_path: Path) -> None:
@@ -1471,7 +1471,7 @@ def test_typer_cli_exposes_help_and_dry_run(tmp_path: Path) -> None:
     normalized_help = " ".join(help_result.output.split())
 
     assert help_result.exit_code == 0, help_result.output
-    assert "Generate reproducible OpenCode Bash harness scripts" in normalized_help
+    assert "Generate reproducible shell scripts from workflow YAML files" in normalized_help
     assert "Options" in normalized_help
 
     dry_run = runner.invoke(app, [str(workflow_file), "--dry-run"])
@@ -1515,8 +1515,8 @@ def test_uv_console_entrypoint_help_matches_contract() -> None:
 
     assert result.returncode == 0, result.stderr
     plain = _strip_ansi(result.stdout)
-    assert "Usage: flowsh-cli [OPTIONS] WORKFLOW_YAML" in plain
-    assert "Path to workflow YAML" in plain
+    assert "Usage: flowsh-cli [OPTIONS] [WORKFLOW_YAML]" in plain
+    assert "Path to workflow.yml" in plain
     assert "--dry-run" in plain
     assert "--force" in plain
     assert "--version" in plain

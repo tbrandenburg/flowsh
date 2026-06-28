@@ -174,7 +174,7 @@ def render_harness(workflow: Workflow) -> str:
         '  return "$status"',
         "}",
         "",
-        section("run_agent() - prompt handling and OpenCode CLI invocation"),
+        section("run_agent() - prompt handling and CLI invocation"),
         "run_agent() {",
         '  local prompt="$1"',
         '  local agent="${2:-}"',

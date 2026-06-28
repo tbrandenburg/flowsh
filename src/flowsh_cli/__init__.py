@@ -1,4 +1,4 @@
-"""flowsh-cli: generate OpenCode Bash harness scripts from workflow YAML."""
+"""flowsh-cli: generate shell scripts from workflow YAML files."""
 
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows
 from flowsh_cli.render import harness_path, render_harness

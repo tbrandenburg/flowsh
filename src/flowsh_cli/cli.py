@@ -15,10 +15,13 @@ from flowsh_cli.examples import example_yaml, examples_index
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
 
+DEFAULT_WORKFLOW_YAML = Path("workflows.yml")
+WORKFLOW_YAML_ARGUMENT = typer.Argument(DEFAULT_WORKFLOW_YAML, help="Path to workflow.yml")
+
 app = typer.Typer(
     add_completion=False,
     context_settings={"terminal_width": 120, "max_content_width": 120},
-    help="Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.",
+    help="Generate reproducible shell scripts from workflow YAML files.",
     pretty_exceptions_enable=False,
 )
 
@@ -32,9 +35,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-@app.command(help="Generate reproducible OpenCode Bash harness scripts from MADE workflow YAML.")
+@app.command(help="Generate reproducible shell scripts from workflow YAML files.")
 def generate(
-    workflow_yaml: Annotated[Path, typer.Argument(help="Path to workflow YAML")],
+    workflow_yaml: Path = WORKFLOW_YAML_ARGUMENT,
     workflow: Annotated[
         str | None,
         typer.Option(
@@ -99,7 +102,7 @@ def generate(
         ),
     ] = None,
 ) -> None:
-    """Generate Bash harnesses from workflow YAML."""
+    """Generate shell scripts from workflow YAML."""
 
     _ = version
     _ = schema
