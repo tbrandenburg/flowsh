@@ -180,7 +180,8 @@ def render_harness(workflow: Workflow) -> str:
         '  local agent="${2:-}"',
         '  local model="${3:-}"',
         '  local command="${4:-}"',
-        '  local dangerously_skip_permissions="${5:-false}"',
+        '  local capture="${5:-}"',
+        '  local dangerously_skip_permissions="${6:-false}"',
         "",
         "  local cmd=(opencode run --format json)",
         '  if [[ -n "$agent" ]]; then',
@@ -206,7 +207,17 @@ def render_harness(workflow: Workflow) -> str:
         "    return 127",
         "  fi",
         "",
-        '  "${cmd[@]}" -- "$prompt"',
+        '  if [[ -n "$capture" ]]; then',
+        "    local output",
+        "    local status=0",
+        '    output="$("${cmd[@]}" -- "$prompt")"',
+        "    status=$?",
+        "    printf '%s\\n' \"$output\"",
+        '    printf -v "$capture" \'%s\' "$output"',
+        '    return "$status"',
+        "  else",
+        '    "${cmd[@]}" -- "$prompt"',
+        "  fi",
         "}",
         "",
         section(f"Starting workflow: {workflow.name}"),
@@ -376,10 +387,12 @@ def _render_step_body(step: Step, title: str) -> list[str]:
         lines.append(f"  local agent={bash_quote(step.agent or '')}")
         lines.append(f"  local model={bash_quote(step.model or '')}")
         lines.append(f"  local command={bash_quote(step.command or '')}")
+        lines.append(f"  local capture={bash_quote(step.capture or '')}")
         dangerous_skip_permissions = "true" if step.dangerouslySkipPermissions else "false"
         lines.append(f"  local dangerously_skip_permissions={dangerous_skip_permissions}")
         lines.append(
-            '  run_agent "$prompt" "$agent" "$model" "$command" "$dangerously_skip_permissions"'
+            '  run_agent "$prompt" "$agent" "$model" '
+            '"$command" "$capture" "$dangerously_skip_permissions"'
         )
     elif isinstance(step, ForStep):
         raise AssertionError("nested for steps are not supported")

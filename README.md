@@ -79,7 +79,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 |---|---|---|
 | `vars` | Execute shell commands and export their stdout into shell variables | Variable names must be uppercase shell identifiers. |
 | `bash` | Run shell commands | Runs with `bash -euo pipefail`. |
-| `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `expandPrompt`, and `dangerouslySkipPermissions`. |
+| `agent` | Call OpenCode | Supports `agent`, `model`, `command`, `capture`, `expandPrompt`, and `dangerouslySkipPermissions`. |
 | `for` | Iterate over newline-delimited values from a previous `vars` step | Flat iteration only; nested `for` steps are not supported. |
 | `while` | Re-evaluate a Bash condition before each iteration | Use for dynamic queues or other stateful loops that must keep discovering new work. |
 | `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
@@ -89,6 +89,8 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 `agent` prompts are literal by default. Use `expandPrompt: true` only when you want `$VAR` or `${VAR}` tokens from earlier `vars` steps substituted at runtime.
 
 `expandPrompt: true` does plain text replacement only. It does not evaluate shell expressions like `$(...)`, backticks, or globs.
+
+Set `capture: VARIABLE_NAME` on an `agent` step when you want the full OpenCode output stored in a shell variable for later `vars` or `bash` steps.
 
 Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to OpenCode. The YAML alias `dangerously-skip-permissions` is also accepted.
 
