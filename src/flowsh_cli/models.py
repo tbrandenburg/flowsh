@@ -94,6 +94,10 @@ class AgentStep(BaseStep):
     agent: str | None = None
     model: str | None = None
     command: str | None = None
+    capture: str | None = Field(
+        default=None,
+        description="Name of a shell variable that receives the full agent output for later steps.",
+    )
     dangerouslySkipPermissions: bool = Field(
         default=False,
         validation_alias=AliasChoices(
@@ -140,6 +144,13 @@ class AgentStep(BaseStep):
     def validate_agent(cls, value: str | None) -> str | None:
         if value is not None and not re.fullmatch(r"[A-Za-z0-9_-]+", value):
             raise ValueError("must match ^[A-Za-z0-9_-]+$")
+        return value
+
+    @field_validator("capture")
+    @classmethod
+    def validate_capture(cls, value: str | None) -> str | None:
+        if value is not None and not re.fullmatch(r"[A-Z_][A-Z0-9_]*", value):
+            raise ValueError("must match ^[A-Z_][A-Z0-9_]*$")
         return value
 
 
