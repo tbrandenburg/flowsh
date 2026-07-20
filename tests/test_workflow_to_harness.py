@@ -64,6 +64,7 @@ EXPECTED_HELP = """\
 │ --schema                Show the workflow YAML schema and exit.                                                      │
 │ --examples              List available workflow examples and exit.                                                   │
 │ --example         NAME  Print a named example workflow YAML to stdout and exit.                                      │
+│ --skill                 Show the flowsh-cli skill description and exit.                                              │
 │ --output          PATH  Write generated script to PATH. Only valid when generating a single workflow.                │
 │ --help                  Show this message and exit.                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -1080,6 +1081,66 @@ def test_render_harness_expand_prompt_ignores_bare_vars_inside_fenced_code_block
     # BUILD_FLAGS is inside the code block — must NOT be expanded
     assert "_p='${BUILD_FLAGS}'" not in script
     assert "_p='$BUILD_FLAGS'" not in script
+
+
+def test_render_harness_expand_fields_expands_model_agent_command() -> None:
+    workflow = Workflow(
+        id="wf_expand_fields",
+        name="Expand Fields",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt="Do the thing.",
+                agent="$AGENT_NAME",
+                model="$MODEL",
+                command="${COMMAND_NAME}",
+                expandFields=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert '_p=\'$AGENT_NAME\'; agent="${agent//"$_p"/"$AGENT_NAME"}"' in script
+    assert '_p=\'$MODEL\'; model="${model//"$_p"/"$MODEL"}"' in script
+    assert '_p=\'${COMMAND_NAME}\'; command="${command//"$_p"/"$COMMAND_NAME"}"' in script
+
+
+def test_render_harness_expand_fields_also_expands_prompt() -> None:
+    workflow = Workflow(
+        id="wf_expand_fields_prompt",
+        name="Expand Fields Prompt",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt="Work on issue ${ISSUE_NUMBER}.",
+                expandFields=True,
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert '_p=\'${ISSUE_NUMBER}\'; prompt="${prompt//"$_p"/"$ISSUE_NUMBER"}"' in script
+
+
+def test_render_harness_expand_fields_false_by_default_no_substitution() -> None:
+    workflow = Workflow(
+        id="wf_expand_fields_default",
+        name="Expand Fields Default",
+        steps=[
+            AgentStep(
+                type="agent",
+                prompt="Do the thing.",
+                model="$MODEL",
+            )
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    assert "local model='$MODEL'" in script
+    assert "_p=" not in script
 
 
 def test_render_harness_disambiguates_duplicate_step_function_names(tmp_path: Path) -> None:
@@ -3895,3 +3956,13 @@ def test_cli_output_with_workflow_selector_for_single_workflow_file(tmp_path: Pa
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "out.sh").exists()
     assert not (tmp_path / "example.sh").exists()
+
+
+def test_cli_exposes_skill_without_workflow_argument() -> None:
+    result = runner.invoke(app, ["--skill"])
+
+    assert result.exit_code == 0, result.output
+    assert result.stderr == ""
+    assert result.output.startswith("---\nname: flowsh-cli\n")
+    assert "uvx flowsh-cli --schema" in result.output
+    assert "uvx flowsh-cli --help" in result.output
