@@ -1109,9 +1109,9 @@ workflows:
     assert "step_build()" in script
     assert "step_build_2()" in script
     assert "step_build_3()" in script
-    assert "run_step step_build\n" in script
-    assert "run_step step_build_2\n" in script
-    assert "run_step step_build_3\n" in script
+    assert "run_step step_build bash\n" in script
+    assert "run_step step_build_2 bash\n" in script
+    assert "run_step step_build_3 bash\n" in script
 
 
 def test_cli_exposes_version_without_workflow_argument() -> None:
@@ -2341,7 +2341,7 @@ workflows:
 
     assert executed.returncode == 127
     assert "opencode CLI not found in PATH" in executed.stderr
-    assert "Step failed: step_ask_missing_opencode (exit=127)" in executed.stderr
+    assert "Step failed: step_ask_missing_opencode [agent] (exit=127)" in executed.stderr
 
 
 def test_generated_harness_creates_private_logs_for_real_runs(tmp_path: Path) -> None:
@@ -2634,7 +2634,7 @@ workflows:
     )
 
     assert executed.returncode != 0
-    assert "Step failed: step_must_fail" in executed.stderr
+    assert "Step failed: step_must_fail [bash]" in executed.stderr
     assert not (tmp_path / "should-not-exist").exists()
 
 
@@ -2675,9 +2675,83 @@ workflows:
     )
 
     assert executed.returncode != 0
-    assert "Step failed: step_capture_variables" in executed.stderr
+    assert "Step failed: step_capture_variables [vars]" in executed.stderr
     assert not (tmp_path / "should-not-exist").exists()
     assert not (tmp_path / "should-not-exist-either").exists()
+
+
+def test_generated_harness_vars_step_command_not_found_includes_hint(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_vars_command_not_found
+    name: Vars Command Not Found
+    steps:
+      - type: vars
+        name: Setup Fruits
+        values:
+          FRUITS: |
+            apple
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "vars_command_not_found.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert executed.returncode != 0
+    assert "Step failed: step_setup_fruits [vars] (exit=127)" in executed.stderr
+    assert "vars values are shell commands" in executed.stderr
+
+
+def test_generated_harness_bash_step_failure_omits_vars_hint(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_bash_fail_fast
+    name: Bash Fail Fast
+    steps:
+      - type: bash
+        name: Not A Command
+        run: apple
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "bash_fail_fast.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert executed.returncode != 0
+    assert "Step failed: step_not_a_command [bash] (exit=127)" in executed.stderr
+    assert "vars values are shell commands" not in executed.stderr
 
 
 # ---------------------------------------------------------------------------
@@ -3026,9 +3100,9 @@ def test_render_harness_for_step_emits_inner_functions_and_loop() -> None:
     assert "for_1_process() {" in script
     assert "while IFS= read -r ITEM; do" in script
     assert "export ITEM" in script
-    assert "run_step for_1_process" in script
+    assert "run_step for_1_process bash" in script
     assert 'done <<< "${ITEMS}"' in script
-    assert "run_stateful_step step_process_items" in script
+    assert "run_stateful_step step_process_items for" in script
 
 
 # ---------------------------------------------------------------------------
@@ -3385,7 +3459,7 @@ def test_render_harness_parallel_step_generates_fork_join_bash() -> None:
     # Wrapper function emitted
     assert "step_fan_out()" in script
     # Wrapper is called via run_step
-    assert "run_step step_fan_out" in script
+    assert "run_step step_fan_out parallel" in script
     # Children are NOT directly called via run_step at top level
     assert "run_step step_build" not in script
     assert "run_step step_test" not in script
@@ -3505,7 +3579,7 @@ workflows:
         env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
     )
     assert executed.returncode != 0
-    assert "Step failed: step_fan_out" in executed.stderr
+    assert "Step failed: step_fan_out [parallel]" in executed.stderr
 
 
 def test_render_harness_parallel_coexists_with_sequential_steps() -> None:
@@ -3528,8 +3602,8 @@ def test_render_harness_parallel_coexists_with_sequential_steps() -> None:
     script = render_harness(workflow)
 
     # Sequential steps called at top level
-    assert "run_step step_setup" in script
-    assert "run_step step_teardown" in script
+    assert "run_step step_setup bash" in script
+    assert "run_step step_teardown bash" in script
     # Children backgrounded inside wrapper, not at top level
     assert '"step_build" &' in script
     assert '"step_test" &' in script

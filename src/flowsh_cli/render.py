@@ -122,19 +122,26 @@ def render_harness(workflow: Workflow) -> str:
         "catch() {",
         '  local step_name="$1"',
         '  local exit_code="$2"',
-        '  log ERROR "Step failed: ${step_name} (exit=${exit_code})"',
+        '  local step_type="${3:-}"',
+        '  local hint=""',
+        '  if [[ "$step_type" == "vars" && "$exit_code" == "127" ]]; then',
+        '    hint=" — vars values are shell commands, not literal strings;'
+        ' check workflow definition"',
+        "  fi",
+        '  log ERROR "Step failed: ${step_name} [${step_type}] (exit=${exit_code})${hint}"',
         "}",
         "",
         section("run_step() - dry-run and failure handling; streams output via tee"),
         "run_step() {",
         '  local step_name="$1"',
+        '  local step_type="${2:-}"',
         "",
         '  if [[ "$DRY_RUN" == true ]]; then',
-        '    log INFO "[DRY-RUN] would run: ${step_name}"',
+        '    log INFO "[DRY-RUN] would run: ${step_name} [${step_type}]"',
         "    return 0",
         "  fi",
         "",
-        '  log INFO "Running step: ${step_name}"',
+        '  log INFO "Running step: ${step_name} [${step_type}]"',
         "",
         "  set +e",
         '  if ( : >> "$LOG_FILE" ) 2>/dev/null; then',
@@ -147,7 +154,7 @@ def render_harness(workflow: Workflow) -> str:
         "  set -e",
         "",
         "  if [[ $status -ne 0 ]]; then",
-        '    catch "$step_name" "$status"',
+        '    catch "$step_name" "$status" "$step_type"',
         "  fi",
         '  return "$status"',
         "}",
@@ -155,13 +162,14 @@ def render_harness(workflow: Workflow) -> str:
         section("run_stateful_step() - dry-run and failure handling without subshells"),
         "run_stateful_step() {",
         '  local step_name="$1"',
+        '  local step_type="${2:-}"',
         "",
         '  if [[ "$DRY_RUN" == true ]]; then',
-        '    log INFO "[DRY-RUN] would run: ${step_name}"',
+        '    log INFO "[DRY-RUN] would run: ${step_name} [${step_type}]"',
         "    return 0",
         "  fi",
         "",
-        '  log INFO "Running step: ${step_name}"',
+        '  log INFO "Running step: ${step_name} [${step_type}]"',
         "",
         "  set +e",
         '  "$step_name"',
@@ -169,7 +177,7 @@ def render_harness(workflow: Workflow) -> str:
         "  set -e",
         "",
         "  if [[ $status -ne 0 ]]; then",
-        '    catch "$step_name" "$status"',
+        '    catch "$step_name" "$status" "$step_type"',
         "  fi",
         '  return "$status"',
         "}",
@@ -260,7 +268,10 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
         body_lines = [
             f"  while IFS= read -r {step.item}; do",
             f"    export {step.item}",
-            *[f"    run_step {fn}" for fn in inner_fns],
+            *[
+                f"    run_step {fn} {inner_step.type}"
+                for fn, inner_step in zip(inner_fns, step.steps, strict=True)
+            ],
             f'  done <<< "${{{step.in_}}}"',
         ]
     elif isinstance(step, WhileStep):
@@ -319,7 +330,7 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     outer_lines.extend(
         [
             "}",
-            f"{runner} {function_name}",
+            f"{runner} {function_name} {step.type}",
             "",
         ]
     )
