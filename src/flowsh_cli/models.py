@@ -116,6 +116,16 @@ class AgentStep(BaseStep):
             "are replaced. All other shell syntax in the prompt is safe to use."
         ),
     )
+    expandFields: bool = Field(
+        default=False,
+        description=(
+            "When true, substitutes ${VAR} and $VAR tokens from vars steps into the model, "
+            "agent, and command fields at runtime, using the same safe plain-text replacement "
+            "as expandPrompt. Also implies prompt expansion (equivalent to expandPrompt: true) "
+            "so that expandFields: true alone expands model, agent, command, and prompt. "
+            "Setting both expandPrompt and expandFields is allowed; both simply apply."
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -142,8 +152,8 @@ class AgentStep(BaseStep):
     @field_validator("agent")
     @classmethod
     def validate_agent(cls, value: str | None) -> str | None:
-        if value is not None and not re.fullmatch(r"[A-Za-z0-9_-]+", value):
-            raise ValueError("must match ^[A-Za-z0-9_-]+$")
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9_${}-]+", value):
+            raise ValueError("must match ^[A-Za-z0-9_${}-]+$")
         return value
 
     @field_validator("capture")

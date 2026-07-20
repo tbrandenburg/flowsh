@@ -14,6 +14,7 @@ from flowsh_cli import __version__
 from flowsh_cli.examples import example_yaml, examples_index
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
+from flowsh_cli.skill import skill_text
 
 DEFAULT_WORKFLOW_YAML = Path("workflows.yml")
 WORKFLOW_YAML_ARGUMENT = typer.Argument(DEFAULT_WORKFLOW_YAML, help="Path to workflow.yml")
@@ -93,6 +94,15 @@ def generate(
             is_eager=True,
         ),
     ] = None,
+    skill: Annotated[
+        bool,
+        typer.Option(
+            "--skill",
+            callback=lambda value: print_skill(value),
+            help="Show the flowsh-cli skill description and exit.",
+            is_eager=True,
+        ),
+    ] = False,
     output: Annotated[
         Path | None,
         typer.Option(
@@ -108,6 +118,7 @@ def generate(
     _ = schema
     _ = examples
     _ = example
+    _ = skill
 
     try:
         workflows = parse_workflows(workflow_yaml)
@@ -173,6 +184,14 @@ def print_example(value: str | None) -> None:
     except ValueError as error:
         print(f"Error: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
+    raise typer.Exit
+
+
+def print_skill(value: bool) -> None:
+    if not value:
+        return
+
+    print(skill_text(), end="")
     raise typer.Exit
 
 

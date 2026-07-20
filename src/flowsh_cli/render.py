@@ -337,6 +337,25 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     return prefix_lines + outer_lines
 
 
+def _find_var_tokens(text: str) -> list[str]:
+    """Return unique ${VAR}/$VAR tokens (matching [A-Z_][A-Z0-9_]*) in order of first appearance."""
+    braced = re.findall(r"\$\{([A-Z_][A-Z0-9_]*)\}", text)
+    bare = re.findall(r"\$([A-Z_][A-Z0-9_]*)(?!\w)", text)
+    seen: dict[str, None] = {}
+    for var in braced + bare:
+        seen[var] = None
+    return list(seen)
+
+
+def _expand_var_lines(local_name: str, tokens: list[str]) -> list[str]:
+    """Return bash lines that expand ${VAR}/$VAR literal tokens in `local_name` at runtime."""
+    lines: list[str] = []
+    for var in tokens:
+        lines.append(f'  _p=\'${{{var}}}\'; {local_name}="${{{local_name}//"$_p"/"${var}"}}"')
+        lines.append(f'  _p=\'${var}\'; {local_name}="${{{local_name}//"$_p"/"${var}"}}"')
+    return lines
+
+
 def _render_step_body(step: Step, title: str) -> list[str]:
     """Return indented body lines for a step function (no wrapper, no run_step call)."""
     lines: list[str] = []
@@ -385,19 +404,18 @@ def _render_step_body(step: Step, title: str) -> list[str]:
                 "  )",
             ]
         )
-        if step.expandPrompt:
+        if step.expandPrompt or step.expandFields:
             _prompt_no_code = re.sub(r"```.*?```", "", step.prompt, flags=re.DOTALL)
-            braced = re.findall(r"\$\{([A-Z_][A-Z0-9_]*)\}", _prompt_no_code)
-            bare = re.findall(r"\$([A-Z_][A-Z0-9_]*)(?!\w)", _prompt_no_code)
-            seen: dict[str, None] = {}
-            for var in braced + bare:
-                seen[var] = None
-            for var in seen:
-                lines.append(f'  _p=\'${{{var}}}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
-                lines.append(f'  _p=\'${var}\'; prompt="${{prompt//"$_p"/"${var}"}}"')
+            lines.extend(_expand_var_lines("prompt", _find_var_tokens(_prompt_no_code)))
         lines.append(f"  local agent={bash_quote(step.agent or '')}")
+        if step.expandFields and step.agent:
+            lines.extend(_expand_var_lines("agent", _find_var_tokens(step.agent)))
         lines.append(f"  local model={bash_quote(step.model or '')}")
+        if step.expandFields and step.model:
+            lines.extend(_expand_var_lines("model", _find_var_tokens(step.model)))
         lines.append(f"  local command={bash_quote(step.command or '')}")
+        if step.expandFields and step.command:
+            lines.extend(_expand_var_lines("command", _find_var_tokens(step.command)))
         lines.append(f"  local capture={bash_quote(step.capture or '')}")
         dangerous_skip_permissions = "true" if step.dangerouslySkipPermissions else "false"
         lines.append(f"  local dangerously_skip_permissions={dangerous_skip_permissions}")
