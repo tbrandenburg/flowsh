@@ -196,6 +196,33 @@ workflows:
         parse_workflows(workflow_file)
 
 
+def test_render_harness_exports_agent_capture_variable() -> None:
+    workflow = Workflow(
+        id="wf_agent_capture_export",
+        name="Agent Capture Export",
+        steps=[
+            AgentStep(
+                type="agent",
+                name="implement",
+                capture="IMPLEMENT_OUTPUT",
+                prompt="Save the output.",
+            ),
+            BashStep(
+                type="bash",
+                name="use-capture",
+                run='echo "$IMPLEMENT_OUTPUT"',
+            ),
+        ],
+    )
+
+    script = render_harness(workflow)
+
+    printf_index = script.index('printf -v "$capture"')
+    export_index = script.index('export "$capture"')
+    assert export_index > printf_index
+    assert script[printf_index:export_index].count("\n") == 1
+
+
 def test_parse_workflows_accepts_dangerous_skip_flag_alias(tmp_path: Path) -> None:
     workflow_file = tmp_path / "workflows.yml"
     workflow_file.write_text(
@@ -986,6 +1013,44 @@ def test_generated_harness_when_with_workflow_param(
         assert "RAN" in result.stdout
     else:
         assert "RAN" not in result.stdout
+
+
+def test_optional_param_defaults_to_empty_string_when_omitted(tmp_path: Path) -> None:
+    workflow = Workflow(
+        id="wf_optional_param",
+        name="Optional Param",
+        params=[
+            WorkflowParam(name="GOAL", required=True),
+            WorkflowParam(name="MODEL", required=False),
+        ],
+        steps=[
+            BashStep(
+                type="bash",
+                name="use-model",
+                run='printf "MODEL=[%s]\\n" "$MODEL"',
+            ),
+        ],
+    )
+    rendered = render_harness(workflow)
+    assert 'MODEL="${MODEL:-}"' in rendered.splitlines()
+
+    harness = tmp_path / ".harness" / "optional_param.sh"
+    harness.parent.mkdir()
+    harness.write_text(rendered)
+
+    env = {**os.environ, "FLOWSH_LOG_DIR": "logs"}
+    result = subprocess.run(
+        ["bash", str(harness), "my-goal"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "unbound variable" not in result.stderr
+    assert "MODEL=[]" in result.stdout
 
 
 def test_render_harness_quotes_agent_prompt_heredoc_by_default() -> None:
@@ -3099,6 +3164,32 @@ workflows:
     )
 
     with pytest.raises(WorkflowParseError, match="nested while steps"):
+        parse_workflows(workflow_file)
+
+
+def test_parse_workflows_rejects_nested_for_steps(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_nested_for
+    name: Nested For
+    steps:
+      - type: for
+        in: ITEMS
+        item: ITEM
+        steps:
+          - type: for
+            in: NESTED_ITEMS
+            item: NESTED_ITEM
+            steps:
+              - type: bash
+                run: echo ok
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WorkflowParseError, match="nested for steps"):
         parse_workflows(workflow_file)
 
 

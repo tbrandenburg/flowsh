@@ -222,6 +222,7 @@ def render_harness(workflow: Workflow) -> str:
         "    status=$?",
         "    printf '%s\\n' \"$output\"",
         '    printf -v "$capture" \'%s\' "$output"',
+        '    export "$capture"',
         '    return "$status"',
         "  else",
         '    "${cmd[@]}" -- "$prompt"',
@@ -537,6 +538,11 @@ def _render_arg_block(params: list[WorkflowParam]) -> list[str]:
 
     lines: list[str] = [
         "DRY_RUN=false",
+    ]
+    for param in params:
+        lines.append(f'{param.name}="${{{param.name}:-}}"')
+        lines.append(f"export {param.name}")
+    lines += [
         "POSITIONAL_ARGS=()",
         "",
         "while [[ $# -gt 0 ]]; do",
