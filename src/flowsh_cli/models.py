@@ -19,6 +19,12 @@ from pydantic import (
 
 MAX_WORKFLOW_YAML_BYTES = 1_048_576
 
+# Execution model: `when:` conditions are evaluated directly in the parent harness
+# process, so any exported variable is visible there immediately. Step bodies for
+# `bash`, `vars`, `for`, and `while` each execute in their own subprocess
+# (`bash -euo pipefail <<'EOF' ... EOF`), so only exported variables (e.g. `vars`
+# step values or a `capture`d agent output) are visible inside them.
+
 
 class WorkflowParseError(ValueError):
     """Raised when the input YAML cannot be parsed or validated."""
@@ -96,7 +102,13 @@ class AgentStep(BaseStep):
     command: str | None = None
     capture: str | None = Field(
         default=None,
-        description="Name of a shell variable that receives the full agent output for later steps.",
+        description=(
+            "Name of a shell variable that receives the full agent output. "
+            "The value is exported, so it is visible in this step's siblings' `when:` "
+            "conditions (evaluated in-process) and in later steps' bodies — including "
+            "inside `bash`, `vars`, `for`, and `while` steps, each of which runs its own "
+            "body in a separate subprocess."
+        ),
     )
     dangerouslySkipPermissions: bool = Field(
         default=False,
@@ -214,6 +226,14 @@ class ForStep(BaseStep):
     def validate_var_name(cls, value: str) -> str:
         if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", value):
             raise ValueError("must match ^[A-Z_][A-Z0-9_]*$")
+        return value
+
+    @field_validator("steps")
+    @classmethod
+    def reject_nested_for_steps(cls, value: list[Step]) -> list[Step]:
+        for step in value:
+            if isinstance(step, ForStep):
+                raise ValueError("nested for steps are not supported")
         return value
 
 
