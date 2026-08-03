@@ -17,8 +17,10 @@ classifiers = [
 dependencies = [
   "PyYAML>=6,<7",
   "pydantic>=2,<3",
-  "typer>=0.20,<0.21",
 ]
+
+[project.optional-dependencies]
+cli = ["typer>=0.20,<0.21"]
 
 [project.urls]
 Homepage = "https://github.com/tbrandenburg/flowsh"
@@ -29,6 +31,7 @@ flowsh-cli = "flowsh_cli.cli:main"
 
 [dependency-groups]
 dev = [
+  "flowsh-cli[cli]",
   "pytest>=9.0.3,<10",
   "ruff>=0.14,<0.15",
 ]

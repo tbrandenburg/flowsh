@@ -39,11 +39,16 @@ source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
+]
+
+[package.optional-dependencies]
+cli = [
     { name = "typer" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "flowsh-cli", extra = ["cli"] },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -52,11 +57,13 @@ dev = [
 requires-dist = [
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "typer", specifier = ">=0.20,<0.21" },
+    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.20,<0.21" },
 ]
+provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "flowsh-cli", extras = ["cli"] },
     { name = "pytest", specifier = ">=9.0.3,<10" },
     { name = "ruff", specifier = ">=0.14,<0.15" },
 ]
