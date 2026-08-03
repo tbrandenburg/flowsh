@@ -321,7 +321,11 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     else:
         body_lines = _render_step_body(step, title)
 
-    runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep, WhileStep)) else "run_step"
+    runner = (
+        "run_stateful_step"
+        if isinstance(step, (VarsStep, ForStep, WhileStep, ParallelStep))
+        else "run_step"
+    )
     outer_lines = [
         section(f"Step {index} ({step.type}): {title}"),
         f"{function_name}() {{",

@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -3610,8 +3611,8 @@ def test_render_harness_parallel_step_generates_fork_join_bash() -> None:
     assert 'wait "$pid_step_test"' in script
     # Wrapper function emitted
     assert "step_fan_out()" in script
-    # Wrapper is called via run_step
-    assert "run_step step_fan_out parallel" in script
+    # Wrapper is called via run_stateful_step (no process-substitution fd hang risk)
+    assert "run_stateful_step step_fan_out parallel" in script
     # Children are NOT directly called via run_step at top level
     assert "run_step step_build" not in script
     assert "run_step step_test" not in script
@@ -3732,6 +3733,58 @@ workflows:
     )
     assert executed.returncode != 0
     assert "Step failed: step_fan_out [parallel]" in executed.stderr
+
+
+def test_generated_harness_parallel_step_exits_promptly_with_lingering_grandchild(
+    tmp_path: Path,
+) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """\
+workflows:
+  - id: wf_parallel_grandchild
+    name: Parallel Grandchild
+    steps:
+      - type: parallel
+        name: Fan out
+        steps:
+          - type: bash
+            name: Spawn detached grandchild
+            run: "printf 'done\\n'; ( sleep 5 & ) >/dev/null 2>&1 &"
+""",
+        encoding="utf-8",
+    )
+
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert generated.returncode == 0, generated.stderr
+
+    harness = tmp_path / "parallel_grandchild.sh"
+    assert harness.exists()
+
+    start = time.monotonic()
+    executed = subprocess.run(
+        ["bash", str(harness)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "FLOWSH_LOG_DIR": "logs"},
+        timeout=5,
+    )
+    duration = time.monotonic() - start
+
+    assert executed.returncode == 0, executed.stderr
+    assert "done" in executed.stdout
+    assert duration < 5, (
+        f"harness took {duration:.2f}s to exit; expected prompt exit despite lingering "
+        "grandchild process holding stdout/stderr open"
+    )
 
 
 def test_render_harness_parallel_coexists_with_sequential_steps() -> None:
