@@ -27,6 +27,41 @@ uvx flowsh-cli --example simple
 
 You can also run it locally with `uv run flowsh-cli`.
 
+## Use As A Library
+
+`flowsh-cli` also works as a plain Python library, with no CLI dependencies (no `typer`, no terminal UI). This is the right choice if you want to parse or render workflows from your own Python code instead of shelling out to the CLI.
+
+```bash
+uv add flowsh-cli
+```
+
+```python
+from pathlib import Path
+from flowsh_cli import parse_workflows, render_harness, harness_path
+
+workflows = parse_workflows(Path("workflows.yml"))
+for workflow in workflows:
+    harness_path(workflow).write_text(render_harness(workflow))
+```
+
+Public API (re-exported from `flowsh_cli`):
+
+| Name | Purpose |
+|---|---|
+| `parse_workflows` | Parse and validate a workflow YAML file (given its `Path`) into `Workflow` objects. |
+| `Workflow` | Pydantic model of a single workflow. |
+| `WorkflowParseError` | Raised on invalid workflow YAML. |
+| `render_harness` | Render a `Workflow` into a shell harness script. |
+| `harness_path` | Compute the output path for a workflow's harness script. |
+
+If you also want the `flowsh-cli` command-line tool (built on `typer`), install the `cli` extra:
+
+```bash
+uv add "flowsh-cli[cli]"
+# or, for one-off use without installing:
+uvx flowsh-cli path/to/workflows.yml
+```
+
 ## Workflow Shape
 
 The input file is a single mapping with a `workflows` list:
