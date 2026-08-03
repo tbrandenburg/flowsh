@@ -16,7 +16,7 @@ help:
 		'  make bump-patch|minor|major  Bump version in pyproject.toml, build, publish'
 
 install:
-	uv tool install --force .
+	uv tool install --force ".[cli]"
 
 publish:
 	@branch="$$(git rev-parse --abbrev-ref HEAD)"; \
