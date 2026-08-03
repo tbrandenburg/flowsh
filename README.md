@@ -90,7 +90,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 
 `expandPrompt: true` does plain text replacement only. It does not evaluate shell expressions like `$(...)`, backticks, or globs.
 
-Set `capture: VARIABLE_NAME` on an `agent` step when you want the full agent output stored in a shell variable for later `vars` or `bash` steps.
+Set `capture: VARIABLE_NAME` on an `agent` step when you want the agent's final plain-text answer stored in a shell variable for later `vars` or `bash` steps. The captured value is the answer text (extracted from the underlying `--format json` event stream via `jq`), not the raw JSON stream — requires `jq` to be installed.
 
 Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to the agent runtime. The YAML alias `dangerously-skip-permissions` is also accepted.
 

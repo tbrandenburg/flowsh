@@ -2103,7 +2103,10 @@ workflows:
     fake_opencode = bin_dir / "opencode"
     fake_opencode.write_text(
         """#!/usr/bin/env bash
-printf '<implement-status>blocked</implement-status>\\n'
+printf '{"type":"step_start"}\\n'
+printf '{"type":"text","part":{"text":"partial"}}\\n'
+printf '{"type":"text","part":{"text":"<implement-status>blocked</implement-status>"}}\\n'
+printf '{"type":"step_finish"}\\n'
 """,
         encoding="utf-8",
     )
@@ -2151,7 +2154,7 @@ workflows:
     fake_opencode = bin_dir / "opencode"
     fake_opencode.write_text(
         """#!/usr/bin/env bash
-printf '<implement-status>blocked</implement-status>\n'
+printf '{"type":"text","part":{"text":"<implement-status>blocked</implement-status>"}}\n'
 exit 17
 """,
         encoding="utf-8",
@@ -2170,6 +2173,61 @@ exit 17
 
     assert executed.returncode == 17, executed.stderr
     assert "blocked" in executed.stdout
+
+
+def test_generated_harness_capture_extracts_final_text_not_raw_json(tmp_path: Path) -> None:
+    workflow_file = tmp_path / "workflows.yml"
+    workflow_file.write_text(
+        """
+workflows:
+  - id: wf_agent_capture_plain_text
+    name: Agent Capture Plain Text
+    steps:
+      - type: agent
+        capture: ANSWER
+        prompt: |
+          Reply with only the word yes.
+      - type: bash
+        run: |
+          printf 'CAPTURED=[%s]\\n' "$ANSWER"
+""".lstrip(),
+        encoding="utf-8",
+    )
+    generated = subprocess.run(
+        [sys.executable, "-m", "flowsh_cli", str(workflow_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_opencode = bin_dir / "opencode"
+    fake_opencode.write_text(
+        """#!/usr/bin/env bash
+printf '{"type":"step_start"}\\n'
+printf '{"type":"text","part":{"text":"partial"}}\\n'
+printf '{"type":"text","part":{"text":"yes"}}\\n'
+printf '{"type":"step_finish"}\\n'
+""",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+
+    assert generated.returncode == 0, generated.stderr
+    executed = subprocess.run(
+        ["bash", str(tmp_path / "agent_capture_plain_text.sh")],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert executed.returncode == 0, executed.stderr
+    assert "CAPTURED=[yes]" in executed.stdout
+    assert '"type"' not in executed.stdout.split("CAPTURED=[")[1]
+    assert "part" not in executed.stdout.split("CAPTURED=[")[1].split("]")[0]
 
 
 def test_generated_harness_agent_without_capture_still_streams_output(tmp_path: Path) -> None:

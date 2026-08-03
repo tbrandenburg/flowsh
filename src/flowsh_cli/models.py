@@ -103,7 +103,9 @@ class AgentStep(BaseStep):
     capture: str | None = Field(
         default=None,
         description=(
-            "Name of a shell variable that receives the full agent output. "
+            "Name of a shell variable that receives the agent's final plain-text answer "
+            "(extracted from the underlying `--format json` event stream via jq, not the "
+            "raw NDJSON stream itself). "
             "The value is exported, so it is visible in this step's siblings' `when:` "
             "conditions (evaluated in-process) and in later steps' bodies — including "
             "inside `bash`, `vars`, `for`, and `while` steps, each of which runs its own "
