@@ -216,12 +216,19 @@ def render_harness(workflow: Workflow) -> str:
         "  fi",
         "",
         '  if [[ -n "$capture" ]]; then',
+        "    if ! command -v jq >/dev/null 2>&1; then",
+        '      log ERROR "jq not found in PATH (required to extract captured agent output)"',
+        "      return 127",
+        "    fi",
         "    local output",
         "    local status=0",
+        "    local answer",
         '    output="$("${cmd[@]}" -- "$prompt")"',
         "    status=$?",
         "    printf '%s\\n' \"$output\"",
-        '    printf -v "$capture" \'%s\' "$output"',
+        '    answer="$(printf \'%s\\n\' "$output" \\',
+        '      | jq -r \'select(.type=="text") | .part.text\' | tail -1)"',
+        '    printf -v "$capture" \'%s\' "$answer"',
         '    export "$capture"',
         '    return "$status"',
         "  else",
@@ -321,7 +328,11 @@ def render_step(index: int, step: Step, used_function_names: set[str] | None = N
     else:
         body_lines = _render_step_body(step, title)
 
-    runner = "run_stateful_step" if isinstance(step, (VarsStep, ForStep, WhileStep)) else "run_step"
+    runner = (
+        "run_stateful_step"
+        if isinstance(step, (VarsStep, ForStep, WhileStep, ParallelStep))
+        else "run_step"
+    )
     outer_lines = [
         section(f"Step {index} ({step.type}): {title}"),
         f"{function_name}() {{",

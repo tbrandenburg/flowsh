@@ -103,7 +103,9 @@ class AgentStep(BaseStep):
     capture: str | None = Field(
         default=None,
         description=(
-            "Name of a shell variable that receives the full agent output. "
+            "Name of a shell variable that receives the agent's final plain-text answer "
+            "(extracted from the underlying `--format json` event stream via jq, not the "
+            "raw NDJSON stream itself). "
             "The value is exported, so it is visible in this step's siblings' `when:` "
             "conditions (evaluated in-process) and in later steps' bodies — including "
             "inside `bash`, `vars`, `for`, and `while` steps, each of which runs its own "
@@ -262,7 +264,18 @@ class WhileStep(BaseStep):
 
 class ParallelStep(BaseStep):
     type: Literal["parallel"]
-    steps: list[Step] = Field(min_length=1)
+    steps: list[Step] = Field(
+        min_length=1,
+        description=(
+            "Child steps to run concurrently, each in its own backgrounded subshell. "
+            "A `capture` set inside one branch is NOT visible to sibling branches and "
+            "does NOT survive past this `parallel` block — there is no gather/join "
+            "mechanism. To share a branch's result with the rest of the workflow, have "
+            "that branch write its result to its own file (e.g. via a bash instruction "
+            "in an agent prompt, or a `bash` child step), then read the files back in a "
+            "plain `bash` or `vars` step placed after the `parallel` block."
+        ),
+    )
 
 
 Step = Annotated[
