@@ -82,7 +82,7 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 | `agent` | Call the agent runtime | Supports `agent`, `model`, `command`, `capture`, `expandPrompt`, and `dangerouslySkipPermissions`. |
 | `for` | Iterate over newline-delimited values from a previous `vars` step | Flat iteration only; nested `for` steps are not supported. |
 | `while` | Re-evaluate a Bash condition before each iteration | Use for dynamic queues or other stateful loops that must keep discovering new work. |
-| `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. |
+| `parallel` | Run child steps concurrently | Children run as separate branches and the parent waits for all of them. `capture` inside a branch is not visible to sibling branches or later steps — see Agent Behavior below. |
 
 ## Agent Behavior
 
@@ -93,6 +93,8 @@ Harness paths are derived from workflow ids. `wf_example` becomes `example.sh` i
 Set `capture: VARIABLE_NAME` on an `agent` step when you want the full agent output stored in a shell variable for later `vars` or `bash` steps.
 
 Set `dangerouslySkipPermissions: true` only when you want the generated harness to pass `--dangerously-skip-permissions` to the agent runtime. The YAML alias `dangerously-skip-permissions` is also accepted.
+
+Inside a `parallel` step, each child branch runs in its own backgrounded subshell, so `capture` set in one branch is not visible to sibling branches and does not survive past the `parallel` block — there is no gather/join mechanism. To share results across branches (e.g. fan out N agents and merge their verdicts afterward), have each branch write its result to its own file (via a bash instruction in the agent prompt, or a `bash` child step), then read all the files back in a plain `bash` or `vars` step placed after the `parallel` block.
 
 ## Validation And Safety
 
