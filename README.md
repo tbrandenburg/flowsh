@@ -20,12 +20,31 @@ Useful flags:
 uvx flowsh-cli path/to/workflows.yml --dry-run
 uvx flowsh-cli path/to/workflows.yml --workflow wf_example
 uvx flowsh-cli path/to/workflows.yml --force
+uvx flowsh-cli path/to/workflows.yml --sidecar dagu
+uvx flowsh-cli path/to/workflows.yml --workflow wf_example --output .harness/example.sh --sidecar dagu --dry-run
 uvx flowsh-cli path/to/workflows.yml --schema
 uvx flowsh-cli --examples
 uvx flowsh-cli --example simple
 ```
 
 You can also run it locally with `uv run flowsh-cli`.
+
+### Optional Dagu sidecar
+
+`--sidecar dagu` writes the normal executable `.sh` plus a sibling `.dagu.yml` containing that exact generated harness. Without the option, generation is unchanged. Generation `--dry-run` lists both paths but writes neither. The generated Dagu workflow has no schedule and must be started manually; MADE remains responsible for schedule/enabled policy.
+
+```bash
+flowsh-cli .made/workflows.yml --workflow wf_example \
+  --output .harness/example.sh --sidecar dagu
+
+# Ordinary harness arguments are a JSON string array encoded as base64.
+ARGS_B64="$(python3 -c 'import base64,json; print(base64.b64encode(json.dumps(["value with spaces", "", "two\nlines"], ensure_ascii=False).encode()).decode())')"
+dagu start .harness/example.dagu.yml --params "{\"project_dir\":\"$PWD\",\"harness_args_b64\":\"$ARGS_B64\"}"
+```
+
+The sidecar does not need the sibling `.sh` or an installed flowsh package at execution time. It requires Dagu 2.24.0-compatible built-in `js.run` and `file.write` actions, Bash, and the original harness's runtime tools (for example OpenCode and `jq` when used), plus the target project's files and referenced prompts. Dagu's environment filtering may require operator configuration (`env_passthrough`/dotenv) for workflow parameters and external environment dependencies; credentials are never copied into the YAML.
+
+The harness runs as one Bash process in the selected project directory. Runtime `project_dir` overrides the generation-time relative default. Its runtime `$0`/`BASH_SOURCE` identifies Dagu's private materialized copy, not the original generated path. Dagu's overall start status reports orchestration success/failure and is not guaranteed to equal the harness's raw exit number. Dagu logs may contain prompts, arguments, and task output: base64 is transport, not encryption; never pass secrets in arguments or expose private workflow logs publicly. This compatibility wrapper does not translate steps, freeze external prompt files, or deploy/activate a DAG.
 
 ## Use As A Library
 
@@ -143,7 +162,7 @@ The parser is strict:
 - unsafe control characters are rejected in executable fields
 - `agent` names may contain only letters, digits, `_`, and `-`
 
-Generated harnesses are non-interactive, owner-executable, and refuse to overwrite existing outputs unless `--force` is set.
+Generated harnesses are non-interactive, owner-executable, and refuse to overwrite existing outputs unless `--force` is set. Sidecars are owner-readable/writable only and likewise require `--force` to replace.
 
 Logs go to `.flowsh/logs` by default. Set `FLOWSH_LOG_DIR` to use another relative log directory.
 

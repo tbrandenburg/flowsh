@@ -48,29 +48,49 @@ def test_strip_ansi_removes_common_csi_sequences() -> None:
     assert _strip_ansi("before\x1b[?25lafter") == "beforeafter"
 
 
-EXPECTED_HELP = """\
-                                                                                                                        
- Usage: flowsh-cli [OPTIONS] [WORKFLOW_YAML]                                                                            
-                                                                                                                        
- Generate reproducible shell scripts from workflow YAML files.                                                          
-                                                                                                                        
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+_HELP_TEMPLATE = """\
+
+ Usage: flowsh-cli [OPTIONS] [WORKFLOW_YAML]
+
+ Generate reproducible shell scripts from workflow YAML files.
+
+╭─ Arguments ─╮
 │   workflow_yaml      [WORKFLOW_YAML]  Path to workflow.yml [default: workflows.yml]                                  │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --workflow        TEXT  Optional workflow id to generate. Defaults to all workflows.                                 │
-│ --dry-run               Print planned output paths without writing scripts.                                          │
-│ --force                 Overwrite existing files. Without this, existing files cause a failure.                      │
-│ --version               Show the flowsh-cli version and exit.                                                        │
-│ --schema                Show the workflow YAML schema and exit.                                                      │
-│ --examples              List available workflow examples and exit.                                                   │
-│ --example         NAME  Print a named example workflow YAML to stdout and exit.                                      │
-│ --skill                 Show the flowsh-cli skill description and exit.                                              │
-│ --output          PATH  Write generated script to PATH. Only valid when generating a single workflow.                │
-│ --help                  Show this message and exit.                                                                  │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╰─ Arguments ─╯
+╭─ Options ─╮
+│ --workflow        TEXT    Optional workflow id to generate. Defaults to all workflows.                               │
+│ --dry-run                 Print planned output paths without writing scripts.                                        │
+│ --force                   Overwrite existing files. Without this, existing files cause a failure.                    │
+│ --version                 Show the flowsh-cli version and exit.                                                      │
+│ --schema                  Show the workflow YAML schema and exit.                                                    │
+│ --examples                List available workflow examples and exit.                                                 │
+│ --example         NAME    Print a named example workflow YAML to stdout and exit.                                    │
+│ --skill                   Show the flowsh-cli skill description and exit.                                            │
+│ --output          PATH    Write generated script to PATH. Only valid when generating a single workflow.              │
+│ --sidecar         [dagu]  Also generate a self-contained sidecar (supported: dagu).                                  │
+│ --help                    Show this message and exit.                                                                │
+╰─ Options ─╯
+
 
 """
+
+
+def _help_line_at_width(line: str, width: int = 120) -> str:
+    content = line.rstrip()
+    if content.startswith("╰"):
+        return "╰" + "─" * (width - 2) + "╯"
+    if content.startswith("╭"):
+        prefix = content[:-1].rstrip("─")
+        return prefix + "─" * (width - len(prefix) - 1) + content[-1]
+    if content.startswith("│") and content.endswith("│"):
+        return "│" + content[1:-1].rstrip().ljust(width - 2) + "│"
+    return content.ljust(width)
+
+
+EXPECTED_HELP = (
+    "\n".join(_help_line_at_width(line) for line in _HELP_TEMPLATE.rstrip("\n").splitlines())
+    + "\n\n"
+)
 
 
 def write_workflow(path: Path) -> None:
