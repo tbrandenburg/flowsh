@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import re
-import shlex
 from pathlib import Path
+from typing import cast
 
 import yaml
 
@@ -17,7 +16,19 @@ from flowsh_cli.models import (
     Workflow,
 )
 
-DAGU_MINIMUM_VERSION = "2.24.0"
+DAGU_MINIMUM_VERSION = "2.25.1"
+
+
+class LiteralString(str):
+    """A string that should be emitted as a readable YAML block scalar."""
+
+
+def represent_literal_string(dumper: yaml.SafeDumper, value: LiteralString) -> yaml.ScalarNode:
+    node = dumper.represent_scalar("tag:yaml.org,2002:str", value, style="|")
+    return cast(yaml.ScalarNode, node)
+
+
+yaml.SafeDumper.add_representer(LiteralString, represent_literal_string)
 
 
 def dagu_sidecar_path(script_path: Path) -> Path:
@@ -34,9 +45,24 @@ def unsupported_dagu_reasons(workflow: Workflow) -> list[str]:
             reasons.append(f"{path}.when unsupported for native Dagu v1")
 
         if isinstance(step, BashStep):
+            if "${" in step.run:
+                reasons.append(
+                    f"{path}.run contains a braced dollar expression; Dagu resolves supported "
+                    "${...} references in run fields, so native export rejects it"
+                )
             return
 
         if isinstance(step, AgentStep):
+            if "${" in step.prompt:
+                reasons.append(
+                    f"{path}.prompt contains a braced dollar expression; Dagu resolves "
+                    "supported ${...} references in harness inputs, so native export rejects it"
+                )
+            if step.agent is not None and "${" in step.agent:
+                reasons.append(
+                    f"{path}.agent contains a braced dollar expression; Dagu resolves "
+                    "supported ${...} references in harness inputs, so native export rejects it"
+                )
             for option, value in (
                 ("capture", step.capture),
                 ("expandPrompt", step.expandPrompt),
@@ -74,32 +100,34 @@ def render_dagu_sidecar(workflow: Workflow, *, project_dir: str) -> str:
     previous_id: str | None = None
     for index, step in enumerate(workflow.steps, start=1):
         step_id = f"step_{index:02d}_{step.type}"
-        source = step.run if isinstance(step, BashStep) else step.prompt
-        step_body = (
-            render_bash_step(step.run)
-            if isinstance(step, BashStep)
-            else render_agent_step(step.prompt, agent=step.agent)
-        )
-        label = step.name if step.name is not None else source_summary(step, source)
-        node: dict[str, object] = {
-            "id": step_id,
-            "name": f"{index:02d}: {label}",
-            "description": f"Source flowsh step {index}; literal source follows:\n{source}",
-            "run": step_body,
-            "retry_policy": {"limit": 0, "interval_sec": 1},
-            "continue_on": {"failure": False},
-        }
+        node: dict[str, object] = {"id": step_id}
+        if step.name is not None:
+            node["name"] = step.name
+        if isinstance(step, BashStep):
+            node["run"] = LiteralString(render_bash_step(step.run))
+        else:
+            node["action"] = "harness.run"
+            harness_with: dict[str, object] = {
+                "prompt": LiteralString(step.prompt),
+                "managed": False,
+            }
+            if step.agent is not None:
+                harness_with["agent"] = step.agent
+            node["with"] = harness_with
         if previous_id is not None:
             node["depends"] = [previous_id]
         steps.append(node)
         previous_id = step_id
 
     document = {
+        "description": workflow.name,
+        "type": "graph",
         "params": [
             {"name": "project_dir", "type": "string", "default": project_dir},
         ],
         "working_dir": "${params.project_dir}",
-        "retry_policy": {"limit": 0, "interval_sec": 1},
+        "harness": {"provider": "opencode"},
+        "retry_policy": {"limit": 0},
         "steps": steps,
     }
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
@@ -110,64 +138,4 @@ def default_project_dir(_sidecar_path: Path) -> str:
 
 
 def render_bash_step(source: str) -> str:
-    return "\n".join(
-        [
-            "#!/usr/bin/env bash",
-            "set -euo pipefail",
-            f"bash -euo pipefail <(printf '%b' {bash_data_literal(source)})",
-            "",
-        ]
-    )
-
-
-def render_agent_step(prompt: str, *, agent: str | None) -> str:
-    prompt_sentinel = unique_marker("FLOWSH_PROMPT_END", prompt)
-    lines = [
-        "#!/usr/bin/env bash",
-        "set -euo pipefail",
-        'prompt="$(',
-        f"  printf '%b' {bash_data_literal(prompt)}",
-        f"  printf '%s' {shlex.quote(prompt_sentinel)}",
-        ')"',
-        f'prompt="${{prompt%{prompt_sentinel}}}"',
-    ]
-    command = ["exec opencode run"]
-    if agent is not None:
-        agent_sentinel = unique_marker("FLOWSH_AGENT_END", agent)
-        lines.extend(
-            [
-                'agent="$(',
-                f"  printf '%b' {bash_data_literal(agent)}",
-                f"  printf '%s' {shlex.quote(agent_sentinel)}",
-                ')"',
-                f'agent="${{agent%{agent_sentinel}}}"',
-            ]
-        )
-        command.append('--agent "$agent"')
-    command.extend(["--", '"$prompt"'])
-    lines.extend([" ".join(command), ""])
-    return "\n".join(lines)
-
-
-def bash_data_literal(value: str) -> str:
-    # Keep source text out of Dagu-resolved fields; Bash reconstructs it from
-    # octal bytes only after Dagu has finished resolving the generated script.
-    octal = "".join(f"\\0{byte:03o}" for byte in value.encode("utf-8"))
-    return "'" + octal + "'"
-
-
-def source_summary(step: Step, source: str) -> str:
-    first_line = next((line.strip() for line in source.splitlines() if line.strip()), "")
-    preview = re.sub(r"\s+", " ", first_line)
-    if len(preview) > 72:
-        preview = preview[:71] + "…"
-    return f"{step.type}: {preview}"
-
-
-def unique_marker(prefix: str, source: str) -> str:
-    marker = prefix
-    suffix = 1
-    while marker in source:
-        marker = f"{prefix}_{suffix}"
-        suffix += 1
-    return marker
+    return "#!/usr/bin/env bash\nset -euo pipefail\n" + source
