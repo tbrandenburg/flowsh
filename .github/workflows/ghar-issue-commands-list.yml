@@ -13,7 +13,9 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       
       - name: List available commands and agents
         id: list-tools
@@ -41,21 +43,25 @@ jobs:
           formatted_agents=$(echo -e "$formatted_agents" | sed '$ s/\n$//')
           
           # Set the outputs for use in the next step
-          echo "commands<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$formatted_commands" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "agents<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$formatted_agents" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          delimiter=$(openssl rand -hex 32)
+          {
+            printf 'commands<<%s\n' "$delimiter"
+            echo -e "$formatted_commands"
+            printf '%s\nagents<<%s\n' "$delimiter" "$delimiter"
+            echo -e "$formatted_agents"
+            printf '%s\n' "$delimiter"
+          } >> "$GITHUB_OUTPUT"
       
       - name: Comment on issue
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          COMMANDS: ${{ steps.list-tools.outputs.commands }}
+          AGENTS: ${{ steps.list-tools.outputs.agents }}
         with:
           script: |
             const author = context.payload.issue.user.login;
-            const commands = `${{ steps.list-tools.outputs.commands }}`;
-            const agents = `${{ steps.list-tools.outputs.agents }}`;
+            const commands = process.env.COMMANDS;
+            const agents = process.env.AGENTS;
             
             const commentBody = `Hello ${author}!
 

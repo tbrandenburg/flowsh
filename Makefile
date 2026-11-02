@@ -1,4 +1,4 @@
-.PHONY: help install publish lint test build qa clean hygiene bump-patch bump-minor bump-major
+.PHONY: help install publish lint test security build qa clean hygiene bump-patch bump-minor bump-major
 
 help:
 	@printf '%s\n' \
@@ -8,9 +8,10 @@ help:
 		'  make install   Install flowsh-cli into the user PATH with uv tool' \
 		'  make lint      Run Ruff and compile-check Python files' \
 		'  make test      Run tests' \
+		'  make security  Audit locked dependencies for known vulnerabilities' \
 		'  make build     Build source and wheel distributions' \
 		'  make publish   Build and publish to PyPI' \
-		'  make qa        Run lint, tests, and package build' \
+		'  make qa        Run lint, tests, security audit, and package build' \
 		'  make clean     Remove local test/build artifacts' \
 		'  make hygiene   Show tracked, untracked, and ignored files' \
 		'  make bump-patch|minor|major  Bump version in pyproject.toml, build, publish'
@@ -42,10 +43,15 @@ lint:
 test:
 	uv run --locked pytest
 
+security:
+	@set -eu; requirements="$$(mktemp)"; trap 'rm -f "$$requirements"' EXIT; \
+	uv export --locked --all-extras --all-groups --no-emit-project --output-file "$$requirements" >/dev/null; \
+	uv run --locked pip-audit --disable-pip --require-hashes -r "$$requirements"
+
 build:
 	uv build
 
-qa: lint test build
+qa: lint test security build
 	@printf '%s\n' 'QA passed'
 
 hygiene:

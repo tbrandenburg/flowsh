@@ -50,10 +50,6 @@ on:
         description: 'Name of the uploaded artifact containing full results'
         value: ${{ jobs.run.outputs.artifact-name }}
 
-env:
-  OPENCODE_INSTALL_URL: 'https://opencode.ai/install'
-  MAX_OUTPUT_LINES: 50
-
 jobs:
   run:
     runs-on: ${{ inputs.runner }}
@@ -67,127 +63,119 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
       - name: Setup and Install OpenCode
+        shell: bash
         run: |
-          # Add OpenCode to PATH first
-          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-          
-          # Check if OpenCode is already installed and working
-          if command -v opencode >/dev/null 2>&1 && opencode --version >/dev/null 2>&1; then
-            echo "OpenCode is already installed and working"
-            opencode --version
-          else
-            echo "OpenCode not found or not working, installing..."
-            
-            # Add debug information
-            echo "System information:"
-            echo "OS: $(uname -s)"
-            echo "Arch: $(uname -m)"
-            echo "Install URL: ${{ env.OPENCODE_INSTALL_URL }}"
-            
-            # Install with better error handling
-            if ! curl -fsSL ${{ env.OPENCODE_INSTALL_URL }} | bash; then
-              echo "WARNING: Latest OpenCode installation failed (GitHub API unreachable?). Falling back to pinned version 1.14.40."
-              if ! curl -fsSL ${{ env.OPENCODE_INSTALL_URL }} | bash -s -- --version 1.14.40; then
-                echo "ERROR: Pinned fallback installation also failed"
-                exit 1
-              fi
-            fi
-            
-            echo "OpenCode installation completed"
-            
-            # Verify installation with better error reporting
-            if ! env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode --version; then
-              echo "ERROR: OpenCode installation verification failed"
-              echo "Checking installation directory:"
-              ls -la "$HOME/.opencode/bin/" || echo "Installation directory not found"
-              exit 1
-            fi
-          fi
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64)
+              asset=opencode-linux-x64.tar.gz
+              checksum=d5314507b964bc98b52c8117a0b9d2cb0190eae04fb334bf5448762a5042968d
+              ;;
+            Linux-aarch64)
+              asset=opencode-linux-arm64.tar.gz
+              checksum=2a6d0853e2c66ab913386f4598b5251e629070a098e08c8582ec4f55636b2542
+              ;;
+            *) echo 'Unsupported runner: use Linux x64 or arm64' >&2; exit 1 ;;
+          esac
+          download=$(mktemp -d)
+          trap 'rm -rf "$download"' EXIT
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 180 \
+            "https://github.com/anomalyco/opencode/releases/download/v1.14.40/$asset" -o "$download/$asset"
+          printf '%s  %s\n' "$checksum" "$download/$asset" | sha256sum --check --strict
+          tar -xzf "$download/$asset" -C "$download"
+          mkdir -p "$HOME/.opencode/bin"
+          install -m 755 "$download/opencode" "$HOME/.opencode/bin/opencode"
+          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+          env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" opencode --version
 
       - name: Run OpenCode ${{ inputs.run-name }}
+        shell: bash
+        env:
+          RUN_NAME: ${{ inputs.run-name }}
+          PROMPT: ${{ inputs.prompt }}
+          PROMPT_FILE: ${{ inputs.prompt-file }}
+          COMMAND: ${{ inputs.command }}
+          MODEL: ${{ inputs.model }}
+          AGENT: ${{ inputs.agent }}
         run: |
-          if [ -n "${{ inputs.command }}" ]; then
-            if [ -n "${{ inputs.prompt }}" ]; then
-              echo "${{ inputs.prompt }}" | env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode run --command "${{ inputs.command }}" --model "${{ inputs.model }}" --agent "${{ inputs.agent }}" > ${{ inputs.run-name }}-results.txt
-            elif [ -n "${{ inputs.prompt-file }}" ]; then
-              PROMPT=$(cat ${{ inputs.prompt-file }})
-              echo "$PROMPT" | env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode run --command "${{ inputs.command }}" --model "${{ inputs.model }}" --agent "${{ inputs.agent }}" > ${{ inputs.run-name }}-results.txt
-            else
-              env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode run --command "${{ inputs.command }}" --model "${{ inputs.model }}" --agent "${{ inputs.agent }}" > ${{ inputs.run-name }}-results.txt
-            fi
-          elif [ -n "${{ inputs.prompt }}" ]; then
-            echo "${{ inputs.prompt }}" | env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode run --model "${{ inputs.model }}" --agent "${{ inputs.agent }}" > ${{ inputs.run-name }}-results.txt
-          elif [ -n "${{ inputs.prompt-file }}" ]; then
-            PROMPT=$(cat ${{ inputs.prompt-file }})
-            echo "$PROMPT" | env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" opencode run --model "${{ inputs.model }}" --agent "${{ inputs.agent }}" > ${{ inputs.run-name }}-results.txt
-          else
-            echo "Error: At least one of 'command', 'prompt', or 'prompt-file' must be provided" >&2
+          set -euo pipefail
+          if [[ ! "$RUN_NAME" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ ]]; then
+            echo 'Invalid run-name' >&2
             exit 1
           fi
+          if [[ -n "$PROMPT" && -n "$PROMPT_FILE" ]]; then
+            echo 'Use prompt or prompt-file, not both' >&2
+            exit 1
+          fi
+          if [[ -n "$PROMPT_FILE" ]]; then
+            PROMPT=$(cat -- "$PROMPT_FILE")
+          fi
+          if [[ -z "$COMMAND" && -z "$PROMPT" ]]; then
+            echo 'Provide a command or prompt' >&2
+            exit 1
+          fi
+          args=(run --model "$MODEL" --agent "$AGENT")
+          if [[ -n "$COMMAND" ]]; then
+            args+=(--command "$COMMAND")
+          fi
+          if [[ -n "$PROMPT" ]]; then
+            args+=(-- "$PROMPT")
+          fi
+          env -i PATH="$HOME/.opencode/bin:$PATH" HOME="$HOME" GH_TOKEN="$GH_TOKEN" \
+            opencode "${args[@]}" > "$RUN_NAME-results.txt"
 
       - name: Process results for output
         id: process-results
         if: always()
+        shell: bash
+        env:
+          RUN_NAME: ${{ inputs.run-name }}
         run: |
-          RESULTS_FILE="${{ inputs.run-name }}-results.txt"
-          ARTIFACT_NAME="${{ inputs.run-name }}-results"
-          
-          # Check if results file exists
-          if [ -f "$RESULTS_FILE" ]; then
-            # Get file size in bytes
-            FILE_SIZE=$(wc -c < "$RESULTS_FILE")
-            MAX_SIZE=65000  # GitHub Actions output limit is ~65KB
-            
-            echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-            
-            if [ $FILE_SIZE -gt $MAX_SIZE ]; then
-              # File is too large, truncate and indicate truncation
-              echo "results-truncated=true" >> $GITHUB_OUTPUT
-              
-              # Create truncated version with summary
-              {
-                echo "# OpenCode Results (Truncated)"
-                echo ""
-                echo "⚠️ **Results were truncated due to size limits. Full results are available in the artifact.**"
-                echo ""
-                echo "**File size:** $FILE_SIZE bytes (limit: $MAX_SIZE bytes)"
-                echo ""
-                echo "---"
-                echo ""
-                head -c $((MAX_SIZE - 1000)) "$RESULTS_FILE"
-                echo ""
-                echo ""
-                echo "..."
-                echo ""
-                echo "**[Full results available in artifact: $ARTIFACT_NAME]**"
-              } > truncated-results.txt
-              
-              # Set truncated results as output
-              echo "results<<EOF" >> $GITHUB_OUTPUT
-              cat truncated-results.txt >> $GITHUB_OUTPUT
-              echo "EOF" >> $GITHUB_OUTPUT
-            else
-              # File is small enough, use full content
-              echo "results-truncated=false" >> $GITHUB_OUTPUT
-              echo "results<<EOF" >> $GITHUB_OUTPUT
-              cat "$RESULTS_FILE" >> $GITHUB_OUTPUT
-              echo "EOF" >> $GITHUB_OUTPUT
-            fi
-          else
-            # No results file found
-            echo "results-truncated=false" >> $GITHUB_OUTPUT
-            echo "results=❌ No results file generated" >> $GITHUB_OUTPUT
-            echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          if [[ ! "$RUN_NAME" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ ]]; then
+            echo 'Invalid run-name' >&2
+            exit 1
           fi
+          RESULTS_FILE="$RUN_NAME-results.txt"
+          ARTIFACT_NAME="$RUN_NAME-results"
+          delimiter=$(openssl rand -hex 32)
+          if [[ ! -f "$RESULTS_FILE" ]]; then
+            {
+              echo 'results-truncated=false'
+              echo 'results=❌ No results file generated'
+              printf 'artifact-name=%s\n' "$ARTIFACT_NAME"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FILE_SIZE=$(wc -c < "$RESULTS_FILE")
+          MAX_SIZE=65000
+          {
+            printf 'artifact-name=%s\n' "$ARTIFACT_NAME"
+            if (( FILE_SIZE > MAX_SIZE )); then
+              echo 'results-truncated=true'
+              printf 'results<<%s\n' "$delimiter"
+              printf '# OpenCode Results (Truncated)\n\n'
+              python3 -c 'import sys; sys.stdout.write(sys.stdin.buffer.read(int(sys.argv[1])).decode("utf-8", errors="ignore"))' \
+                "$((MAX_SIZE - 1000))" < "$RESULTS_FILE"
+              printf '\n\nFull results available in artifact: %s\n' "$ARTIFACT_NAME"
+            else
+              echo 'results-truncated=false'
+              printf 'results<<%s\n' "$delimiter"
+              cat "$RESULTS_FILE"
+            fi
+            printf '\n%s\n' "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload ${{ inputs.run-name }} Results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: ${{ inputs.run-name }}-results

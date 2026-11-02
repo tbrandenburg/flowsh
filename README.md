@@ -172,10 +172,22 @@ Logs go to `.flowsh/logs` by default. Set `FLOWSH_LOG_DIR` to use another relati
 uv sync
 make install
 make qa
+make security
 make clean
 ```
 
-`make qa` runs linting, tests, and a local build.
+`make qa` runs linting, tests, a dependency security audit, and a local build.
+`make security` audits hash-pinned runtime, CLI-extra, and development dependencies
+exported from `uv.lock` against known vulnerability advisories. It requires network
+access and fails if the audit cannot complete. The isolated build backend and
+downloaded CI tools are outside this dependency scan.
+
+GitHub Actions are pinned to immutable commits. CI installs OpenCode 1.14.40 from
+a versioned Linux release archive and verifies its SHA-256 before extraction.
+Workflow comments and prompts are passed as data, not interpolated into shell
+scripts; only repository-owner comments can request agent execution. Agent runs
+still have their job's declared GitHub permissions, so review untrusted issue
+content before authorizing write-capable work.
 
 ## Release
 

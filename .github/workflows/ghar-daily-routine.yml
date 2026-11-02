@@ -27,7 +27,9 @@ jobs:
       issue_number: ${{ steps.find-issue.outputs.issue_number }}
       has_issue: ${{ steps.find-issue.outputs.has_issue }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
           
       - name: Find uncommented issue
         id: find-issue
@@ -37,12 +39,14 @@ jobs:
           # Get all open issues and check which ones have no comments
           ISSUE_NUM=$(gh issue list --state open --json number,comments --jq '.[] | select(.comments | length == 0) | .number' | head -1)
           if [ -n "$ISSUE_NUM" ]; then
-            echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
-            echo "has_issue=true" >> $GITHUB_OUTPUT
+            {
+              echo "issue_number=$ISSUE_NUM"
+              echo "has_issue=true"
+            } >> "$GITHUB_OUTPUT"
             echo "Found uncommented issue: #$ISSUE_NUM"
           else
             echo "No uncommented issues found"
-            echo "has_issue=false" >> $GITHUB_OUTPUT
+            echo "has_issue=false" >> "$GITHUB_OUTPUT"
           fi
 
   investigate-uncommented-issue:
