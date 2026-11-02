@@ -114,7 +114,7 @@ def render_bash_step(source: str) -> str:
         [
             "#!/usr/bin/env bash",
             "set -euo pipefail",
-            f"printf '%b' {bash_data_literal(source)} | bash -euo pipefail",
+            f"bash -euo pipefail <(printf '%b' {bash_data_literal(source)})",
             "",
         ]
     )

@@ -239,15 +239,6 @@ def write_harnesses(
         (workflow, script_path, dagu_sidecar_path(script_path) if sidecar is not None else None)
         for workflow, script_path in output_paths
     ]
-    all_paths = [
-        path for _, script, sidecar_path in planned for path in (script, sidecar_path) if path
-    ]
-    resolved_paths = [path.resolve() for path in all_paths]
-    if len(set(resolved_paths)) != len(resolved_paths):
-        raise WorkflowParseError("Planned output paths must be unique")
-    if source_path is not None and source_path.resolve() in resolved_paths:
-        raise WorkflowParseError("Refusing to overwrite the input workflow YAML")
-
     skipped_sidecars = {
         workflow.id: reasons
         for workflow, _, sidecar_path in planned
@@ -260,6 +251,11 @@ def write_harnesses(
         for path in (script_path, sidecar_path if workflow.id not in skipped_sidecars else None)
         if path is not None
     ]
+    resolved_paths = [path.resolve() for path in active_paths]
+    if len(set(resolved_paths)) != len(resolved_paths):
+        raise WorkflowParseError("Planned output paths must be unique")
+    if source_path is not None and source_path.resolve() in resolved_paths:
+        raise WorkflowParseError("Refusing to overwrite the input workflow YAML")
 
     for workflow, _, sidecar_path in planned:
         if sidecar_path is None or workflow.id not in skipped_sidecars:
@@ -272,7 +268,7 @@ def write_harnesses(
         )
         print(
             f"ERROR: Dagu sidecar skipped for {workflow.id}: {reason}; "
-            f"{sidecar_path}{existing} (SH generated; exit 0)",
+            f"{sidecar_path}{existing} (unsupported Dagu capability alone is nonfatal)",
             file=sys.stderr,
         )
 

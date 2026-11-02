@@ -18,6 +18,8 @@ from flowsh_cli.cli import app
 from flowsh_cli.dagu import (
     DAGU_MINIMUM_VERSION,
     dagu_sidecar_path,
+    default_project_dir,
+    render_bash_step,
     render_dagu_sidecar,
     unsupported_dagu_reasons,
 )
@@ -220,6 +222,25 @@ def test_literal_bash_data_round_trips_without_outer_shell_execution(tmp_path: P
     assert not marker.exists()
     assert not marker_backtick.exists()
     assert source in dag["steps"][0]["description"]
+
+
+def test_bash_step_preserves_caller_stdin_while_running_literal_source() -> None:
+    source = 'read -r value; printf "value=%s\\n" "$value"'
+    rendered = render_bash_step(source)
+    payload = "payload from caller stdin\n"
+    result = subprocess.run(
+        ["bash", "-c", rendered],
+        input=payload,
+        capture_output=True,
+        text=True,
+        env={"PATH": os.defpath},
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "value=payload from caller stdin\n"
+    assert "printf '%b'" in rendered
+    assert source not in rendered
 
 
 def test_agent_prompt_is_exact_argv_data_and_agent_option_is_supported(
@@ -505,7 +526,7 @@ def test_cli_nonfatally_skips_each_unsupported_native_capability(
     assert result.exit_code == 0, result.output
     assert reason in result.output
     assert "Dagu sidecar skipped for wf_unsupported" in result.output
-    assert "SH generated; exit 0" in result.output
+    assert "unsupported Dagu capability alone is nonfatal" in result.output
     assert ("DRY-RUN would skip" in result.output) is dry_run
     assert script.exists() is not dry_run
     assert not dagu_sidecar_path(script).exists()
@@ -537,6 +558,88 @@ def test_cli_writes_unchanged_harness_and_native_private_sidecar(
     assert "Wrote" in result.output and str(sidecar) in result.output
     assert str(tmp_path.resolve()) == document["params"][0]["default"]
     assert render_harness(parse_workflows(source)[0]) in script.read_text(encoding="utf-8")
+
+
+def test_default_project_dir_is_generation_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_dir = tmp_path / "project"
+    output_dir = project_dir / ".harness"
+    output_dir.mkdir(parents=True)
+    monkeypatch.chdir(project_dir)
+
+    assert default_project_dir(output_dir / "example.dagu.yml") == str(project_dir.resolve())
+
+    workflow = parse_fixture(
+        "workflows:\n  - id: wf_project\n    name: Project\n    steps:\n"
+        "      - type: bash\n        run: pwd\n"
+    )
+    document = yaml.safe_load(
+        render_dagu_sidecar(
+            workflow,
+            project_dir=default_project_dir(output_dir / "example.dagu.yml"),
+        )
+    )
+
+    assert document["params"][0]["default"] == str(project_dir.resolve())
+    assert document["working_dir"] == "${params.project_dir}"
+
+
+def test_default_project_dir_runs_from_a_different_dagu_launch_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dagu = shutil.which("dagu")
+    if dagu is None:
+        pytest.skip("Dagu is required for the native runtime regression")
+
+    version = subprocess.run([dagu, "version"], check=True, capture_output=True, text=True)
+    version_match = re.search(r"(\d+)\.(\d+)\.(\d+)", version.stdout + version.stderr)
+    assert version_match is not None, version.stdout + version.stderr
+    if tuple(map(int, version_match.groups())) < tuple(map(int, DAGU_MINIMUM_VERSION.split("."))):
+        pytest.skip(f"Dagu {DAGU_MINIMUM_VERSION}+ is required")
+
+    project_dir = tmp_path / "project"
+    output_dir = project_dir / ".harness"
+    launch_dir = tmp_path / "different-launch-directory"
+    home = tmp_path / "dagu-home"
+    user_home = tmp_path / "home"
+    for directory in (output_dir, launch_dir, home, user_home):
+        directory.mkdir(parents=True)
+    monkeypatch.chdir(project_dir)
+    workflow = parse_fixture(
+        "workflows:\n  - id: wf_project_default\n    name: Project default\n    steps:\n"
+        "      - type: bash\n        run: printf '%s' \"$PWD\" > observed.cwd\n"
+    )
+    sidecar = output_dir / "example.dagu.yml"
+    sidecar.write_text(
+        render_dagu_sidecar(workflow, project_dir=default_project_dir(sidecar)),
+        encoding="utf-8",
+    )
+    environment = {
+        "PATH": os.defpath,
+        "HOME": str(user_home),
+        "DAGU_HOME": str(home),
+    }
+
+    validation = subprocess.run(
+        [dagu, "--dagu-home", str(home), "validate", str(sidecar)],
+        cwd=launch_dir,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert validation.returncode == 0, validation.stdout + validation.stderr
+    run = subprocess.run(
+        [dagu, "--dagu-home", str(home), "start", "--run-id", "project-default", str(sidecar)],
+        cwd=launch_dir,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+    assert (project_dir / "observed.cwd").read_text(encoding="utf-8") == str(project_dir.resolve())
 
 
 def test_project_dir_is_a_yaml_parameter_and_not_shell_text(tmp_path: Path) -> None:
@@ -696,6 +799,380 @@ def test_dagu_runtime_preserves_source_references_and_backslashes_byte_for_byte(
         shutil.rmtree(scratch)
 
 
+def test_dagu_runtime_preserves_configured_step_stdin() -> None:
+    dagu = shutil.which("dagu")
+    if dagu is None:
+        pytest.skip("Dagu is required for the native runtime regression")
+
+    version = subprocess.run([dagu, "version"], check=True, capture_output=True, text=True)
+    version_match = re.search(r"(\d+)\.(\d+)\.(\d+)", version.stdout + version.stderr)
+    assert version_match is not None, version.stdout + version.stderr
+    if tuple(map(int, version_match.groups())) < tuple(map(int, DAGU_MINIMUM_VERSION.split("."))):
+        pytest.skip(f"Dagu {DAGU_MINIMUM_VERSION}+ is required")
+
+    scratch_base = Path("/tmp/opencode")
+    scratch_base.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="flowsh-78-stdin-", dir=scratch_base))
+    home = scratch / "dagu-home"
+    user_home = scratch / "home"
+    direct_dir = scratch / "direct"
+    native_dir = scratch / "native"
+    for directory in (home, user_home, direct_dir, native_dir):
+        directory.mkdir()
+
+    payload = "payload from Dagu stdin\n"
+    source = 'read -r value; printf "value=%s\\n" "$value" > actual.txt'
+    workflow = parse_fixture(
+        yaml.safe_dump(
+            {
+                "workflows": [
+                    {
+                        "id": "wf_stdin",
+                        "name": "Stdin",
+                        "steps": [{"type": "bash", "run": source}],
+                    }
+                ]
+            }
+        )
+    )
+    dag = scratch / "stdin.dagu.yml"
+    document = yaml.safe_load(render_dagu_sidecar(workflow, project_dir=str(native_dir)))
+    document["steps"][0]["stdin"] = "stdin.txt"
+    (native_dir / "stdin.txt").write_text(payload, encoding="utf-8")
+    dag.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+    environment = {
+        "PATH": os.defpath,
+        "HOME": str(user_home),
+        "DAGU_HOME": str(home),
+    }
+
+    try:
+        direct = subprocess.run(
+            ["bash", "-euo", "pipefail", "-c", source],
+            cwd=direct_dir,
+            env=environment,
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert direct.returncode == 0, direct.stdout + direct.stderr
+
+        validation = subprocess.run(
+            [dagu, "--dagu-home", str(home), "validate", str(dag)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert validation.returncode == 0, validation.stdout + validation.stderr
+
+        run = subprocess.run(
+            [dagu, "--dagu-home", str(home), "start", "--run-id", "stdin-test", str(dag)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert run.returncode == 0, run.stdout + run.stderr
+        assert (native_dir / "actual.txt").read_bytes() == (direct_dir / "actual.txt").read_bytes()
+        assert (native_dir / "actual.txt").read_bytes() == b"value=payload from Dagu stdin\n"
+    finally:
+        proc = Path("/proc")
+        if proc.is_dir():
+            working_directories: list[str] = []
+            for entry in proc.iterdir():
+                try:
+                    cwd = (entry / "cwd").resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if cwd == scratch or scratch in cwd.parents:
+                    working_directories.append(str(cwd))
+            assert working_directories == [], working_directories
+        shutil.rmtree(scratch)
+
+
+def test_standalone_return_42_caveat_is_preserved_in_native_dagu() -> None:
+    dagu = shutil.which("dagu")
+    if dagu is None:
+        pytest.skip("Dagu is required for the native runtime regression")
+
+    scratch_base = Path("/tmp/opencode")
+    scratch_base.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="flowsh-78-return-", dir=scratch_base))
+    home = scratch / "dagu-home"
+    user_home = scratch / "home"
+    direct_dir = scratch / "direct"
+    native_dir = scratch / "native"
+    for directory in (home, user_home, direct_dir, native_dir):
+        directory.mkdir()
+
+    workflow = parse_fixture(
+        "workflows:\n"
+        "  - id: wf_return\n"
+        "    name: Standalone return caveat\n"
+        "    steps:\n"
+        "      - type: bash\n"
+        "        run: false || return 42\n"
+        "      - type: bash\n"
+        "        run: touch must-not-run.marker\n"
+    )
+    harness = direct_dir / "return.sh"
+    harness.write_text(render_harness(workflow), encoding="utf-8")
+    sidecar = scratch / "return.dagu.yml"
+    sidecar.write_text(render_dagu_sidecar(workflow, project_dir=str(native_dir)), encoding="utf-8")
+    environment = {
+        "PATH": os.defpath,
+        "HOME": str(user_home),
+        "DAGU_HOME": str(home),
+    }
+
+    try:
+        direct = subprocess.run(
+            ["bash", str(harness)],
+            cwd=direct_dir,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert direct.returncode == 2, direct.stdout + direct.stderr
+        assert "return: can only `return' from a function" in direct.stderr
+        assert not (direct_dir / "must-not-run.marker").exists()
+
+        validation = subprocess.run(
+            [dagu, "--dagu-home", str(home), "validate", str(sidecar)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert validation.returncode == 0, validation.stdout + validation.stderr
+
+        run = subprocess.run(
+            [dagu, "--dagu-home", str(home), "start", "--run-id", "return-caveat", str(sidecar)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert run.returncode == 1, run.stdout + run.stderr
+        assert "exit status 2" in run.stdout + run.stderr
+        assert not (native_dir / "must-not-run.marker").exists()
+    finally:
+        proc = Path("/proc")
+        if proc.is_dir():
+            working_directories: list[str] = []
+            for entry in proc.iterdir():
+                try:
+                    cwd = (entry / "cwd").resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if cwd == scratch or scratch in cwd.parents:
+                    working_directories.append(str(cwd))
+            assert working_directories == [], working_directories
+        shutil.rmtree(scratch)
+
+
+def test_dagu_executes_eight_native_nodes_in_order_with_isolated_stand_ins() -> None:
+    dagu = shutil.which("dagu")
+    if dagu is None:
+        pytest.skip("Dagu is required for the native graph integration test")
+
+    version = subprocess.run([dagu, "version"], check=True, capture_output=True, text=True)
+    version_match = re.search(r"(\d+)\.(\d+)\.(\d+)", version.stdout + version.stderr)
+    assert version_match is not None, version.stdout + version.stderr
+    if tuple(map(int, version_match.groups())) < tuple(map(int, DAGU_MINIMUM_VERSION.split("."))):
+        pytest.skip(f"Dagu {DAGU_MINIMUM_VERSION}+ is required")
+
+    scratch_base = Path("/tmp/opencode")
+    scratch_base.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="flowsh-78-eight-node-", dir=scratch_base))
+    home = scratch / "dagu-home"
+    user_home = scratch / "home"
+    project_dir = scratch / "project"
+    fake_bin = scratch / "bin"
+    for directory in (home, user_home, project_dir, fake_bin):
+        directory.mkdir()
+
+    fake_opencode = fake_bin / "opencode"
+    fake_opencode.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, pathlib, sys\n"
+        "prompt = sys.argv[-1]\n"
+        "marker = prompt.split('FIXTURE_RESULT_', 1)[1][:2]\n"
+        "pathlib.Path(f'agent_{marker}.marker').write_text(prompt, encoding='utf-8')\n"
+        "with pathlib.Path('agent-calls.txt').open('a', encoding='utf-8') as calls:\n"
+        "    calls.write(prompt + '\\n')\n"
+        "print(json.dumps({'type': 'text', 'part': {'text': f'FIXTURE_RESULT_{marker}'}}))\n",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    workflow = parse_fixture(
+        "workflows:\n"
+        "  - id: wf_native_eight\n"
+        "    name: Safe native eight-step fixture\n"
+        "    steps:\n"
+        "      - type: bash\n"
+        "        name: Create start marker\n"
+        "        run: printf 'START\\n' > start.marker\n"
+        "      - type: bash\n"
+        "        name: Verify start marker\n"
+        "        run: |\n"
+        '          test "$(cat start.marker)" = START\n'
+        "          printf 'READY\\n' > ready.marker\n"
+        + "".join(
+            "      - type: agent\n"
+            f"        name: Stand-in agent {index:02d}\n"
+            "        agent: build\n"
+            f"        prompt: Return FIXTURE_RESULT_{index:02d} exactly.\n"
+            for index in range(3, 8)
+        )
+        + "      - type: bash\n"
+        "        name: Verify all agents and finish\n"
+        "        run: |\n"
+        '          test "$(cat ready.marker)" = READY\n'
+        + "\n".join(
+            f'          test "$(cat agent_{index:02d}.marker)" = '
+            f'"Return FIXTURE_RESULT_{index:02d} exactly."'
+            for index in range(3, 8)
+        )
+        + "\n          printf 'DONE\\n' > done.marker\n"
+    )
+    sidecar = scratch / "safe-eight.dagu.yml"
+    sidecar.write_text(
+        render_dagu_sidecar(workflow, project_dir=str(project_dir)), encoding="utf-8"
+    )
+    environment = {
+        "PATH": f"{fake_bin}{os.pathsep}{os.defpath}",
+        "HOME": str(user_home),
+        "DAGU_HOME": str(home),
+    }
+
+    try:
+        validation = subprocess.run(
+            [dagu, "--dagu-home", str(home), "validate", str(sidecar)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert validation.returncode == 0, validation.stdout + validation.stderr
+
+        run = subprocess.run(
+            [
+                dagu,
+                "--dagu-home",
+                str(home),
+                "start",
+                "--run-id",
+                "native-eight-stand-ins",
+                str(sidecar),
+            ],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        assert run.returncode == 0, run.stdout + run.stderr
+        assert "Result: Succeeded" in run.stdout
+        assert (project_dir / "start.marker").read_text(encoding="utf-8") == "START\n"
+        assert (project_dir / "ready.marker").read_text(encoding="utf-8") == "READY\n"
+        assert (project_dir / "done.marker").read_text(encoding="utf-8") == "DONE\n"
+        assert [
+            (project_dir / f"agent_{index:02d}.marker").read_text(encoding="utf-8")
+            for index in range(3, 8)
+        ] == [f"Return FIXTURE_RESULT_{index:02d} exactly." for index in range(3, 8)]
+        step_logs = list((home / "logs").rglob("*.out"))
+        assert len(step_logs) == 8
+        names = [
+            "Create start marker",
+            "Verify start marker",
+            *(f"Stand-in agent {index:02d}" for index in range(3, 8)),
+            "Verify all agents and finish",
+        ]
+        assert all(f"{index:02d}: {name} (" in run.stdout for index, name in enumerate(names, 1))
+        assert (project_dir / "agent-calls.txt").read_text(encoding="utf-8").splitlines() == [
+            f"Return FIXTURE_RESULT_{index:02d} exactly." for index in range(3, 8)
+        ]
+
+        for exit_code in (17, 42):
+            failed_project = scratch / f"project-failure-{exit_code}"
+            failed_project.mkdir()
+            failed_document = yaml.safe_load(sidecar.read_text(encoding="utf-8"))
+            failed_step = next(
+                step for step in failed_document["steps"] if step["id"] == "step_05_agent"
+            )
+            failed_step["run"] = f"#!/usr/bin/env bash\nset -euo pipefail\nexit {exit_code}\n"
+            failed_sidecar = scratch / f"failed-{exit_code}.dagu.yml"
+            failed_sidecar.write_text(
+                yaml.safe_dump(failed_document, sort_keys=False), encoding="utf-8"
+            )
+            failed_validation = subprocess.run(
+                [dagu, "--dagu-home", str(home), "validate", str(failed_sidecar)],
+                cwd=scratch,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            assert failed_validation.returncode == 0, (
+                failed_validation.stdout + failed_validation.stderr
+            )
+            failed_run = subprocess.run(
+                [
+                    dagu,
+                    "--dagu-home",
+                    str(home),
+                    "start",
+                    "--run-id",
+                    f"native-eight-failure-{exit_code}",
+                    str(failed_sidecar),
+                    "--",
+                    f"project_dir={failed_project}",
+                ],
+                cwd=scratch,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            failure_output = failed_run.stdout + failed_run.stderr
+            assert failed_run.returncode == 1, failure_output
+            assert f"exit status {exit_code}" in failure_output
+            assert (failed_project / "start.marker").read_text(encoding="utf-8") == "START\n"
+            assert (failed_project / "ready.marker").read_text(encoding="utf-8") == "READY\n"
+            assert [
+                (failed_project / f"agent_{index:02d}.marker").read_text(encoding="utf-8")
+                for index in (3, 4)
+            ] == [f"Return FIXTURE_RESULT_{index:02d} exactly." for index in (3, 4)]
+            assert (failed_project / "agent-calls.txt").read_text(
+                encoding="utf-8"
+            ).splitlines() == [f"Return FIXTURE_RESULT_{index:02d} exactly." for index in (3, 4)]
+            assert not (failed_project / "agent_06.marker").exists()
+            assert not (failed_project / "agent_07.marker").exists()
+            assert not (failed_project / "done.marker").exists()
+    finally:
+        proc = Path("/proc")
+        if proc.is_dir():
+            working_directories: list[str] = []
+            for entry in proc.iterdir():
+                try:
+                    cwd = (entry / "cwd").resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if cwd == scratch or scratch in cwd.parents:
+                    working_directories.append(str(cwd))
+            assert working_directories == [], working_directories
+        shutil.rmtree(scratch)
+
+
 def test_agent_selector_is_passed_as_bash_quoted_argv_data() -> None:
     workflow = WorkflowFile.model_validate(
         {
@@ -778,9 +1255,77 @@ def test_unsupported_dry_run_reports_skip_and_writes_neither_file(tmp_path: Path
     assert result.exit_code == 0, result.output
     assert "would write" in result.output and str(script) in result.output
     assert "would skip" in result.output and str(dagu_sidecar_path(script)) in result.output
-    assert "SH generated; exit 0" in result.output
+    assert "unsupported Dagu capability alone is nonfatal" in result.output
     assert not script.exists()
     assert not dagu_sidecar_path(script).exists()
+
+
+def test_unsupported_skipped_sidecar_does_not_conflict_with_workflow_input(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "example.dagu.yml"
+    script = tmp_path / "example.sh"
+    source.write_text(
+        "workflows:\n  - id: wf_unsupported\n    name: Unsupported\n"
+        "    steps:\n      - type: vars\n        values: {VALUE: echo value}\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [str(source), "--output", str(script), "--sidecar", "dagu", "--dry-run"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "would write" in result.output and str(script) in result.output
+    assert "would skip" in result.output and str(source) in result.output
+    assert "input workflow YAML" not in result.output
+    assert not script.exists()
+    assert source.read_text(encoding="utf-8").startswith("workflows:")
+
+
+def test_unsupported_sidecar_does_not_allow_sh_output_to_overwrite_input(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "example.sh"
+    source.write_text(
+        "workflows:\n  - id: wf_unsupported\n    name: Unsupported\n"
+        "    steps:\n      - type: vars\n        values: {VALUE: echo value}\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [str(source), "--output", str(source), "--sidecar", "dagu", "--dry-run"],
+    )
+
+    assert result.exit_code == 1
+    assert "input workflow YAML" in result.output
+    assert source.read_text(encoding="utf-8").startswith("workflows:")
+
+
+def test_unsupported_sidecar_diagnostic_does_not_claim_sh_was_generated(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "workflows.yml"
+    script = tmp_path / "example.sh"
+    source.write_text(
+        "workflows:\n  - id: wf_unsupported\n    name: Unsupported\n"
+        "    steps:\n      - type: vars\n        values: {VALUE: echo value}\n",
+        encoding="utf-8",
+    )
+    script.write_text("keep existing output", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [str(source), "--output", str(script), "--sidecar", "dagu"],
+    )
+
+    assert result.exit_code == 1
+    assert "unsupported Dagu capability alone is nonfatal" in result.output
+    assert "Refusing to overwrite existing file" in result.output
+    assert "SH generated; exit 0" not in result.output
+    assert script.read_text(encoding="utf-8") == "keep existing output"
 
 
 def test_multi_workflow_skips_one_sidecar_without_suppressing_supported_outputs(
