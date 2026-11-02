@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
+import shutil
 import stat
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -13,6 +16,7 @@ from typer.testing import CliRunner
 import flowsh_cli.cli as cli_module
 from flowsh_cli.cli import app
 from flowsh_cli.dagu import (
+    DAGU_MINIMUM_VERSION,
     dagu_sidecar_path,
     render_dagu_sidecar,
     unsupported_dagu_reasons,
@@ -141,7 +145,7 @@ def test_pinned_sofathek_source_maps_to_exact_native_linear_graph(tmp_path: Path
     assert "@.opencode/commands/prp-review.md" in nodes[5]["description"]
     assert "send a telegram message" in nodes[6]["description"]
     assert "git restore --staged ." in nodes[7]["description"]
-    assert nodes[2]["run"].endswith("exec opencode run --agent $'build' -- \"$prompt\"\n")
+    assert nodes[2]["run"].endswith('exec opencode run --agent "$agent" -- "$prompt"\n')
     assert ["bash" if node["id"].endswith("_bash") else "agent" for node in nodes] == [
         "bash",
         "bash",
@@ -558,7 +562,7 @@ def test_project_dir_is_a_yaml_parameter_and_not_shell_text(tmp_path: Path) -> N
     }
 
 
-def test_dagu_owned_reference_is_escaped_inside_bash_data_literal() -> None:
+def test_dagu_owned_reference_is_transported_outside_the_run_field() -> None:
     workflow = WorkflowFile.model_validate(
         {
             "workflows": [
@@ -572,8 +576,124 @@ def test_dagu_owned_reference_is_escaped_inside_bash_data_literal() -> None:
     ).workflows[0]
     node = yaml.safe_load(render_dagu_sidecar(workflow, project_dir="."))["steps"][0]
 
-    assert r"\${params.input}" in node["run"]
+    assert "${params.input}" not in node["run"]
     assert "${params.input}" in node["description"]
+
+
+def test_dagu_runtime_preserves_source_references_and_backslashes_byte_for_byte() -> None:
+    dagu = shutil.which("dagu")
+    if dagu is None:
+        pytest.skip("Dagu is required for the native runtime regression")
+
+    version = subprocess.run([dagu, "version"], check=True, capture_output=True, text=True)
+    version_match = re.search(r"(\d+)\.(\d+)\.(\d+)", version.stdout + version.stderr)
+    assert version_match is not None, version.stdout + version.stderr
+    if tuple(map(int, version_match.groups())) < tuple(map(int, DAGU_MINIMUM_VERSION.split("."))):
+        pytest.skip(f"Dagu {DAGU_MINIMUM_VERSION}+ is required")
+
+    scratch_base = Path(__file__).resolve().parents[1] / ".flowsh"
+    scratch_base.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="issue-78-", dir=scratch_base))
+    home = scratch / "dagu-home"
+    user_home = scratch / "home"
+    direct_dir = scratch / "direct"
+    native_dir = scratch / "native"
+    fake_bin = scratch / "bin"
+    for directory in (home, user_home, direct_dir, native_dir, fake_bin):
+        directory.mkdir()
+
+    references = (
+        "${step_01_bash.stdout}|${step_01_bash.stderr}|${step_01_bash.exit_code}|"
+        "${params.project_dir}|${unknown.reference}|"
+        r"\${step_01_bash.stdout}|\\${step_01_bash.stderr}"
+    )
+    bash_source = f"printf '%s' '{references}' > actual.txt"
+    prompt = (
+        "Literal agent prompt: ${step_01_bash.stdout} | ${step_01_bash.stderr} | "
+        "${params.project_dir}\n"
+        + r"Backslashes: \${step_01_bash.stdout} | \\${step_01_bash.stderr}"
+        + "\n"
+    )
+    workflow = WorkflowFile.model_validate(
+        {
+            "workflows": [
+                {
+                    "id": "wf_literal_refs",
+                    "name": "Literal references",
+                    "steps": [
+                        {"type": "bash", "run": "printf upstream"},
+                        {"type": "bash", "run": bash_source},
+                        {"type": "agent", "agent": "build", "prompt": prompt},
+                    ],
+                }
+            ]
+        }
+    ).workflows[0]
+    dag = scratch / "literal_refs.dagu.yml"
+    dag.write_text(render_dagu_sidecar(workflow, project_dir=str(native_dir)), encoding="utf-8")
+    fake_opencode = fake_bin / "opencode"
+    fake_opencode.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'while [[ "$#" -gt 0 && "$1" != -- ]]; do shift; done\n'
+        '[[ "$#" -ge 2 ]] || exit 2\n'
+        "shift\n"
+        "printf '%s' \"$1\" > captured-prompt.txt\n",
+        encoding="utf-8",
+    )
+    fake_opencode.chmod(0o700)
+    environment = {
+        "PATH": f"{fake_bin}{os.pathsep}{os.defpath}",
+        "HOME": str(user_home),
+        "DAGU_HOME": str(home),
+    }
+
+    try:
+        direct_run = subprocess.run(
+            ["bash"],
+            input=render_harness(workflow),
+            cwd=direct_dir,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert direct_run.returncode == 0, direct_run.stdout + direct_run.stderr
+        validation = subprocess.run(
+            [dagu, "--dagu-home", str(home), "validate", str(dag)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert validation.returncode == 0, validation.stdout + validation.stderr
+
+        run = subprocess.run(
+            [dagu, "--dagu-home", str(home), "start", "--run-id", "native-literal-test", str(dag)],
+            cwd=scratch,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert run.returncode == 0, run.stdout + run.stderr
+        assert (native_dir / "actual.txt").read_bytes() == (direct_dir / "actual.txt").read_bytes()
+        assert (native_dir / "actual.txt").read_bytes() == references.encode()
+        assert (native_dir / "captured-prompt.txt").read_bytes() == prompt.encode()
+    finally:
+        proc = Path("/proc")
+        if proc.is_dir():
+            working_directories: list[str] = []
+            for entry in proc.iterdir():
+                try:
+                    cwd = (entry / "cwd").resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if cwd == scratch or scratch in cwd.parents:
+                    working_directories.append(str(cwd))
+            assert working_directories == [], working_directories
+        shutil.rmtree(scratch)
 
 
 def test_agent_selector_is_passed_as_bash_quoted_argv_data() -> None:
@@ -597,7 +717,8 @@ def test_agent_selector_is_passed_as_bash_quoted_argv_data() -> None:
     node = yaml.safe_load(render_dagu_sidecar(workflow, project_dir="."))["steps"][0]
 
     assert unsupported_dagu_reasons(workflow) == []
-    assert "--agent $'build$'" in node["run"]
+    assert '--agent "$agent"' in node["run"]
+    assert "printf '%b'" in node["run"]
 
 
 def test_sh_only_output_remains_prechange_bytes(tmp_path: Path) -> None:

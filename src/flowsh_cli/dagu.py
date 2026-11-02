@@ -18,23 +18,6 @@ from flowsh_cli.models import (
 )
 
 DAGU_MINIMUM_VERSION = "2.24.0"
-DAGU_REFERENCE = re.compile(
-    r"\$\{(?:"
-    r"(?:consts|params)\.[A-Za-z][A-Za-z0-9_]*"
-    r"|env\.[A-Za-z_][A-Za-z0-9_]*"
-    r"|steps\.[A-Za-z][A-Za-z0-9_]*\.outputs\.[A-Za-z][A-Za-z0-9_]*"
-    r"|foreach\.[^{}]+"
-    r"|context\.(?:dag|run|attempt|step|trigger|paths|profile|pushback)\.[^{}]+"
-    r"|dag\.name"
-    r"|run\.(?:id|status|started_at|scheduled_at|root_name|root_id)"
-    r"|attempt\.id"
-    r"|step\.(?:id|name)"
-    r"|trigger\.(?:type|actor)"
-    r"|paths\.(?:log_file|work_dir|artifacts_dir|step_stdout_file|step_stderr_file|step_output_file)"
-    r"|profile\.(?:name|resolved_at)"
-    r"|pushback\.(?:iteration|previous_stdout_file)"
-    r")\}"
-)
 
 
 def dagu_sidecar_path(script_path: Path) -> Path:
@@ -131,35 +114,46 @@ def render_bash_step(source: str) -> str:
         [
             "#!/usr/bin/env bash",
             "set -euo pipefail",
-            f"printf '%s' {bash_data_literal(source)} | bash -euo pipefail",
+            f"printf '%b' {bash_data_literal(source)} | bash -euo pipefail",
             "",
         ]
     )
 
 
 def render_agent_step(prompt: str, *, agent: str | None) -> str:
-    sentinel = unique_marker("FLOWSH_PROMPT_END", prompt)
+    prompt_sentinel = unique_marker("FLOWSH_PROMPT_END", prompt)
     lines = [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
         'prompt="$(',
-        f"  printf '%s' {bash_data_literal(prompt)}",
-        f"  printf '%s' {shlex.quote(sentinel)}",
+        f"  printf '%b' {bash_data_literal(prompt)}",
+        f"  printf '%s' {shlex.quote(prompt_sentinel)}",
         ')"',
-        f'prompt="${{prompt%{sentinel}}}"',
+        f'prompt="${{prompt%{prompt_sentinel}}}"',
     ]
     command = ["exec opencode run"]
     if agent is not None:
-        command.append(f"--agent {bash_data_literal(agent)}")
+        agent_sentinel = unique_marker("FLOWSH_AGENT_END", agent)
+        lines.extend(
+            [
+                'agent="$(',
+                f"  printf '%b' {bash_data_literal(agent)}",
+                f"  printf '%s' {shlex.quote(agent_sentinel)}",
+                ')"',
+                f'agent="${{agent%{agent_sentinel}}}"',
+            ]
+        )
+        command.append('--agent "$agent"')
     command.extend(["--", '"$prompt"'])
     lines.extend([" ".join(command), ""])
     return "\n".join(lines)
 
 
 def bash_data_literal(value: str) -> str:
-    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
-    escaped = DAGU_REFERENCE.sub(lambda match: "\\" + match.group(0), escaped)
-    return "$'" + escaped + "'"
+    # Keep source text out of Dagu-resolved fields; Bash reconstructs it from
+    # octal bytes only after Dagu has finished resolving the generated script.
+    octal = "".join(f"\\0{byte:03o}" for byte in value.encode("utf-8"))
+    return "'" + octal + "'"
 
 
 def source_summary(step: Step, source: str) -> str:
