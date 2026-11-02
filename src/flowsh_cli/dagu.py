@@ -1,156 +1,173 @@
 from __future__ import annotations
 
-import base64
-import os
+import re
+import shlex
 from pathlib import Path
 
 import yaml
+
+from flowsh_cli.models import (
+    AgentStep,
+    BashStep,
+    ForStep,
+    ParallelStep,
+    Step,
+    VarsStep,
+    WhileStep,
+    Workflow,
+)
+
+DAGU_MINIMUM_VERSION = "2.24.0"
 
 
 def dagu_sidecar_path(script_path: Path) -> Path:
     return script_path.with_suffix(".dagu.yml")
 
 
-def render_dagu_sidecar(rendered_script: str, *, project_dir: str) -> str:
-    script_bytes = (rendered_script + "\n").encode("utf-8")
-    script_payload = base64.b64encode(script_bytes).decode("ascii")
-    decoder = f"""\
-const scriptEncoded = {script_payload!r};
-function decodeBase64(value) {{
-  const pattern = new RegExp(
-    '^(?:[A-Za-z0-9+/]{{4}})*(?:[A-Za-z0-9+/]{{2}}==|[A-Za-z0-9+/]{{3}}=)?$'
-  );
-  if (value.length % 4 !== 0 || !pattern.test(value)) {{
-    throw new Error('Invalid base64 payload');
-  }}
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  let buffer = 0;
-  let bits = 0;
-  let percent = '';
-  for (const char of value) {{
-    if (char === '=') break;
-    buffer = (buffer << 6) | alphabet.indexOf(char);
-    bits += 6;
-    if (bits >= 8) {{
-      bits -= 8;
-      percent += '%' + ((buffer >> bits) & 255).toString(16).padStart(2, '0');
-    }}
-  }}
-  if (bits && (buffer & ((1 << bits) - 1)) !== 0) throw new Error('Invalid base64 payload');
-  try {{
-    return decodeURIComponent(percent);
-  }} catch (error) {{
-    throw new Error('Invalid UTF-8 payload');
-  }}
-}}
-function toOctal(value) {{
-  // Keep shell and Dagu syntax out of the interpolated file.write content.
-  const encoded = encodeURIComponent(value);
-  let result = '';
-  for (let index = 0; index < encoded.length; index += 1) {{
-    let byte;
-    if (encoded[index] === '%') {{
-      byte = parseInt(encoded.slice(index + 1, index + 3), 16);
-      index += 2;
-    }} else {{
-      byte = encoded.charCodeAt(index);
-    }}
-    result += '\\\\' + byte.toString(8).padStart(3, '0');
-  }}
-  return result;
-}}
-const script = decodeBase64(scriptEncoded);
-const args = JSON.parse(decodeBase64(input.args));
-if (!Array.isArray(args)) {{
-  throw new Error('harness_args_b64 must encode an array of strings without NUL');
-}}
-if (args.some((item) =>
-  typeof item !== 'string' || item.includes('\\0')
-)) {{
-  throw new Error('harness_args_b64 must encode an array of strings without NUL');
-}}
-return {{
-  script: toOctal(script),
-  argv: toOctal(args.length ? args.join('\\0') + '\\0' : '')
-}};
-"""
+def unsupported_dagu_reasons(workflow: Workflow) -> list[str]:
+    reasons: list[str] = []
+    if workflow.params:
+        reasons.append("params unsupported for native Dagu v1")
+
+    def inspect(step: Step, path: str) -> None:
+        if step.when is not None:
+            reasons.append(f"{path}.when unsupported for native Dagu v1")
+
+        if isinstance(step, BashStep):
+            return
+
+        if isinstance(step, AgentStep):
+            for option, value in (
+                ("capture", step.capture),
+                ("expandPrompt", step.expandPrompt),
+                ("expandFields", step.expandFields),
+                ("model", step.model),
+                ("command", step.command),
+                ("dangerouslySkipPermissions", step.dangerouslySkipPermissions),
+            ):
+                is_enabled = value is not None and value is not False
+                if is_enabled:
+                    reasons.append(f"{path}.{option} unsupported for native Dagu v1")
+            return
+
+        if isinstance(step, VarsStep):
+            reasons.append(f"{path}.type=vars unsupported for native Dagu v1")
+            return
+
+        if isinstance(step, (ForStep, WhileStep, ParallelStep)):
+            reasons.append(f"{path}.type={step.type} unsupported for native Dagu v1")
+            for child_index, child in enumerate(step.steps):
+                inspect(child, f"{path}.steps[{child_index}]")
+
+    for index, step in enumerate(workflow.steps):
+        inspect(step, f"steps[{index}]")
+
+    return reasons
+
+
+def render_dagu_sidecar(workflow: Workflow, *, project_dir: str) -> str:
+    reasons = unsupported_dagu_reasons(workflow)
+    if reasons:
+        raise ValueError("Cannot render native Dagu v1 sidecar: " + "; ".join(reasons))
+
+    steps: list[dict[str, object]] = []
+    previous_id: str | None = None
+    for index, step in enumerate(workflow.steps, start=1):
+        step_id = f"step_{index:02d}_{step.type}"
+        source = step.run if isinstance(step, BashStep) else step.prompt
+        step_body = (
+            render_bash_step(step.run)
+            if isinstance(step, BashStep)
+            else render_agent_step(step.prompt, agent=step.agent)
+        )
+        label = step.name if step.name is not None else source_summary(step, source)
+        node: dict[str, object] = {
+            "id": step_id,
+            "name": f"{index:02d}: {label}",
+            "description": f"Source flowsh step {index}; literal source follows:\n{source}",
+            "run": step_body,
+            "retry_policy": {"limit": 0, "interval_sec": 1},
+            "continue_on": {"failure": False},
+        }
+        if previous_id is not None:
+            node["depends"] = [previous_id]
+        steps.append(node)
+        previous_id = step_id
+
     document = {
         "params": [
             {"name": "project_dir", "type": "string", "default": project_dir},
-            {
-                "name": "harness_args_b64",
-                "type": "string",
-                "default": "W10=",
-            },
         ],
         "working_dir": "${params.project_dir}",
-        "steps": [
-            {
-                "id": "decode_payload",
-                "action": "js.run",
-                "with": {
-                    "input": {"args": "${params.harness_args_b64}"},
-                    "script": decoder,
-                },
-                "output": {
-                    "payload": {"from": "stdout", "decode": "json"},
-                },
-            },
-            {
-                "id": "write_harness",
-                "depends": ["decode_payload"],
-                "action": "file.write",
-                "with": {
-                    "path": "${context.paths.work_dir}/harness.sh",
-                    "content": "${decode_payload.output.payload.script}",
-                    "mode": "0700",
-                    "overwrite": True,
-                },
-            },
-            {
-                "id": "write_argv",
-                "depends": ["decode_payload"],
-                "action": "file.write",
-                "with": {
-                    "path": "${context.paths.work_dir}/argv.bin",
-                    "content": "${decode_payload.output.payload.argv}",
-                    "mode": "0600",
-                    "overwrite": True,
-                },
-            },
-            {
-                "id": "execute_harness",
-                "depends": ["write_harness", "write_argv"],
-                "env": {
-                    "ARGV_PATH": "${context.paths.work_dir}/argv.bin",
-                    "HARNESS_PATH": "${context.paths.work_dir}/harness.sh",
-                },
-                "run": """#!/usr/bin/env bash
-set -euo pipefail
-set --
-decode_octal() {
-  local encoded_path="$1"
-  local decoded_path="$2"
-  local encoded
-  encoded="$(<"$encoded_path")"
-  printf '%b' "$encoded" > "$decoded_path"
-}
-decode_octal "${env.HARNESS_PATH}" "${env.HARNESS_PATH}.decoded"
-chmod 700 "${env.HARNESS_PATH}.decoded"
-mv -f -- "${env.HARNESS_PATH}.decoded" "${env.HARNESS_PATH}"
-decode_octal "${env.ARGV_PATH}" "${env.ARGV_PATH}.decoded"
-chmod 600 "${env.ARGV_PATH}.decoded"
-mv -f -- "${env.ARGV_PATH}.decoded" "${env.ARGV_PATH}"
-while IFS= read -r -d '' argument; do
-  set -- "$@" "$argument"
-done < "${env.ARGV_PATH}"
-exec bash -- "${env.HARNESS_PATH}" "$@"
-""",
-            },
-        ],
+        "retry_policy": {"limit": 0, "interval_sec": 1},
+        "steps": steps,
     }
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
 
 
-def default_project_dir(sidecar_path: Path) -> str:
-    return os.path.relpath(Path.cwd(), sidecar_path.absolute().parent)
+def default_project_dir(_sidecar_path: Path) -> str:
+    return str(Path.cwd().resolve())
+
+
+def render_bash_step(source: str) -> str:
+    return "\n".join(
+        [
+            "#!/usr/bin/env bash",
+            "set -euo pipefail",
+            f"bash -euo pipefail <(printf '%b' {bash_data_literal(source)})",
+            "",
+        ]
+    )
+
+
+def render_agent_step(prompt: str, *, agent: str | None) -> str:
+    prompt_sentinel = unique_marker("FLOWSH_PROMPT_END", prompt)
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        'prompt="$(',
+        f"  printf '%b' {bash_data_literal(prompt)}",
+        f"  printf '%s' {shlex.quote(prompt_sentinel)}",
+        ')"',
+        f'prompt="${{prompt%{prompt_sentinel}}}"',
+    ]
+    command = ["exec opencode run"]
+    if agent is not None:
+        agent_sentinel = unique_marker("FLOWSH_AGENT_END", agent)
+        lines.extend(
+            [
+                'agent="$(',
+                f"  printf '%b' {bash_data_literal(agent)}",
+                f"  printf '%s' {shlex.quote(agent_sentinel)}",
+                ')"',
+                f'agent="${{agent%{agent_sentinel}}}"',
+            ]
+        )
+        command.append('--agent "$agent"')
+    command.extend(["--", '"$prompt"'])
+    lines.extend([" ".join(command), ""])
+    return "\n".join(lines)
+
+
+def bash_data_literal(value: str) -> str:
+    # Keep source text out of Dagu-resolved fields; Bash reconstructs it from
+    # octal bytes only after Dagu has finished resolving the generated script.
+    octal = "".join(f"\\0{byte:03o}" for byte in value.encode("utf-8"))
+    return "'" + octal + "'"
+
+
+def source_summary(step: Step, source: str) -> str:
+    first_line = next((line.strip() for line in source.splitlines() if line.strip()), "")
+    preview = re.sub(r"\s+", " ", first_line)
+    if len(preview) > 72:
+        preview = preview[:71] + "…"
+    return f"{step.type}: {preview}"
+
+
+def unique_marker(prefix: str, source: str) -> str:
+    marker = prefix
+    suffix = 1
+    while marker in source:
+        marker = f"{prefix}_{suffix}"
+        suffix += 1
+    return marker
