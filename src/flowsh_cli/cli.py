@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import os
-import stat
 import sys
 import tempfile
 from collections.abc import Sequence
+from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from flowsh_cli import __version__
+from flowsh_cli.dagu import dagu_sidecar_path, default_project_dir, render_dagu_sidecar
 from flowsh_cli.examples import example_yaml, examples_index
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
@@ -18,6 +19,11 @@ from flowsh_cli.skill import skill_text
 
 DEFAULT_WORKFLOW_YAML = Path("workflows.yml")
 WORKFLOW_YAML_ARGUMENT = typer.Argument(DEFAULT_WORKFLOW_YAML, help="Path to workflow.yml")
+
+
+class SidecarFormat(str, Enum):
+    dagu = "dagu"
+
 
 app = typer.Typer(
     add_completion=False,
@@ -111,6 +117,10 @@ def generate(
             help="Write generated script to PATH. Only valid when generating a single workflow.",
         ),
     ] = None,
+    sidecar: Annotated[
+        SidecarFormat | None,
+        typer.Option("--sidecar", help="Also generate a self-contained sidecar (supported: dagu)."),
+    ] = None,
 ) -> None:
     """Generate shell scripts from workflow YAML."""
 
@@ -130,12 +140,20 @@ def generate(
                 file=sys.stderr,
             )
             raise typer.Exit(1)
-        write_harnesses(selected, dry_run=dry_run, force=force, output_path=output)
+        write_harnesses(
+            selected,
+            dry_run=dry_run,
+            force=force,
+            output_path=output,
+            sidecar=sidecar,
+            source_path=workflow_yaml,
+        )
     except WorkflowParseError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
     except OSError as error:
-        print(f"ERROR: Cannot write harness: {error}", file=sys.stderr)
+        output_label = "generated outputs" if sidecar is not None else "harness"
+        print(f"ERROR: Cannot write {output_label}: {error}", file=sys.stderr)
         raise typer.Exit(1) from error
 
 
@@ -196,42 +214,99 @@ def print_skill(value: bool) -> None:
 
 
 def write_harnesses(
-    workflows: list[Workflow], *, dry_run: bool, force: bool, output_path: Path | None = None
+    workflows: list[Workflow],
+    *,
+    dry_run: bool,
+    force: bool,
+    output_path: Path | None = None,
+    sidecar: SidecarFormat | None = None,
+    source_path: Path | None = None,
 ) -> None:
     output_paths = [
         (workflow, output_path if output_path is not None else harness_path(workflow))
         for workflow in workflows
     ]
 
+    planned = [
+        (workflow, script_path, dagu_sidecar_path(script_path) if sidecar is not None else None)
+        for workflow, script_path in output_paths
+    ]
+    all_paths = [
+        path for _, script, sidecar_path in planned for path in (script, sidecar_path) if path
+    ]
+    resolved_paths = [path.resolve() for path in all_paths]
+    if len(set(resolved_paths)) != len(resolved_paths):
+        raise WorkflowParseError("Planned output paths must be unique")
+    if source_path is not None and source_path.resolve() in resolved_paths:
+        raise WorkflowParseError("Refusing to overwrite the input workflow YAML")
+
     if dry_run:
-        for workflow, output_path in output_paths:
-            print(f"DRY-RUN would write {output_path} for workflow {workflow.name!r}")
+        for workflow, script_path, sidecar_path in planned:
+            print(f"DRY-RUN would write {script_path} for workflow {workflow.name!r}")
+            if sidecar_path is not None:
+                print(f"DRY-RUN would write {sidecar_path} for workflow {workflow.name!r}")
         return
 
-    directory_conflicts = [path for _, path in output_paths if path.exists() and path.is_dir()]
+    directory_conflicts = [path for path in all_paths if path.exists() and path.is_dir()]
     if directory_conflicts:
         conflict_list = ", ".join(str(path) for path in directory_conflicts)
         raise WorkflowParseError(f"Output path exists but is a directory: {conflict_list}")
 
     if not force:
-        conflicts = [path for _, path in output_paths if path.exists() or path.is_symlink()]
+        conflicts = [path for path in all_paths if path.exists() or path.is_symlink()]
         if conflicts:
             conflict_list = ", ".join(str(path) for path in conflicts)
             message = f"Refusing to overwrite existing file(s): {conflict_list} (use --force)"
             raise WorkflowParseError(message)
 
-    rendered_harnesses = [
-        (output_path, render_harness(workflow)) for workflow, output_path in output_paths
-    ]
+    rendered_harnesses = []
+    for workflow, script_path, sidecar_path in planned:
+        script = render_harness(workflow)
+        sidecar_content = (
+            render_dagu_sidecar(script, project_dir=default_project_dir(sidecar_path))
+            if sidecar_path is not None
+            else None
+        )
+        rendered_harnesses.append((script_path, script, sidecar_path, sidecar_content))
 
-    for output_path, script in rendered_harnesses:
-        if (output_path.exists() or output_path.is_symlink()) and not force:
-            message = f"Refusing to overwrite existing file: {output_path} (use --force)"
-            raise WorkflowParseError(message)
+    staged: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        for script_path, script, sidecar_path, sidecar_content in rendered_harnesses:
+            ensure_output_directory(script_path.parent)
+            staged.append((stage_output(script_path, script, 0o700), script_path))
+            if sidecar_path is not None and sidecar_content is not None:
+                ensure_output_directory(sidecar_path.parent)
+                staged.append((stage_output(sidecar_path, sidecar_content, 0o600), sidecar_path))
+        for temporary_path, output_path in staged:
+            temporary_path.replace(output_path)
+            published.append(output_path)
+            fsync_directory(output_path.parent)
+    except (OSError, WorkflowParseError) as error:
+        for temporary_path, _ in staged:
+            temporary_path.unlink(missing_ok=True)
+        if isinstance(error, OSError):
+            published_paths = ", ".join(map(str, published)) or "none"
+            pending_paths = (
+                ", ".join(
+                    str(output_path) for output_path in all_paths if output_path not in published
+                )
+                or "none"
+            )
+            raise OSError(
+                f"Cannot publish generated output; published: {published_paths}; "
+                f"not published: {pending_paths}: {error}"
+            ) from error
+        pending_paths = ", ".join(map(str, all_paths)) or "none"
+        raise WorkflowParseError(
+            f"Cannot stage generated outputs; published: none; "
+            f"not published: {pending_paths}: {error}"
+        ) from error
 
-        ensure_output_directory(output_path.parent)
-        write_executable(output_path, script)
-        print(f"Wrote {output_path}")
+    for script_path, _, sidecar_path, _ in rendered_harnesses:
+        print(f"Wrote {script_path}")
+        if sidecar_path is not None:
+            print(f"Wrote {sidecar_path}")
 
 
 def ensure_output_directory(path: Path) -> None:
@@ -243,9 +318,8 @@ def ensure_output_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def write_executable(output_path: Path, content: str) -> None:
+def stage_output(output_path: Path, content: str, mode: int) -> Path:
     temporary_path: Path | None = None
-
     try:
         with tempfile.NamedTemporaryFile(
             "w",
@@ -260,10 +334,8 @@ def write_executable(output_path: Path, content: str) -> None:
             temporary.write("\n")
             temporary.flush()
             os.fsync(temporary.fileno())
-
-        temporary_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        temporary_path.replace(output_path)
-        fsync_directory(output_path.parent)
+        temporary_path.chmod(mode)
+        return temporary_path
     except OSError:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)

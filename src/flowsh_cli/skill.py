@@ -3,7 +3,7 @@ from __future__ import annotations
 SKILL_MARKDOWN = """\
 ---
 name: flowsh-cli
-description: Generate executable shell harness scripts from workflow definitions. Use when creating, modifying, validating, reviewing, troubleshooting, or generating workflow-to-shell automation, especially for orchestrating bash and agent calls.
+description: Generate executable shell harness scripts from workflow definitions, optionally with a self-contained Dagu sidecar. Use when creating, modifying, validating, reviewing, troubleshooting, or generating workflow-to-shell automation, especially for orchestrating bash and agent calls.
 ---
 
 # Workflow-to-Shell Generation with flowsh-cli
@@ -150,6 +150,14 @@ Overwrite existing generated files:
 ```bash
 uvx flowsh-cli [workflow-name].yml --force
 ```
+
+Optionally emit a Dagu sidecar alongside the unchanged Bash harness:
+
+```bash
+uvx flowsh-cli [workflow-name].yml --sidecar dagu
+```
+
+The sidecar packages the harness as one Bash execution unit; it does not translate flowsh steps or activate a schedule. See the README's Dagu sidecar section for argument encoding, project context, environment forwarding, and runtime limitations. Base64 is not encryption; do not pass secrets in arguments or expose logs containing prompts or task output.
 
 ---
 
