@@ -11,7 +11,12 @@ from typing import Annotated
 import typer
 
 from flowsh_cli import __version__
-from flowsh_cli.dagu import dagu_sidecar_path, default_project_dir, render_dagu_sidecar
+from flowsh_cli.dagu import (
+    dagu_sidecar_path,
+    default_project_dir,
+    render_dagu_sidecar,
+    unsupported_dagu_reasons,
+)
 from flowsh_cli.examples import example_yaml, examples_index
 from flowsh_cli.models import Workflow, WorkflowParseError, parse_workflows, workflow_schema_yaml
 from flowsh_cli.render import harness_path, render_harness
@@ -119,7 +124,10 @@ def generate(
     ] = None,
     sidecar: Annotated[
         SidecarFormat | None,
-        typer.Option("--sidecar", help="Also generate a self-contained sidecar (supported: dagu)."),
+        typer.Option(
+            "--sidecar",
+            help="Also generate a native Dagu v1 sidecar (supported: flat bash and agent).",
+        ),
     ] = None,
 ) -> None:
     """Generate shell scripts from workflow YAML."""
@@ -240,20 +248,51 @@ def write_harnesses(
     if source_path is not None and source_path.resolve() in resolved_paths:
         raise WorkflowParseError("Refusing to overwrite the input workflow YAML")
 
+    skipped_sidecars = {
+        workflow.id: reasons
+        for workflow, _, sidecar_path in planned
+        if sidecar_path is not None
+        if (reasons := unsupported_dagu_reasons(workflow))
+    }
+    active_paths = [
+        path
+        for workflow, script_path, sidecar_path in planned
+        for path in (script_path, sidecar_path if workflow.id not in skipped_sidecars else None)
+        if path is not None
+    ]
+
+    for workflow, _, sidecar_path in planned:
+        if sidecar_path is None or workflow.id not in skipped_sidecars:
+            continue
+        reason = "; ".join(skipped_sidecars[workflow.id])
+        existing = (
+            " (existing sidecar left unchanged)"
+            if sidecar_path.exists() or sidecar_path.is_symlink()
+            else ""
+        )
+        print(
+            f"ERROR: Dagu sidecar skipped for {workflow.id}: {reason}; "
+            f"{sidecar_path}{existing} (SH generated; exit 0)",
+            file=sys.stderr,
+        )
+
     if dry_run:
         for workflow, script_path, sidecar_path in planned:
             print(f"DRY-RUN would write {script_path} for workflow {workflow.name!r}")
             if sidecar_path is not None:
-                print(f"DRY-RUN would write {sidecar_path} for workflow {workflow.name!r}")
+                if workflow.id in skipped_sidecars:
+                    print(f"DRY-RUN would skip {sidecar_path} for workflow {workflow.name!r}")
+                else:
+                    print(f"DRY-RUN would write {sidecar_path} for workflow {workflow.name!r}")
         return
 
-    directory_conflicts = [path for path in all_paths if path.exists() and path.is_dir()]
+    directory_conflicts = [path for path in active_paths if path.exists() and path.is_dir()]
     if directory_conflicts:
         conflict_list = ", ".join(str(path) for path in directory_conflicts)
         raise WorkflowParseError(f"Output path exists but is a directory: {conflict_list}")
 
     if not force:
-        conflicts = [path for path in all_paths if path.exists() or path.is_symlink()]
+        conflicts = [path for path in active_paths if path.exists() or path.is_symlink()]
         if conflicts:
             conflict_list = ", ".join(str(path) for path in conflicts)
             message = f"Refusing to overwrite existing file(s): {conflict_list} (use --force)"
@@ -262,8 +301,11 @@ def write_harnesses(
     rendered_harnesses = []
     for workflow, script_path, sidecar_path in planned:
         script = render_harness(workflow)
+        if workflow.id in skipped_sidecars:
+            rendered_harnesses.append((script_path, script, None, None))
+            continue
         sidecar_content = (
-            render_dagu_sidecar(script, project_dir=default_project_dir(sidecar_path))
+            render_dagu_sidecar(workflow, project_dir=default_project_dir(sidecar_path))
             if sidecar_path is not None
             else None
         )
@@ -289,7 +331,7 @@ def write_harnesses(
             published_paths = ", ".join(map(str, published)) or "none"
             pending_paths = (
                 ", ".join(
-                    str(output_path) for output_path in all_paths if output_path not in published
+                    str(output_path) for output_path in active_paths if output_path not in published
                 )
                 or "none"
             )
@@ -297,7 +339,7 @@ def write_harnesses(
                 f"Cannot publish generated output; published: {published_paths}; "
                 f"not published: {pending_paths}: {error}"
             ) from error
-        pending_paths = ", ".join(map(str, all_paths)) or "none"
+        pending_paths = ", ".join(map(str, active_paths)) or "none"
         raise WorkflowParseError(
             f"Cannot stage generated outputs; published: none; "
             f"not published: {pending_paths}: {error}"

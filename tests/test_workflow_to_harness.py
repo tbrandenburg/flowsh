@@ -67,7 +67,7 @@ _HELP_TEMPLATE = """\
 │ --example         NAME    Print a named example workflow YAML to stdout and exit.                                    │
 │ --skill                   Show the flowsh-cli skill description and exit.                                            │
 │ --output          PATH    Write generated script to PATH. Only valid when generating a single workflow.              │
-│ --sidecar         [dagu]  Also generate a self-contained sidecar (supported: dagu).                                  │
+│ --sidecar         [dagu]  Also generate a native Dagu v1 sidecar (supported: flat bash and agent).                   │
 │ --help                    Show this message and exit.                                                                │
 ╰─ Options ─╯
 
