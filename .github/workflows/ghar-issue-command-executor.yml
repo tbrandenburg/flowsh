@@ -14,7 +14,7 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
-      contents: write
+      contents: read
     outputs:
       has-command: ${{ steps.parse-comment.outputs.has_command }}
       has-agent: ${{ steps.parse-comment.outputs.has_agent }}
@@ -24,10 +24,12 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       
       - name: React with eyes emoji
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             // Handle both issue comments and PR review comments
@@ -53,67 +55,48 @@ jobs:
       
       - name: Parse comment for commands
         id: parse-comment
+        env:
+          COMMENT: ${{ github.event.comment.body }}
         run: |
-          comment="${{ github.event.comment.body }}"
-          echo "Original comment: $comment"
-          
-          # Check if comment contains a command or agent command
+          set -euo pipefail
+          comment="$COMMENT"
+          delimiter=$(openssl rand -hex 32)
+          agent=''
+          command=''
+          has_agent=false
+          has_command=false
           if [[ "$comment" =~ ^\*([a-zA-Z0-9_-]+)[[:space:]]+/([a-zA-Z0-9_-]+)(.*)$ ]]; then
-            # Agent command format: *agent /command PROMPT
             agent="${BASH_REMATCH[1]}"
             command="${BASH_REMATCH[2]}"
             prompt="${BASH_REMATCH[3]}"
-            # Remove leading whitespace from prompt
-            prompt=$(echo "$prompt" | sed 's/^[[:space:]]*//')
-            # "agent" is a generic placeholder — clear it to trigger the "build" fallback
-            [[ "$agent" == "agent" ]] && agent=""
-            
-            echo "Detected agent command"
-            echo "agent=$agent" >> $GITHUB_OUTPUT
-            echo "command=$command" >> $GITHUB_OUTPUT
-            echo "prompt<<EOF" >> $GITHUB_OUTPUT
-            echo "$prompt" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "has_command=true" >> $GITHUB_OUTPUT
-            echo "has_agent=true" >> $GITHUB_OUTPUT
-            
+            has_agent=true
+            has_command=true
           elif [[ "$comment" =~ ^\*([a-zA-Z0-9_-]+)[[:space:]]+(.*)$ ]]; then
-            # Agent prompt format: *agent PROMPT (no slash command)
             agent="${BASH_REMATCH[1]}"
             prompt="${BASH_REMATCH[2]}"
-            # Remove leading whitespace from prompt
-            prompt=$(echo "$prompt" | sed 's/^[[:space:]]*//')
-            # "agent" is a generic placeholder — clear it to trigger the "build" fallback
-            [[ "$agent" == "agent" ]] && agent=""
-            
-            echo "Detected agent prompt"
-            echo "agent=$agent" >> $GITHUB_OUTPUT
-            echo "prompt<<EOF" >> $GITHUB_OUTPUT
-            echo "$prompt" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "has_command=false" >> $GITHUB_OUTPUT
-            echo "has_agent=true" >> $GITHUB_OUTPUT
-            
+            has_agent=true
           elif [[ "$comment" =~ ^/([a-zA-Z0-9_-]+)(.*)$ ]]; then
-            # Direct command format: /command PROMPT
             command="${BASH_REMATCH[1]}"
             prompt="${BASH_REMATCH[2]}"
-            # Remove leading whitespace from prompt
-            prompt=$(echo "$prompt" | sed 's/^[[:space:]]*//')
-            
-            echo "Detected direct command"
-            echo "command=$command" >> $GITHUB_OUTPUT
-            echo "prompt<<EOF" >> $GITHUB_OUTPUT
-            echo "$prompt" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "has_command=true" >> $GITHUB_OUTPUT
-            echo "has_agent=false" >> $GITHUB_OUTPUT
-            
+            has_command=true
           else
-            echo "No command detected in comment"
-            echo "has_command=false" >> $GITHUB_OUTPUT
-            echo "has_agent=false" >> $GITHUB_OUTPUT
+            printf 'has_command=false\nhas_agent=false\n' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          prompt="${prompt#"${prompt%%[![:space:]]*}"}"
+          if [[ "$agent" == agent ]]; then
+            agent=''
+          fi
+          {
+            if [[ "$has_agent" == true ]]; then
+              printf 'agent=%s\n' "$agent"
+            fi
+            if [[ "$has_command" == true ]]; then
+              printf 'command=%s\n' "$command"
+            fi
+            printf 'prompt<<%s\n%s\n%s\n' "$delimiter" "$prompt" "$delimiter"
+            printf 'has_command=%s\nhas_agent=%s\n' "$has_command" "$has_agent"
+          } >> "$GITHUB_OUTPUT"
 
   execute-opencode:
     if: needs.parse-and-check.outputs.has-command == 'true' || needs.parse-and-check.outputs.has-agent == 'true'
@@ -140,19 +123,25 @@ jobs:
     
     steps:      
       - name: Comment execution results
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          HAS_COMMAND: ${{ needs.parse-and-check.outputs.has-command }}
+          HAS_AGENT: ${{ needs.parse-and-check.outputs.has-agent }}
+          COMMAND: ${{ needs.parse-and-check.outputs.command }}
+          AGENT: ${{ needs.parse-and-check.outputs.agent }}
+          RESULTS: ${{ needs.execute-opencode.outputs.results }}
+          RESULTS_TRUNCATED: ${{ needs.execute-opencode.outputs.results-truncated }}
+          ARTIFACT_NAME: ${{ needs.execute-opencode.outputs.artifact-name }}
         with:
           script: |
-            const hasCommand = '${{ needs.parse-and-check.outputs.has-command }}' === 'true';
-            const hasAgent = '${{ needs.parse-and-check.outputs.has-agent }}' === 'true';
-            const command = '${{ needs.parse-and-check.outputs.command }}';
-            const agent = '${{ needs.parse-and-check.outputs.agent }}';
+            const hasCommand = process.env.HAS_COMMAND === 'true';
+            const hasAgent = process.env.HAS_AGENT === 'true';
+            const command = process.env.COMMAND;
+            const agent = process.env.AGENT;
             const runId = context.runId;
-            
-            // Use toJSON() to properly escape the results content
-            const results = ${{ toJSON(needs.execute-opencode.outputs.results) }};
-            const resultsTruncated = '${{ needs.execute-opencode.outputs.results-truncated }}' === 'true';
-            const artifactName = '${{ needs.execute-opencode.outputs.artifact-name }}';
+            const results = process.env.RESULTS;
+            const resultsTruncated = process.env.RESULTS_TRUNCATED === 'true';
+            const artifactName = process.env.ARTIFACT_NAME;
             
             let executionType;
             if (hasAgent && hasCommand) {

@@ -32,6 +32,7 @@ flowsh-cli = "flowsh_cli.cli:main"
 [dependency-groups]
 dev = [
   "flowsh-cli[cli]",
+  "pip-audit==2.10.1",
   "pytest>=9.0.3,<10",
   "ruff>=0.14,<0.15",
 ]
