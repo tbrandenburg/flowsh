@@ -3,7 +3,7 @@ from __future__ import annotations
 SKILL_MARKDOWN = """\
 ---
 name: flowsh-cli
-description: Generate executable shell harness scripts from workflow definitions, optionally with a native Dagu v1 sidecar for flat unconditional Bash and OpenCode agent steps. Use when creating, modifying, validating, reviewing, troubleshooting, or generating workflow-to-shell automation, especially for orchestrating bash and agent calls.
+description: Generate executable shell harness scripts from workflow definitions, optionally with readable native Dagu v1 Bash and OpenCode harness steps. Use when creating, modifying, validating, reviewing, troubleshooting, or generating workflow-to-shell automation, especially for orchestrating bash and agent calls.
 ---
 
 # Workflow-to-Shell Generation with flowsh-cli
@@ -157,7 +157,7 @@ Optionally emit a native Dagu v1 sidecar alongside the unchanged Bash harness:
 uvx flowsh-cli [workflow-name].yml --sidecar dagu
 ```
 
-The sidecar emits one separate Dagu node per supported source operation. Native v1 supports flat, unconditional `bash` and OpenCode `agent` steps only, with explicit sequential dependencies and no active schedule. Stateful/control-flow steps, workflow parameters, nonempty `when`, and unsupported agent options skip that workflow's sidecar nonfatally; ordinary `.sh` output remains available. Sidecars from flowsh 0.12.0/0.12.1 are old whole-harness wrappers and should be regenerated. Dagu 2.24.0 is the minimum supported version. See the README's Dagu sidecar section for the support matrix, `project_dir`, migration, and runtime limitations.
+The sidecar emits one separate Dagu node per supported source operation: readable Bash `run: |` blocks and native `action: harness.run` OpenCode steps. Every generated agent step sets `with.managed: false`, forcing one-shot OpenCode CLI mode in every supported Dagu topology; generated sidecars never use managed sessions. Native v1 supports flat, unconditional `bash` and `agent` steps only, with explicit sequential dependencies, zero retries, and no active schedule. Dagu resolves supported `${...}` references in executable fields, so a braced-dollar expression in Bash, prompt, or agent selection rejects that sidecar rather than risking altered payloads. Stateful/control-flow steps, workflow parameters, nonempty `when`, and unsupported agent options also skip that workflow's sidecar nonfatally; ordinary `.sh` output remains available. Sidecars from flowsh 0.12.0/0.12.1 are old whole-harness wrappers and should be regenerated. Dagu 2.25.1 is the minimum supported version; Dagu 2.25.1 and newer are supported. See the README's Dagu sidecar section for the support matrix, `project_dir`, managed-vs-CLI behavior, migration, and runtime limitations.
 
 ---
 
